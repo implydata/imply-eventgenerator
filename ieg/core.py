@@ -387,14 +387,6 @@ class DataDriver:
             msg = 'Error: Unknown target type "'+target['type']+'"'
             raise Exception(msg)
 
-        # A different source of data generation is a digital twin mode
-        # A source file is used that already contains a sequence of events for a given time period
-        # The source file is expected to be sorted on time
-        # time field mapping is needed and uses a json path to specify it with either 'millis' or ISO time format specified
-        # This generator will
-        # - read the first line in the file to find the starting timestamp and save that
-        # - it will then emit events with the generator time such that the events have the same cadence as the original file
-    
         self.type='generator'
         if 'type' in config.keys():
             self.type=config['type']
@@ -486,10 +478,6 @@ class DataDriver:
             raise Exception(msg)        
 
     def format_record_with_pattern(self, record):
-        """
-        Apply the global pattern to the record if a pattern is defined.
-        """
-        
         if not self.global_pattern:
             return json.dumps(record)  # Default to JSON if no pattern is provided
 
@@ -504,9 +492,6 @@ class DataDriver:
         return formatted_record
 
     def create_record(self, dimensions, variables):
-        """
-        Create a record by collecting values from dimensions and applying the global pattern.
-        """
         record = {}
         for element in dimensions:
             if isinstance(element, DimensionVariable):
