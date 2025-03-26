@@ -13,7 +13,8 @@ python generator/generator.py \
         -o <target specification file> \
         -s <start timestamp> \
         -n <record limit> \
-        -t <duration limit>
+        -t <duration limit> \
+        -p <pattern specification file>
 ```
 
 | Argument | Description |
