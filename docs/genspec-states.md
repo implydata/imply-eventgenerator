@@ -148,3 +148,11 @@ If `state_2` is selected, this emits an `example_record_2`, a `delay` of 1 secon
   }
 }
 ```
+
+Save the configuration above as `example.json`.
+
+The following command will create 10 records and use only one worker:
+
+```bash
+python3 src/generator/generator.py -f example.json -n 10 -m 1
+```

@@ -1,0 +1,465 @@
+{
+  "target": { "type": "stdout" },
+  "interarrival": { "type": "exponential", "mean": 1.0 },
+  "emitters": [
+    {
+      "name": "apache_combined_log",
+      "dimensions": [
+        {
+          "name": "host",
+          "type": "enum",
+          "values": ["10.0.1.15", "10.0.1.16", "10.0.1.17", "10.0.1.18", "10.0.1.19"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 4 }
+        },
+        { "name": "ident", "type": "string", "cardinality": 0, "length_distribution": { "type": "constant", "value": 1 }, "chars": "-" },
+        { "name": "authuser", "type": "string", "cardinality": 0, "length_distribution": { "type": "constant", "value": 1 }, "chars": "-" },
+        { "name": "request_url", "type": "variable", "variable": "var_request" },
+        { "name": "request_method", "type": "variable", "variable": "var_method" },
+        { "name": "request_protocol", "type": "variable", "variable": "var_protocol" },
+        { "name": "status", "type": "variable", "variable": "var_status" },
+        { "name": "bytes", "type": "int", "cardinality": 0, "distribution": { "type": "uniform", "min": 0, "max": 10000 } },
+        { "name": "referrer_url", "type": "variable", "variable": "var_referrer_url" },
+        { "name": "clientip", "type": "variable", "variable": "var_client_ip" },
+        { "name": "useragent", "type": "variable", "variable": "var_user_agent" }
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "initial",
+      "emitter": "apache_combined_log",
+      "variables": [
+        {
+          "name": "var_client_ip",
+          "type": "ipaddress",
+          "cardinality": 5,
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 5 },
+          "distribution": { "type": "uniform", "min": 184549376, "max": 2127008767 }
+        },
+        {
+          "name": "var_request",
+          "type": "enum",
+          "values": ["/"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
+        },
+        { "name": "var_status", "type": "enum", "values": [200], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_method", "type": "enum", "values": ["GET"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        {
+          "name": "var_user_agent",
+          "type": "enum",
+          "values": [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/91.0.864.59",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+            "Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 9; SM-A505F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 8.1.0; Nexus 5X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Brave/91.0.4472.124 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 7.1.1; Moto G5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Vivaldi/4.0.2312.27 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 6P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Opera/77.0.4054.172 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 5.1.1; Nexus 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 24 }
+        },
+        {
+          "name": "var_referrer_url",
+          "type": "enum",
+          "values": [
+            "https://www.google.com/",
+            "https://www.bing.com/",
+            "https://search.yahoo.com/",
+            "https://duckduckgo.com/",
+            "https://www.baidu.com/",
+            "https://yandex.com/",
+            "https://www.facebook.com/",
+            "https://www.instagram.com/",
+            "https://twitter.com/",
+            "https://www.linkedin.com/",
+            "https://www.pinterest.com/",
+            "https://www.reddit.com/",
+            "https://www.tiktok.com/",
+            "https://www.amazon.com/",
+            "https://www.ebay.com/",
+            "https://www.etsy.com/",
+            "https://www.walmart.com/",
+            "https://www.aliexpress.com/",
+            "https://www.youtube.com/",
+            "https://medium.com/",
+            "https://www.quora.com/",
+            "https://www.forbes.com/",
+            "https://techcrunch.com/",
+            "https://www.retailmenot.com/",
+            "https://www.slickdeals.net/"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 24 }
+        },
+        {
+          "name": "var_protocol",
+          "type": "enum",
+          "values": ["HTTP/1.0", "HTTP/1.1", "HTTP/2"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        }
+      ],
+      "delay": { "type": "exponential", "mean": 1.0 },
+      "transitions": [
+        { "next": "browse_products", "probability": 0.999 },
+        { "next": "hacker", "probability": 0.001 }
+      ]
+    },
+    {
+      "name": "browse_products",
+      "emitter": "apache_combined_log",
+      "variables": [
+        { "name": "var_request", "type": "enum", "values": ["/products"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_referrer_url", "type": "enum", "values": ["-"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "exponential", "mean": 2.0 },
+      "transitions": [
+        { "next": "browse_cat_indoor_lighting", "probability": 0.4 },
+        { "next": "browse_cat_outdoor_lighting", "probability": 0.2 },
+        { "next": "browse_cat_smart_lighting", "probability": 0.15 },
+        { "next": "browse_cat_led_lighting", "probability": 0.15 },
+        { "next": "browse_cat_vintage_lighting", "probability": 0.1 }
+      ]
+    },
+    {
+      "name": "browse_cat_indoor_lighting",
+      "emitter": "apache_combined_log",
+      "variables": [
+        {
+          "name": "var_request",
+          "type": "enum",
+          "values": [
+            "/categories/indoor-lighting/aurora-chandelier",
+            "/categories/indoor-lighting/nebula-table-lamp",
+            "/categories/indoor-lighting/stellar-floor-lamp",
+            "/categories/indoor-lighting/eclipse-wall-sconce",
+            "/categories/indoor-lighting/orion-pendant-light",
+            "/categories/indoor-lighting/celestial-ceiling-light",
+            "/categories/indoor-lighting/galaxy-desk-lamp",
+            "/categories/indoor-lighting/meteor-track-light",
+            "/categories/indoor-lighting/comet-wall-lamp",
+            "/categories/indoor-lighting/constellation-chandelier"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
+        }
+      ],
+      "delay": { "type": "exponential", "mean": 2.0 },
+      "transitions": [
+        { "next": "add_to_cart", "probability": 0.3 },
+        { "next": "browse_cat_indoor_lighting", "probability": 0.4 },
+        { "next": "browse_products", "probability": 0.2 },
+        { "next": "stop", "probability": 0.1 }
+      ]
+    },
+    {
+      "name": "browse_cat_outdoor_lighting",
+      "emitter": "apache_combined_log",
+      "variables": [
+        {
+          "name": "var_request",
+          "type": "enum",
+          "values": [
+            "/categories/outdoor-lighting/solar-path-light",
+            "/categories/outdoor-lighting/moonlit-garden-lamp",
+            "/categories/outdoor-lighting/starlight-wall-lantern",
+            "/categories/outdoor-lighting/twilight-post-light",
+            "/categories/outdoor-lighting/aurora-string-lights",
+            "/categories/outdoor-lighting/dusk-to-dawn-floodlight",
+            "/categories/outdoor-lighting/galactic-spotlight",
+            "/categories/outdoor-lighting/nebula-patio-light",
+            "/categories/outdoor-lighting/orbit-wall-light",
+            "/categories/outdoor-lighting/meteor-garden-lamp",
+            "/categories/outdoor-lighting/cosmic-deck-light"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
+        }
+      ],
+      "delay": { "type": "exponential", "mean": 2.0 },
+      "transitions": [
+        { "next": "add_to_cart", "probability": 0.3 },
+        { "next": "browse_cat_outdoor_lighting", "probability": 0.4 },
+        { "next": "browse_products", "probability": 0.2 },
+        { "next": "stop", "probability": 0.1 }
+      ]
+    },
+    {
+      "name": "browse_cat_smart_lighting",
+      "emitter": "apache_combined_log",
+      "variables": [
+        {
+          "name": "var_request",
+          "type": "enum",
+          "values": [
+            "/categories/smart-lighting/voice-controlled-bulb",
+            "/categories/smart-lighting/color-changing-bulb",
+            "/categories/smart-lighting/wifi-led-strip",
+            "/categories/smart-lighting/app-controlled-lamp",
+            "/categories/smart-lighting/smart-ceiling-light",
+            "/categories/smart-lighting/ambient-desk-lamp",
+            "/categories/smart-lighting/smart-wall-sconce",
+            "/categories/smart-lighting/energy-saving-smart-light",
+            "/categories/smart-lighting/smart-pendant-light",
+            "/categories/smart-lighting/automated-floor-lamp"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
+        }
+      ],
+      "delay": { "type": "exponential", "mean": 2.0 },
+      "transitions": [
+        { "next": "add_to_cart", "probability": 0.3 },
+        { "next": "browse_cat_smart_lighting", "probability": 0.4 },
+        { "next": "browse_products", "probability": 0.2 },
+        { "next": "stop", "probability": 0.1 }
+      ]
+    },
+    {
+      "name": "browse_cat_led_lighting",
+      "emitter": "apache_combined_log",
+      "variables": [
+        {
+          "name": "var_request",
+          "type": "enum",
+          "values": [
+            "/categories/led-lighting/ultra-bright-led-bulb",
+            "/categories/led-lighting/eco-friendly-led-panel",
+            "/categories/led-lighting/led-desk-lamp",
+            "/categories/led-lighting/led-track-light",
+            "/categories/led-lighting/led-wall-washer",
+            "/categories/led-lighting/led-ceiling-panel",
+            "/categories/led-lighting/led-pendant-light",
+            "/categories/led-lighting/led-floor-lamp",
+            "/categories/led-lighting/led-strip-light",
+            "/categories/led-lighting/led-recessed-light"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
+        }
+      ],
+      "delay": { "type": "exponential", "mean": 2.0 },
+      "transitions": [
+        { "next": "add_to_cart", "probability": 0.3 },
+        { "next": "browse_cat_led_lighting", "probability": 0.4 },
+        { "next": "browse_products", "probability": 0.2 },
+        { "next": "stop", "probability": 0.1 }
+      ]
+    },
+    {
+      "name": "browse_cat_vintage_lighting",
+      "emitter": "apache_combined_log",
+      "variables": [
+        {
+          "name": "var_request",
+          "type": "enum",
+          "values": [
+            "/categories/vintage-lighting/retro-chandelier",
+            "/categories/vintage-lighting/antique-wall-lamp",
+            "/categories/vintage-lighting/industrial-pendant-light",
+            "/categories/vintage-lighting/edison-bulb-lamp",
+            "/categories/vintage-lighting/victorian-table-lamp",
+            "/categories/vintage-lighting/art-deco-floor-lamp",
+            "/categories/vintage-lighting/rustic-ceiling-light",
+            "/categories/vintage-lighting/steampunk-wall-sconce",
+            "/categories/vintage-lighting/classic-desk-lamp",
+            "/categories/vintage-lighting/heritage-track-light",
+            "/categories/vintage-lighting/nostalgic-patio-light"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
+        }
+      ],
+      "delay": { "type": "exponential", "mean": 2.0 },
+      "transitions": [
+        { "next": "add_to_cart", "probability": 0.3 },
+        { "next": "browse_cat_vintage_lighting", "probability": 0.4 },
+        { "next": "browse_products", "probability": 0.2 },
+        { "next": "stop", "probability": 0.1 }
+      ]
+    },
+    {
+      "name": "add_to_cart",
+      "emitter": "apache_combined_log",
+      "variables": [
+        { "name": "var_request", "type": "enum", "values": ["/cart"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 } }
+      ],
+      "delay": { "type": "exponential", "mean": 1.5 },
+      "transitions": [
+        { "next": "checkout", "probability": 0.3 },
+        { "next": "browse_products", "probability": 0.5 },
+        { "next": "stop", "probability": 0.2 }
+      ]
+    },
+    {
+      "name": "checkout",
+      "emitter": "apache_combined_log",
+      "variables": [
+        { "name": "var_request", "type": "enum", "values": ["/checkout"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_method", "type": "enum", "values": ["POST"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "exponential", "mean": 3.0 },
+      "transitions": [
+        { "next": "thank_you", "probability": 0.6 },
+        { "next": "try_again", "probability": 0.1 },
+        { "next": "stop", "probability": 0.3 }
+      ]
+    },
+    {
+      "name": "thank_you",
+      "emitter": "apache_combined_log",
+      "variables": [
+        { "name": "var_request", "type": "enum", "values": ["/thank-you"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "exponential", "mean": 1.0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    },
+    {
+      "name": "try_again",
+      "emitter": "apache_combined_log",
+      "variables": [
+        { "name": "var_request", "type": "enum", "values": ["/try-again"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_status", "type": "enum", "values": [400], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "exponential", "mean": 2.0 },
+      "transitions": [
+        { "next": "checkout", "probability": 0.95 },
+        { "next": "stop", "probability": 0.05 }
+      ]
+    },
+    {
+      "name": "not_found",
+      "emitter": "apache_combined_log",
+      "variables": [
+        {
+          "name": "var_request",
+          "type": "enum",
+          "values": [
+            "/categories/kitchen-appliances/retro-toaster",
+            "/categories/electronics/smartwatch-pro",
+            "/categories/furniture/modern-sofa",
+            "/categories/outdoor-gear/camping-tent-xl",
+            "/categories/fitness/adjustable-dumbbells",
+            "/categories/beauty/skincare-set",
+            "/categories/toys/robotic-dinosaur",
+            "/categories/books/mystery-novel",
+            "/categories/clothing/designer-jacket",
+            "/categories/automotive/car-vacuum-cleaner"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 9 }
+        },
+        { "name": "var_status", "type": "enum", "values": [404], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "exponential", "mean": 1.0 },
+      "transitions": [
+        { "next": "browse_products", "probability": 1.0 }
+      ]
+    },
+    {
+      "name": "hacker",
+      "emitter": "apache_combined_log",
+      "variables": [
+        {
+          "name": "var_request",
+          "type": "enum",
+          "values": [
+            "/admin",
+            "/login?user=admin'--",
+            "/etc/passwd",
+            "/wp-admin",
+            "/sql?query=SELECT%20*%20FROM%20users",
+            "/../../../../etc/shadow",
+            "/cgi-bin/test.cgi",
+            "/.git/config",
+            "/config.php.bak",
+            "/debug.log",
+            "/.env",
+            "/.htaccess",
+            "/.bash_history",
+            "/.ssh/id_rsa",
+            "/private.key",
+            "/backup.sql",
+            "/old/config.php",
+            "/phpinfo.php",
+            "/server-status",
+            "/error.log",
+            "/vulnerable.php",
+            "/admin/login",
+            "/admin/dashboard",
+            "/admin/config",
+            "/admin/settings",
+            "/admin/users",
+            "/admin/backup",
+            "/admin/logs",
+            "/admin/reports",
+            "/admin/test",
+            "/admin/debug",
+            "/admin/hidden",
+            "/admin/secret",
+            "/admin/private",
+            "/admin/passwords",
+            "/admin/keys",
+            "/admin/data",
+            "/admin/files",
+            "/admin/uploads",
+            "/admin/downloads",
+            "/admin/sql",
+            "/admin/db",
+            "/admin/db_backup",
+            "/admin/db_dump",
+            "/admin/db_config",
+            "/admin/db_test",
+            "/admin/db_logs",
+            "/admin/db_debug",
+            "/admin/db_private",
+            "/admin/db_secret",
+            "/admin/db_hidden",
+            "/admin/db_vulnerable",
+            "/admin/db_error",
+            "/admin/db_status",
+            "/admin/db_info",
+            "/admin/db_env",
+            "/admin/db_htaccess",
+            "/admin/db_bash_history",
+            "/admin/db_ssh",
+            "/admin/db_rsa",
+            "/admin/db_key",
+            "/admin/db_backup.sql"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 59 }
+        },
+        {
+          "name": "var_status",
+          "type": "enum",
+          "values": [403, 404, 500, 401, 400, 502, 503],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 6 }
+        },
+        {
+          "name": "var_method",
+          "type": "enum",
+          "values": ["GET", "POST", "PUT", "DELETE"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 3 }
+        },
+        { "name": "var_referrer_url", "type": "enum", "values": ["-"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "exponential", "mean": 0.01 },
+      "transitions": [
+        { "next": "hacker", "probability": 0.99 },
+        { "next": "stop", "probability": 0.01 }
+      ]
+    }
+  ]
+}

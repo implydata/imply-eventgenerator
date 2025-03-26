@@ -1,0 +1,5 @@
+confluent-kafka
+python-dateutil
+kafka-python
+numpy
+sortedcontainers

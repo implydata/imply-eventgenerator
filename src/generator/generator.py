@@ -1,42 +1,41 @@
 #
-# DruidDataDriver - generates JSON records as a workload for Apache Druid.
+# Generates JSON records as a workload for Apache Druid.
 #
 
-import argparse
-import math
+# Additional modules.
 
 from confluent_kafka import Producer
+from kafka import KafkaProducer
+from sortedcontainers import SortedList
+import numpy as np
+
+# Standard modules.
+
+import argparse
 import dateutil.parser
 from datetime import datetime, timedelta
 import json
-from kafka import KafkaProducer
-import numpy as np
 import random
 import re
-from sortedcontainers import SortedList
 import string
 import sys
 import threading
 import time
+import os
 
 ############################################################################
 #
-# DruidDataDriver generates JSON records and outputs them to a file or a stream
+# DruidDataDriver generates JSON records and outputs them to a file or a stream.
 # Use a JSON config file to describe the characteristics of the workload
 # you want to simulate.
-#
-# Run the program as follows:
-# python DruidDataDriver.py <config file name> <options>
-# Options include:
-# -n <total number of records to generate>
-# -t <duration for generating records>
-#
-# See the associated documentation for the format of the config file.
 #
 ############################################################################
 
 
 class FutureEvent:
+    # Represents a future event in the simulation clock.
+    # Each event has a timestamp and can be paused or resumed.
+    # Used by the Clock class to manage simulated time.
     def __init__(self, t):
         self.t = t
         self.name = threading.current_thread().name
@@ -60,6 +59,9 @@ class FutureEvent:
         self.event.set()
 
 class Clock:
+    # Simulates time for the data generation process.
+    # Supports both real-time and simulated time modes.
+    # Manages future events and thread synchronization.
     future_events = SortedList()
     active_threads = 0
     lock = threading.Lock()
@@ -142,7 +144,7 @@ class Clock:
         return t
 
     def sleep(self, delta):
-        # cannot travel to the past so don't move the time if delta is negative
+        # Cannot travel to the past, so don't move the time if delta is negative
         if delta < 0:
             return
         if self.time_type != 'REAL': # Simulated time
@@ -172,40 +174,43 @@ class Clock:
 
 
 #
-# Set up the target
+# Classes for different types of target
 #
 
-class PrintStdout:
+class TargetStdout:
+    # Outputs generated records to the standard output (console).
     lock = threading.Lock()
     def print(self, record):
         with self.lock:
             print(str(record))
             sys.stdout.flush()
     def __str__(self):
-        return '#printStdout()'
+        return '#TargetStdout()'
 
-class PrintFile:
+class TargetFile:
+    # Outputs generated records to a specified file.
     f = None
     def __init__(self, file_name):
         self.file_name = file_name
         self.f = open(file_name, 'w')
     def __str__(self):
-        return 'PrintFile(file_name='+self.file_name+')'
+        return 'TargetFile(file_name='+self.file_name+')'
     def print(self, record):
         self.f.write(str(record)+'\n')
         self.f.flush()
 
-class PrintKafka:
+class TargetKafka:
+    # Sends generated records to a Kafka topic.
     producer = None
     topic = None
     def __init__(self, endpoint, topic, security_protocol, compression_type, topic_key):
-        #print('PrintKafka('+str(endpoint)+', '+str(topic)+', '+str(security_protocol)+', '+str(compression_type)+')')
+        #print('TargetKafka('+str(endpoint)+', '+str(topic)+', '+str(security_protocol)+', '+str(compression_type)+')')
         self.endpoint = endpoint
         self.producer = KafkaProducer(bootstrap_servers=endpoint, security_protocol=security_protocol, compression_type=compression_type) # , value_serializer=lambda v: json.dumps(v).encode('utf-8'))
         self.topic = topic
         self.topic_key=topic_key
     def __str__(self):
-        return 'PrintKafka(endpoint='+self.endpoint+', topic='+self.topic+', topic_key='+self.topic_key+')'
+        return 'TargetKafka(endpoint='+self.endpoint+', topic='+self.topic+', topic_key='+self.topic_key+')'
     def print(self, record):
         if len(self.topic_key) == 0:
             self.producer.send(topic=self.topic, value=bytes(record, 'utf-8'))
@@ -217,13 +222,14 @@ class PrintKafka:
             self.producer.send(topic=self.topic, value=bytes(record, 'utf-8'), key=bytes(key, 'utf-8'))
         self.producer.flush()
 
-class PrintConfluent:
+class TargetConfluent:
+    # Sends generated records to a Confluent Kafka topic with SASL authentication.
     producer = None
     topic = None
     username = None
     password = None
     def __init__(self, servers, topic, username, password, topic_key):
-        #print('PrintKafka('+str(endpoint)+', '+str(topic)+', '+str(security_protocol)+', '+str(compression_type)+')')
+        #print('TargetConfluent('+str(endpoint)+', '+str(topic)+', '+str(security_protocol)+', '+str(compression_type)+')')
         self.servers = servers
         self.producer = Producer({
             'bootstrap.servers': servers,
@@ -237,7 +243,7 @@ class PrintConfluent:
         self.password = password
         self.topic_key = topic_key
     def __str__(self):
-        return 'PrintConfluent(servers='+self.servers+', topic='+self.topic+', username='+self.username+', password='+self.password+', topic_key='+self.topic_key+')'
+        return 'TargetConfluent(servers='+self.servers+', topic='+self.topic+', username='+self.username+', password='+self.password+', topic_key='+self.topic_key+')'
     def print(self, record):
         print('producing '+str(record))
         if len(self.topic_key) == 0:
@@ -252,10 +258,11 @@ class PrintConfluent:
 
 
 #
-# Handle distributions
+# Classes for different types of distribution
 #
 
 class DistConstant:
+    # Represents a constant value distribution.
     def __init__(self, value):
         self.value = value
     def __str__(self):
@@ -264,6 +271,7 @@ class DistConstant:
         return self.value
 
 class DistUniform:
+    # Represents a uniform distribution between a minimum and maximum value.
     def __init__(self, min_value, max_value):
         self.min_value = min_value
         self.max_value = max_value
@@ -273,6 +281,7 @@ class DistUniform:
         return np.random.uniform(self.min_value, self.max_value+1)
 
 class DistExponential:
+    # Represents an exponential distribution with a given mean.
     def __init__(self, mean):
         self.mean = mean
     def __str__(self):
@@ -281,6 +290,7 @@ class DistExponential:
         return np.random.exponential(scale = self.mean)
 
 class DistNormal:
+    # Represents a normal (Gaussian) distribution with a given mean and standard deviation.
     def __init__(self, mean, stddev):
         self.mean = mean
         self.stddev = stddev
@@ -290,6 +300,8 @@ class DistNormal:
         return np.random.normal(self.mean, self.stddev)
 
 def parse_distribution(desc):
+    # Parses a distribution configuration and returns the corresponding distribution object.
+    # Supported types: constant, uniform, exponential, normal.
     dist_type = desc['type'].lower()
     dist_gen = None
     if dist_type == 'constant':
@@ -312,6 +324,8 @@ def parse_distribution(desc):
     return dist_gen
 
 def parse_timestamp_distribution(desc):
+    # Parses a timestamp distribution configuration and returns the corresponding distribution object.
+    # Supported types: constant, uniform, exponential, normal.
     dist_type = desc['type'].lower()
     dist_gen = None
     if dist_type == 'constant':
@@ -335,25 +349,11 @@ def parse_timestamp_distribution(desc):
 
 
 #
-# Set up the dimensions for the emitters (see below)
-# There is one element class for each dimension type. This code creates a list of
-# elements and then runs through the list to create a single record.
-# Notice that the get_json_field_string() method produces the JSON dimension
-# field object based on the dimension configuration.
-# The get_stochastic_value() method is like a private method used to get a random
-# idividual value.
+# Classes for different types of emitter dimension
 #
 
-class ElementNow: # The time dimension
-    def __init__(self, global_clock):
-        self.global_clock = global_clock
-    def __str__(self):
-        return 'ElementNow()'
-    def get_json_field_string(self):
-        now = self.global_clock.now().isoformat()[:-3]
-        return '"time":"'+now+'"'
-
-class ElementCounter: # The time dimension
+class DimensionBase:
+    # Base class for other dimension types.
     def __init__(self, desc):
         self.name = desc['name']
         if 'percent_nulls' in desc.keys():
@@ -364,114 +364,21 @@ class ElementCounter: # The time dimension
             self.percent_missing = desc['percent_missing'] / 100.0
         else:
             self.percent_missing = 0.0
-        if 'start' in desc.keys():
-            self.start = desc['start']
-        else:
-            self.start = 0
-        if 'increment' in desc.keys():
-            self.increment = desc['increment']
-        else:
-            self.increment = 1
-        self.value = self.start
-    def __str__(self):
-        s = 'ElementCounter(name='+self.name
-        if self.start != 0:
-            s += ', '+str(self.start)
-        if self.increment != 1:
-            s += ', '+str(self.increment)
-        s += ')'
-        return s
 
-    def get_stochastic_value(self):
-        v = self.value
-        self.value += self.increment
-        return v
-
-    def get_json_field_string(self):
-        if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
-        else:
-            s = '"'+self.name+'":"'+str(self.get_stochastic_value())+'"'
-            return s
-
-    def is_missing(self):
-        return random.random() < self.percent_missing
-
-
-class ElementEnum: # enumeration dimensions
-    def __init__(self, desc):
-        self.name = desc['name']
-        if 'percent_nulls' in desc.keys():
-            self.percent_nulls = desc['percent_nulls'] / 100.0
-        else:
-            self.percent_nulls = 0.0
-        if 'percent_missing' in desc.keys():
-            self.percent_missing = desc['percent_missing'] / 100.0
-        else:
-            self.percent_missing = 0.0
-        self.cardinality = desc['values']
-        if 'cardinality_distribution' not in desc.keys():
-            print('Element '+self.name+' specifies a cardinality without a cardinality distribution')
-            exit()
-        self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
-
-    def __str__(self):
-        return 'ElementEnum(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
-
-    def get_stochastic_value(self):
-        index = int(self.cardinality_distribution.get_sample())
-        if index < 0:
-            index = 0
-        if index >= len(self.cardinality):
-            index = len(self.cardinality)-1
-        return self.cardinality[index]
-
-    def get_json_field_string(self):
-        if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
-        else:
-            s = '"'+self.name+'":"'+str(self.get_stochastic_value())+'"'
-        return s
-
-    def is_missing(self):
-        return random.random() < self.percent_missing
-
-class ElementVariable: # Variable dimensions
-    def __init__(self, desc):
-        self.name = desc['name']
-        self.variable_name = desc['variable']
-
-    def __str__(self):
-        return 'ElementVariable(name='+self.name+', value='+self.variable_name+')'
-
-    def get_json_field_string(self, variables): # NOTE: because of timing, this method has a different signature than the other elements
-        value = variables[self.variable_name]
-        return '"'+self.name+'":"'+str(value)+'"'
-
-
-class ElementBase: # Base class for the remainder of the dimensions
-    def __init__(self, desc):
-        self.name = desc['name']
-        if 'percent_nulls' in desc.keys():
-            self.percent_nulls = desc['percent_nulls'] / 100.0
-        else:
-            self.percent_nulls = 0.0
-        if 'percent_missing' in desc.keys():
-            self.percent_missing = desc['percent_missing'] / 100.0
-        else:
-            self.percent_missing = 0.0
+        if 'cardinality' not in desc.keys():
+                raise Exception(f'Dimension {self.name} has no value for cardinality.')
         cardinality = desc['cardinality']
+
         if cardinality == 0:
             self.cardinality = None
             self.cardinality_distribution = None
         else:
             self.cardinality = []
             if 'cardinality_distribution' not in desc.keys():
-                print('Element '+self.name+' specifies a cardinality without a cardinality distribution')
-                exit()
+                raise Exception(f'"{self.name}" dimension specifies a cardinality without a cardinality distribution.')
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
             for i in range(cardinality):
-                Value = None
+                value = None
                 while True:
                     value = self.get_stochastic_value()
                     if value not in self.cardinality:
@@ -480,9 +387,11 @@ class ElementBase: # Base class for the remainder of the dimensions
 
 
     def get_stochastic_value(self):
+        # Produce a random individual value.
         pass
 
     def get_json_field_string(self):
+        # Produce a complete JSON field object.
         if random.random() < self.percent_nulls:
             s = '"'+self.name+'": null'
         else:
@@ -499,53 +408,33 @@ class ElementBase: # Base class for the remainder of the dimensions
         return s
 
     def is_missing(self):
+        # Return True if the dimension value is missing.
         return random.random() < self.percent_missing
 
+#
+#  LONG dimensions
+#
 
-class ElementString(ElementBase):
-    def __init__(self, desc):
-        self.length_distribution = parse_distribution(desc['length_distribution'])
-        if 'chars' in desc:
-            self.chars = desc['chars']
-        else:
-            self.chars = string.printable
-        super().__init__(desc)
-
-    def __str__(self):
-        return 'ElementString(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+', chars='+self.chars+')'
-
-    def get_stochastic_value(self):
-        length = int(self.length_distribution.get_sample())
-        return ''.join(random.choices(list(self.chars), k=length))
-
-    def get_json_field_string(self):
-        if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
-        else:
-            if self.cardinality is None:
-                value = self.get_stochastic_value()
-            else:
-                index = int(self.cardinality_distribution.get_sample())
-                if index < 0:
-                    index = 0
-                if index >= len(self.cardinality):
-                    index = len(self.cardinality)-1
-                value = self.cardinality[index]
-            s = '"'+self.name+'":"'+str(value)+'"'
-        return s
-
-class ElementInt(ElementBase):
+class DimensionInt(DimensionBase):
+    # Represents an integer dimension.
+    # Generates random integers based on a value distribution.
     def __init__(self, desc):
         self.value_distribution = parse_distribution(desc['distribution'])
         super().__init__(desc)
 
     def __str__(self):
-        return 'ElementInt(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'DimensionInt(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
         return int(self.value_distribution.get_sample())
 
-class ElementFloat(ElementBase):
+#
+# FLOAT dimensions
+#
+
+class DimensionFloat(DimensionBase):
+    # Represents a float dimension.
+    # Generates random float values based on a value distribution and optional precision.
     def __init__(self, desc):
         self.value_distribution = parse_distribution(desc['distribution'])
         if 'precision' in desc:
@@ -555,7 +444,7 @@ class ElementFloat(ElementBase):
         super().__init__(desc)
 
     def __str__(self):
-        return 'ElementFloat(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'DimensionFloat(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
         return float(self.value_distribution.get_sample())
@@ -579,8 +468,109 @@ class ElementFloat(ElementBase):
                 format = '%.'+str(self.precision)+'f'
                 s = '"'+self.name+'":'+str(format%value)
         return s
+    
+class DimensionCounter:
+    # Represents a counter dimension.
+    # Generates sequential values starting from a specified value.
+    def __init__(self, desc):
+        self.name = desc['name']
+        if 'percent_nulls' in desc.keys():
+            self.percent_nulls = desc['percent_nulls'] / 100.0
+        else:
+            self.percent_nulls = 0.0
+        if 'percent_missing' in desc.keys():
+            self.percent_missing = desc['percent_missing'] / 100.0
+        else:
+            self.percent_missing = 0.0
+        if 'start' in desc.keys():
+            self.start = desc['start']
+        else:
+            self.start = 0
+        if 'increment' in desc.keys():
+            self.increment = desc['increment']
+        else:
+            self.increment = 1
+        self.value = self.start
+    def __str__(self):
+        s = 'DimensionCounter(name='+self.name
+        if self.start != 0:
+            s += ', '+str(self.start)
+        if self.increment != 1:
+            s += ', '+str(self.increment)
+        s += ')'
+        return s
 
-class ElementTimestamp(ElementBase):
+    def get_stochastic_value(self):
+        v = self.value
+        self.value += self.increment
+        return v
+
+    def get_json_field_string(self):
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
+        else:
+            s = '"'+self.name+'":"'+str(self.get_stochastic_value())+'"'
+            return s
+
+    def is_missing(self):
+        return random.random() < self.percent_missing
+
+#
+# STRING dimensions
+# 
+
+class DimensionString(DimensionBase):
+    # Generates random strings based on a length distribution and character set.
+    def __init__(self, desc):
+        self.length_distribution = parse_distribution(desc['length_distribution'])
+        if 'chars' in desc:
+            self.chars = desc['chars']
+        else:
+            self.chars = string.printable
+        super().__init__(desc)
+
+    def __str__(self):
+        return 'DimensionString(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+', chars='+self.chars+')'
+
+    def get_stochastic_value(self):
+        length = int(self.length_distribution.get_sample())
+        return ''.join(random.choices(list(self.chars), k=length))
+
+    def get_json_field_string(self):
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
+        else:
+            if self.cardinality is None:
+                value = self.get_stochastic_value()
+            else:
+                index = int(self.cardinality_distribution.get_sample())
+                if index < 0:
+                    index = 0
+                if index >= len(self.cardinality):
+                    index = len(self.cardinality)-1
+                value = self.cardinality[index]
+            s = '"'+self.name+'":"'+str(value)+'"'
+        return s
+
+class DimensionStringTime:
+    # Generates the current timestamp in ISO format.
+    def __init__(self, global_clock):
+        self.global_clock = global_clock
+        self.name = "time"  # Add a default name attribute
+
+    def __str__(self):
+        return 'DimensionStringTime()'
+
+    def get_json_field_string(self):
+        now = self.global_clock.now().isoformat()[:-3]
+        return '"time":"' + now + '"'
+
+    def get_stochastic_value(self):
+        # Return the current time value
+        return self.global_clock.now().isoformat()[:-3]
+
+class DimensionStringTimestamp(DimensionBase):
+    # Generates random timestamps based on a distribution.
     def __init__(self, desc):
         self.name = desc['name']
         self.value_distribution = parse_timestamp_distribution(desc['distribution'])
@@ -598,8 +588,7 @@ class ElementTimestamp(ElementBase):
             self.cardinality_distribution = None
         else:
             if 'cardinality_distribution' not in desc.keys():
-                msg = 'Element '+self.name+' specifies a cardinality without a cardinality distribution'
-                raise Exception(msg)
+                raise Exception(f'"{self.name}" dimension specifies a cardinality without a cardinality distribution.')
             self.cardinality = []
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
             for i in range(cardinality):
@@ -611,7 +600,7 @@ class ElementTimestamp(ElementBase):
                 self.cardinality.append(value)
 
     def __str__(self):
-        return 'ElementTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'DimensionStringTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
         return datetime.fromtimestamp(self.value_distribution.get_sample()).isoformat()[:-3]
@@ -635,13 +624,14 @@ class ElementTimestamp(ElementBase):
     def is_missing(self):
         return random.random() < self.percent_missing
 
-class ElementIPAddress(ElementBase):
+class DimensionIPAddress(DimensionBase):
+    # Generates random IP addresses based on a value distribution.
     def __init__(self, desc):
         self.value_distribution = parse_distribution(desc['distribution'])
         super().__init__(desc)
 
     def __str__(self):
-        return 'ElementIPAddress(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'DimensionIPAddress(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
         value = int(self.value_distribution.get_sample())
@@ -663,7 +653,52 @@ class ElementIPAddress(ElementBase):
             s = '"'+self.name+'":"'+str(value)+'"'
         return s
 
-class ElementObject():
+#
+# Complex dimensions
+#
+
+class DimensionEnum:
+   # Return a value selected from a list.
+    def __init__(self, desc):
+        self.name = desc['name']
+        if 'percent_nulls' in desc.keys():
+            self.percent_nulls = desc['percent_nulls'] / 100.0
+        else:
+            self.percent_nulls = 0.0
+        if 'percent_missing' in desc.keys():
+            self.percent_missing = desc['percent_missing'] / 100.0
+        else:
+            self.percent_missing = 0.0
+        self.cardinality = desc['values']
+        if 'cardinality_distribution' not in desc.keys():
+            raise Exception(f'Dimension {self.name} specifies a cardinality without a cardinality distribution.')
+        self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
+
+    def __str__(self):
+        return 'DimensionEnum(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+
+    def get_stochastic_value(self):
+        index = int(self.cardinality_distribution.get_sample())
+        if index < 0:
+            index = 0
+        if index >= len(self.cardinality):
+            index = len(self.cardinality)-1
+        return self.cardinality[index]
+
+    def get_json_field_string(self):
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
+        else:
+            s = '"'+self.name+'":"'+str(self.get_stochastic_value())+'"'
+        return s
+
+    def is_missing(self):
+        return random.random() < self.percent_missing
+
+class DimensionObject():
+
+    # Generates JSON objects with nested dimensions.
+
     def __init__(self, desc):
         self.name = desc['name']
         self.dimensions = get_variables(desc['dimensions'])
@@ -682,8 +717,7 @@ class ElementObject():
         else:
             self.cardinality = []
             if 'cardinality_distribution' not in desc.keys():
-                msg = 'Element '+self.name+' specifies a cardinality without a cardinality distribution'
-                raise Exception(msg)
+                raise Exception(f'Dimension {self.name} specifies a cardinality without a cardinality distribution.')
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
             for i in range(cardinality):
                 Value = None
@@ -694,7 +728,7 @@ class ElementObject():
                 self.cardinality.append(value)
 
     def __str__(self):
-        s = 'ElementObject(name='+self.name+', dimensions=['
+        s = 'DimensionObject(name='+self.name+', dimensions=['
         for e in self.dimensions:
             s += ',' + str(e)
         s += '])'
@@ -726,7 +760,10 @@ class ElementObject():
     def is_missing(self):
         return random.random() < self.percent_missing
 
-class ElementList():
+class DimensionList():
+
+    # Generates lists of elements based on length and selection distributions.
+
     def __init__(self, desc):
         self.name = desc['name']
         self.elements = get_variables(desc['elements'])
@@ -747,8 +784,7 @@ class ElementList():
         else:
             self.cardinality = []
             if 'cardinality_distribution' not in desc.keys():
-                msg = 'Element '+self.name+' specifies a cardinality without a cardinality distribution'
-                raise Exception(msg)
+                raise Exception(f'Dimension {self.name} specifies a cardinality without a cardinality distribution.')
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
             for i in range(cardinality):
                 Value = None
@@ -759,7 +795,7 @@ class ElementList():
                 self.cardinality.append(value)
 
     def __str__(self):
-        s = 'ElementObject(name='+self.name
+        s = 'DimensionObject(name='+self.name
         s += ', length_distribution='+str(self.length_distribution)
         s += ', selection_distribution='+str(self.selection_distribution)
         s += ', elements=['
@@ -801,34 +837,57 @@ class ElementList():
         return random.random() < self.percent_missing
 
 
+#
+# Classes for handling variables
+#
+
+class DimensionVariable:
+    # Generate values based on a variable defined in the state machine.
+    def __init__(self, desc):
+        self.name = desc['name']
+        self.variable_name = desc['variable']
+
+    def __str__(self):
+        return 'DimensionVariable(name='+self.name+', value='+self.variable_name+')'
+
+    def get_json_field_string(self, variables): # NOTE: because of timing, this method has a different signature than the other elements
+        value = variables[self.variable_name]
+        return '"'+self.name+'":"'+str(value)+'"'
+
+# 
+# Configuration parsing functions
+#
+
 def parse_element(desc):
+    # Parses a given dimension configuration and returns the corresponding dimension object.
+
     if desc['type'].lower() == 'counter':
-        el = ElementCounter(desc)
+        el = DimensionCounter(desc)
     elif desc['type'].lower() == 'enum':
-        el = ElementEnum(desc)
+        el = DimensionEnum(desc)
     elif desc['type'].lower() == 'string':
-        el = ElementString(desc)
+        el = DimensionString(desc)
     elif desc['type'].lower() == 'int':
-        el = ElementInt(desc)
+        el = DimensionInt(desc)
     elif desc['type'].lower() == 'float':
-        el = ElementFloat(desc)
+        el = DimensionFloat(desc)
     elif desc['type'].lower() == 'timestamp':
-        el = ElementTimestamp(desc)
+        el = DimensionStringTimestamp(desc)
     elif desc['type'].lower() == 'ipaddress':
-        el = ElementIPAddress(desc)
+        el = DimensionIPAddress(desc)
     elif desc['type'].lower() == 'variable':
-        el = ElementVariable(desc)
+        el = DimensionVariable(desc)
     elif desc['type'].lower() == 'object':
-        el = ElementObject(desc)
+        el = DimensionObject(desc)
     elif desc['type'].lower() == 'list':
-        el = ElementList(desc)
+        el = DimensionList(desc)
     else:
         msg = 'Error: Unknown dimension type "'+desc['type']+'"'
         raise Exception(msg)
     return el
 
-
 def get_variables(desc):
+    # Parses the emitter configuration and returns a list of dimension objects using parse_element().
     elements = []
     for element in desc:
         el = parse_element(element)
@@ -836,16 +895,18 @@ def get_variables(desc):
     return elements
 
 def get_dimensions(desc, global_clock):
+    # Parses the emitter configuration and returns a list of dimension objects using parse_element().
     elements = get_variables(desc)
-    elements.insert(0, ElementNow(global_clock))
+    elements.insert(0, DimensionStringTime(global_clock))
     return elements
 
-
 #
-# Set up the state machine
+# State machine functions and classes
 #
 
 class Transition:
+    # Represents a state transition in the state machine.
+    # Defines the next state and the probability of transitioning to it.
     def __init__(self, next_state, probability):
         self.next_state = next_state
         self.probability = probability
@@ -862,6 +923,8 @@ def parse_transitions(desc):
     return transitions
 
 class State:
+    # Represents a state in the state machine.
+    # Defines dimensions, delay, transitions, and variables for the state.
     def __init__(self, name, dimensions, delay, transitions, variables):
         self.name = name
         self.dimensions = dimensions
@@ -877,6 +940,8 @@ class State:
         return random.choices(self.transistion_states, weights=self.transistion_probabilities, k=1)[0]
 
 class SimEnd:
+    # Manages the simulation end conditions.
+    # Tracks the total records generated and runtime duration.
     def __init__(self, total_recs, runtime, global_clock):
         self.lock = threading.Lock()
         self.thread_end_event = threading.Event()
@@ -952,11 +1017,14 @@ class SimEnd:
 #
 # Run the driver
 #
+
 class DataDriver:
-    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities):
+    # Main driver class for generating data.
+    # Handles configuration, state machine, and output targets.
+
+    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, global_pattern):
         self.name = name
         self.config = config
-        self.target = target
         self.runtime = runtime
         self.total_recs = total_recs
         self.time_type = time_type
@@ -964,27 +1032,42 @@ class DataDriver:
         self.max_entities = max_entities
         self.status_msg = 'Creating...'
 
+        # Validate the global pattern
+        self.global_pattern = global_pattern
+        if self.global_pattern:
+            available_fields = {"time"}  # "time" is always emitted
+            for emitter in self.config.get("emitters", []):
+                for dimension in emitter.get("dimensions", []):
+                    available_fields.add(dimension["name"])
+            try:
+                # Use a dummy dictionary with available fields to test the pattern
+                dummy_record = {field: "" for field in available_fields}
+                self.global_pattern.format(**dummy_record)
+            except KeyError as e:
+                raise KeyError(f"Global pattern references an unknown field: {e}. Ensure all fields in the pattern are defined in the emitters or are default fields.")
+            except ValueError as e:
+                raise ValueError(f"Invalid global pattern: {e}. Check for mismatched or invalid format strings.")
 
         #
-        # Set up the gloabl clock
+        # Set up the global clock
         #
 
         self.global_clock = Clock(time_type, start_time)
         self.sim_control = SimEnd(total_recs, runtime, self.global_clock)
 
-
         #
         # Set up the output target
         #
 
+        self.target = target
         if target['type'].lower() == 'stdout':
-            self.target_printer = PrintStdout()
+            self.target_printer = TargetStdout()
         elif target['type'].lower() == 'file':
             path = target['path']
             if path is None:
                 msg = 'Error: File target requires a path item'
                 raise Exception(msg)
-            self.target_printer = PrintFile(path)
+            self.target_printer = TargetFile(path)
         elif target['type'].lower() == 'kafka':
             if 'endpoint' in target.keys():
                 endpoint = target['endpoint']
@@ -1008,12 +1091,12 @@ class DataDriver:
                 topic_key = target['topic_key']
             else:
                 topic_key = []
-            self.target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type, topic_key)
+            self.target_printer = TargetKafka(endpoint, topic, security_protocol, compression_type, topic_key)
         elif target['type'].lower() == 'confluent':
             if 'servers' in target.keys():
                 servers = target['servers']
             else:
-                msg = 'Error: Conlfuent target requires a servers item'
+                msg = 'Error: Confluent target requires a servers item'
                 raise Exception(msg)
             if 'topic' in target.keys():
                 topic = target['topic']
@@ -1034,11 +1117,10 @@ class DataDriver:
                 topic_key = target['topic_key']
             else:
                 topic_key = []
-            self.target_printer = PrintConfluent(servers, topic, username, password, topic_key)
+            self.target_printer = TargetConfluent(servers, topic, username, password, topic_key)
         else:
             msg = 'Error: Unknown target type "'+target['type']+'"'
             raise Exception(msg)
-
 
         # A different source of data generation is a digital twin mode
         # A source file is used that already contains a sequence of events for a given time period
@@ -1047,8 +1129,8 @@ class DataDriver:
         # This generator will
         # - read the first line in the file to find the starting timestamp and save that
         # - it will then emit events with the generator time such that the events have the same cadence as the original file
+    
         self.type='generator'
-
         if 'type' in config.keys():
             self.type=config['type']
 
@@ -1136,27 +1218,49 @@ class DataDriver:
                     self.initial_state = this_state
         else:
             msg = f"Error: Unknown `type` = {self.type}."
-            raise Exception(msg)
+            raise Exception(msg)        
 
+    def format_record_with_pattern(self, record):
+        """
+        Apply the global pattern to the record if a pattern is defined.
+        """
+        
+        if not self.global_pattern:
+            return json.dumps(record)  # Default to JSON if no pattern is provided
 
+        try:
+            # Use Python string formatting with `{key}` placeholders
+            # TODO: Support full Pythonic formatting with `{key:format}` placeholders.
+            formatted_record = self.global_pattern.format(**record)
+        except KeyError as e:
+            raise KeyError(f"Missing key in record for pattern: {e}")
+        except ValueError as e:
+            raise ValueError(f"Error formatting record with pattern: {e}")
+        return formatted_record
 
     def create_record(self, dimensions, variables):
-            json_string = '{'
-            for element in dimensions:
-                if isinstance(element, ElementVariable):
-                    json_string += element.get_json_field_string(variables) + ','
-                else:
-                    if isinstance(element, ElementNow) or not element.is_missing():
-                        json_string += element.get_json_field_string() + ','
-            json_string = json_string[:-1] + '}'
-            return json_string
+        """
+        Create a record by collecting values from dimensions and applying the global pattern.
+        """
+        record = {}
+        for element in dimensions:
+            if isinstance(element, DimensionVariable):
+                # Fetch the value from the variables dictionary
+                record[element.name] = variables[element.variable_name]
+            else:
+                if isinstance(element, DimensionStringTime) or not element.is_missing():
+                    record[element.name] = element.get_stochastic_value()
+
+        # Apply the global pattern to the record
+        return self.format_record_with_pattern(record)
 
     def set_variable_values(self, variables, dimensions):
         for d in dimensions:
             variables[d.name] = d.get_stochastic_value()
 
     def worker_thread(self):
-        # Process the state machine using worker threads
+        # Processes the state machine using worker threads.
+        # Generates records and sends them to the output target.
         #print('Thread '+threading.current_thread().name+' starting...')
         self.global_clock.activate_thread()
         current_state = self.initial_state
@@ -1164,7 +1268,7 @@ class DataDriver:
         while True:
             self.set_variable_values(variables, current_state.variables)
             record = self.create_record(current_state.dimensions, variables)
-            self.target_printer.print(record)
+            self.target_printer.print(record)  # Pass the formatted record to the target printer
             self.sim_control.inc_rec_count()
             if self.sim_control.is_done():
                 break
@@ -1184,6 +1288,7 @@ class DataDriver:
         self.sim_control.remove_entity()
 
     def spawning_thread(self):
+        # Spawns worker threads to generate records concurrently.
         self.global_clock.activate_thread()
 
         # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
@@ -1215,6 +1320,8 @@ class DataDriver:
             return self.global_clock.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
     def replay_thread(self):
+        # Processes a replay file to generate events based on the global clock.
+        # Supports null injection and time skipping.
         # process replay file, generate events based on global clock
         # read the source file
         import json
@@ -1271,6 +1378,7 @@ class DataDriver:
         self.global_clock.end_thread()
 
     def simulate(self):
+        # Starts the simulation based on the configuration.
         self.status_msg=f'Starting {self.type} job.'
         if self.type == 'replay':
             # run a single replay thread, no data generation needed except for new timestamps
@@ -1284,9 +1392,11 @@ class DataDriver:
         thrd.join()
 
     def terminate(self):
+        # Terminates the simulation.
         self.sim_control.terminate()
 
     def report(self):
+        # Generates a report of the simulation status and statistics.
         return {  'name': self.name,
                   'config_file': self.config['config_file'],
                   'target': self.target,
@@ -1300,9 +1410,9 @@ class DataDriver:
 
 
 def main():
-    #
-    # Parse the command line
-    #
+
+    # Parse command line arguments
+
     parser = argparse.ArgumentParser(description='Generates JSON records as a workload for Apache Druid.')
     #parser.add_argument('config_file', metavar='<config file name>', help='the workload config file name')
     parser.add_argument('-f', dest='config_file', nargs='?', help='the workload config file name')
@@ -1311,12 +1421,13 @@ def main():
     parser.add_argument('-n', dest='n_recs', nargs='?', help='the number of records to generate (may not be used with -t)')
     parser.add_argument('-s', dest='time_type', nargs='?', const='SIM', default='REAL', help='simulate time (default is real, not simulated)')
     parser.add_argument('-m', dest='concurrency', nargs='?', default=100, help='max entities concurrently generating events')
+    parser.add_argument('-p', dest='global_pattern_file', nargs='?', help='the file containing the global pattern')
 
     args = parser.parse_args()
-
-    config_file_name = f'config_file/{args.config_file}'
-    target_file_name = args.target_file
     runtime = args.time
+
+    # Validate command line arguments
+
     max_entities = int(args.concurrency) # Convert to integer. Safe as there is a default.
     total_recs = None
     if args.n_recs is not None:
@@ -1335,22 +1446,70 @@ def main():
         parser.print_help()
         exit()
 
+    try:
+        config_file_name = f'{args.config_file}'
+        if config_file_name:
+            with open(config_file_name, 'r') as f:
+                try:
+                    config = json.load(f)
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Error parsing config file '{config_file_name}': {e}")
+        else:
+            try:
+                config = json.load(sys.stdin)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Error parsing config from stdin: {e}")
+            
+        target_file_name = args.target_file
+        if target_file_name:
+            with open(target_file_name, 'r') as f:
+                try:
+                    target = json.load(f)
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Error parsing target file '{target_file_name}': {e}")
+        elif 'target' in config.keys():
+            target = config['target']
+        else:
+            raise ValueError("No target specified in the config file or as a separate target file.")
 
-    if config_file_name:
-        with open(config_file_name, 'r') as f:
-            config = json.load(f)
-    else:
-        config = json.load(sys.stdin)
+        global_pattern_file = args.global_pattern_file
+        if global_pattern_file:
+            if os.path.exists(global_pattern_file):
+                try:
+                    with open(global_pattern_file, 'r') as f:
+                        # Interpret escape sequences like \t
+                        global_pattern = f.read().strip().encode('utf-8').decode('unicode_escape')
+                except UnicodeDecodeError as e:
+                    raise ValueError(f"Error decoding global pattern file '{global_pattern_file}': {e}")
+            else:
+                raise FileNotFoundError(f"Global pattern file '{global_pattern_file}' not found. Ensure the file path is correct.")
+        else:
+            global_pattern = None
 
-    if target_file_name:
-        with open(target_file_name, 'r') as f:
-            target = json.load(f)
-    elif 'target' in config.keys():
-        target = config['target']
+        # Start a new data driver
 
-    driver = DataDriver('cli', config, target, runtime, total_recs, time_type, start_time, max_entities)
-    driver.simulate()
+        driver = DataDriver(
+            name='cli',
+            config=config,
+            target=target,
+            runtime=runtime,
+            total_recs=total_recs,
+            time_type=time_type,
+            start_time=start_time,
+            max_entities=max_entities,
+            global_pattern=global_pattern
+        )
+        driver.simulate()
 
+    except FileNotFoundError as e:
+        print(f"File error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Value error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
