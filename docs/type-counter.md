@@ -74,6 +74,12 @@ The second emitter, `example_event_2`, mirrors the same configuration, using dif
 }
 ```
 
+Save the above configuration as `example.json` and use the following command to create 10 records with one worker:
+
+```bash
+python3 src/generator/generator.py -f example.json -n 10 -m 1
+```
+
 This is an example of the output using one worker.
 
 ```json
@@ -92,4 +98,4 @@ This is an example of the output using one worker.
 {"time":"2025-02-18T10:04:13.888","default_counter1":"6","start_counter1":"106","increment_counter1":"60000","both_counter1":"550"}
 {"time":"2025-02-18T10:04:13.990","default_counter1":"7","start_counter1":"107","increment_counter1":"70000","both_counter1":"600"}
 {"time":"2025-02-18T10:04:14.095","default_counter1":"8","start_counter1":"108","increment_counter1":"80000","both_counter1":"650"}
-```
+````

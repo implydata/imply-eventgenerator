@@ -76,12 +76,12 @@ The `interarrival` distribution is a `constant`, causing new workers to be spawn
 }
 ```
 
-Try this out by saving the above to `example.json` within the `config_file` folder.
+Try this out by saving the above to `example.json`.
 
 The following command will create 10 records and use only one worker:
 
 ```bash
-python3 generator/DruidDataDriver.py -f example.json -n 10 -m 1
+python3 src/generator/generator.py -f example.json -n 10 -m 1
 ```
 
 This causes the following output.  Notice that each row is spaced 5 seconds apart, since only one worker is generating results.

@@ -1,19 +1,22 @@
 #
-# DruidDataDriver - generates JSON records as a workload for Apache Druid.
+# Generates JSON records as a workload for Apache Druid.
 #
 
-import argparse
-import math
+# Additional modules.
 
 from confluent_kafka import Producer
+from kafka import KafkaProducer
+from sortedcontainers import SortedList
+import numpy as np
+
+# Standard modules.
+
+import argparse
 import dateutil.parser
 from datetime import datetime, timedelta
 import json
-from kafka import KafkaProducer
-import numpy as np
 import random
 import re
-from sortedcontainers import SortedList
 import string
 import sys
 import threading

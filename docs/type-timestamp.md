@@ -107,6 +107,12 @@ The emitter for `state_2` is `example_event_2` which also emits a simple string 
 }
 ```
 
+Since the JSON above contains an inline `target`, you can save the JSON above as `example.json` and run it with the following command.
+
+```bash
+python3 src/generator/generator.py -f example.json -n 15 -m 2 -s "2009-05-21:08:00:10"
+```
+
 This is an example of the output:
 
 ```
