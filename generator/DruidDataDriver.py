@@ -1242,7 +1242,8 @@ class DataDriver:
         record = {}
         for element in dimensions:
             if isinstance(element, DimensionVariable):
-                record[element.name] = variables[element.name]
+                # Fetch the value from the variables dictionary
+                record[element.name] = variables[element.variable_name]
             else:
                 if isinstance(element, DimensionStringTime) or not element.is_missing():
                     record[element.name] = element.get_stochastic_value()
