@@ -10,8 +10,7 @@ def main():
 
     # Parse command line arguments
 
-    parser = argparse.ArgumentParser(description='Generates JSON records as a workload for Apache Druid.')
-    #parser.add_argument('config_file', metavar='<config file name>', help='the workload config file name')
+    parser = argparse.ArgumentParser(description='Generates synthetic event data.')
     parser.add_argument('-f', dest='config_file', nargs='?', help='the workload config file name')
     parser.add_argument('-o', dest='target_file', nargs='?', help='the message output target file name')
     parser.add_argument('-t', dest='time', nargs='?', help='the script runtime (may not be used with -n)')
