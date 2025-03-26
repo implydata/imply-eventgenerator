@@ -24,6 +24,7 @@ python generator/generator.py \
 | [`-s`](#simulated-clock) | Use a simulated clock, starting at the specified ISO time, rather than using the system clock. |
 | [`-n`](#generation-limit) | The number of records to generate. Must not be used in combinaton with `-t`. |
 | [`-t`](#generation-limit) | The length of time to create records for. Must not be used in combination with `-n`. |
+| [`-p`](#pattern-specification) | A file that contains a pattern that can be used to format the output records. If not specified, JSON is used. |
 
 ### Prerequities
 
@@ -58,6 +59,12 @@ Finally, the specification sets the `interarrival` time, controlling how often a
 Set the output of the data generator by setting the `target` object.
 
 Use the _-o_ option to designate a target definition file name. The [target](docs/target.md) defines where the generated messages are sent.
+
+### Pattern specification
+
+A text file with key names in braces (`{` and `}`) where emitter dimensions will be inserted.
+
+This allows for formats other than JSON to be generated, such as CSV or TSV.
 
 ### Generation limit
 
