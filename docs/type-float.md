@@ -78,7 +78,7 @@ The emitter for `state_1` is `example_event_1`, which emits the following dimens
 Save the configuration above as `example.json` and use the following command to create 10 records with one worker:
 
 ```bash
-python3 src/generator/generator.py -f example.json -n 10 -m 1
+python3 src/generator.py -f example.json -n 10 -m 1
 ```
 
 This is an example of the output:

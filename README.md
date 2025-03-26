@@ -7,7 +7,7 @@ A highly customizable event data generator, created by the team at Imply.
 Run the `generator.py` script from the command line to create synthetic data in JSON format.
 
 ```bash
-python generator/generator.py \
+python generator.py \
         -f <generator specification file> \
         -m <generator workers limit> \
         -o <target specification file> \
@@ -78,19 +78,19 @@ Time durations may be specified in terms of seconds, minutes or hours.
 For example, specify 30 seconds as follows:
 
 ```bash
-python generator/generator.py -f generator_spec.json -o target_spec.json -t 30S
+python generator.py -f generator_spec.json -o target_spec.json -t 30S
 ```
 
 Specify 10 minutes as follows:
 
 ```bash
-python generator/generator.py -f generator_spec.json -o target_spec.json -t 10M
+python generator.py -f generator_spec.json -o target_spec.json -t 10M
 ```
 
 Or, specify 1 hour as follows:
 
 ```bash
-python generator/generator.py -f generator_spec.json -o target_spec.json -t 1H
+python generator.py -f generator_spec.json -o target_spec.json -t 1H
 ```
 
 #### Limit generation to a number of records
@@ -98,7 +98,7 @@ python generator/generator.py -f generator_spec.json -o target_spec.json -t 1H
 Use `-n` to limit generation to a number of records.
 
 ```bash
-python generator/generator.py -f generator_spec.json -o target_spec.json -n 1000
+python generator.py -f generator_spec.json -o target_spec.json -n 1000
 ```
 
 ### Simulated clock
@@ -108,7 +108,7 @@ Specify a start time in ISO format to instruct the driver to use simulated time 
 In the following example, the constraint is the number of records.
 
 ```bash
-python3 generator/generator.py -f conf/gen/example.json -o conf/tar/stdout.json -n 20 -s "2001-12-20T13:13"
+python3 generator.py -f conf/gen/example.json -o conf/tar/stdout.json -n 20 -s "2001-12-20T13:13"
 ```
 
 * `example.json` generator specification is used.
@@ -129,7 +129,7 @@ This results in:
 In the next example, the constraint is duration. This will cause the generator to create as many JSON records as would fit into a given duration (see `-t` below).
 
 ```bash
-python3 generator/generator.py -f conf/gen/example.json -o conf/tar/stdout.json -t 1h -s "2027-03-12"
+python3 generator.py -f conf/gen/example.json -o conf/tar/stdout.json -t 1h -s "2027-03-12"
 ```
 
 * The `-s` flag sets a synthetic clock start of 12th March 2027.

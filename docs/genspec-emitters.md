@@ -29,7 +29,7 @@ The next output event for that worker is emitted based on the `delay` between `s
 The data generator spawns additional workers up to a configurable maximum, e.g. using the `-m` argument at the [command line](./command-line.md). The interval between workers being spawned is controlled by the `interarrival` time, set in the [generator specification](./genspec.md).
 
 ```bash
-python3 src/generator/generator.py -f example.json -n 10 -m 1
+python3 src/generator.py -f example.json -n 10 -m 1
 ```
 
 ### Event dimensions
