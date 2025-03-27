@@ -4,26 +4,27 @@ Field generators are JSON objects that appear in emitter [`dimensions`](./genspe
 
 Whenever a worker encounters a field generator, whether via an emitter dimension list or a state variable, it generates a key (`name`) and a value.
 
-The value that is generated depends on the field generator `type`. Available field generator types are:
+The value that is generated depends on the field generator `type`.
 
-* [`timestamp`](./type-timestamp.md) generates a timestamp between a range.
-* [`string`](./type-string.md) creates a synthetic string, optionally limited to a specific list of characters.
-* [`int`](./type-int.md) generates whole numbers.
-* [`float`](./type-float.md) generates floating point numbers.
-* [`ipaddress`](./type-ipaddress.md) creates a network IP address.
-* [`counter`](./type-counter.md) creates an incrementing integer.
-* [`enum`](#enum)
-* [`object`](#object)
-* [`list`](#list)
+| Type | Description | Required Fields |
+|---|---|---|
+| [`timestamp`](./type-timestamp.md)| Generates a timestamp between a range. | `type`, `name`, `distribution` |
+| [`string`](./type-string.md)      | Creates a synthetic string, optionally limited to a specific list of characters. | `type`, `name`, `length_distribution` |
+| [`int`](./type-int.md)            | Generates whole numbers. | `type`, `name`, `distribution`            |
+| [`float`](./type-float.md)        | Generates floating point numbers. | `type`, `name`, `distribution`, `precision`|
+| [`ipaddress`](./type-ipaddress.md)| Creates a network IP address. | `type`, `name`, `distribution`            |
+| [`counter`](./type-counter.md)    | Creates an incrementing integer. | `type`, `name`, `start`, `step`           |
+| [`enum`](#enum)                   | Selects a value from a list. | `type`, `name`, `values` |
+| [`object`](#object)               | Creates nested data. | `type`, `name`, `dimensions`              |
+| [`list`](#list)                   | Creates lists of dimensions. | `type`, `name`, `length_distribution`, `elements`|
 
-For information, including examples, see the individual pages for each field generator type.
+For detailed information about each type, refer to their respective sections or individual pages.
 
 #### `enum`
 
 Enum field generators specify the set of all possible values, as well as a distribution for selecting from the set.
 
 Enums have the following format:
-
 ```
 {
   "type": "enum",
@@ -36,7 +37,6 @@ Enums have the following format:
 ```
 
 Where:
-
 - <i>name</i> is the name of the dimension
 - <i>values</i> is a list of the values
 - <i>cardinality_distribution</i> informs the cardinality selection of the generated values
@@ -46,7 +46,6 @@ Where:
 #### `object`
 
 Object field generators create nested data.
-
 - <i>name</i> is the name of the object
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
 - <i>cardinality_distribution</i> skews the cardinality selection of the generated objects (optional - omit for unconstrained cardinality)
@@ -172,8 +171,7 @@ Object field generators create nested data.
 
 #### `list`
 
-list field generators create lists of dimesions.
-
+list field generators create lists of dimensions.
 - <i>name</i> is the name of the object
 - <i>length_distribution</i> describes the length of the resulting list as a distribution
 - <i>selection_distribution</i> informs the generator which elements to select for the list from the elements list
