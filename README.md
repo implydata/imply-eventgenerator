@@ -47,13 +47,23 @@ pip install -r requirements.txt
 
 The [generator specification](docs/genspec.md) is a JSON document that sets how the data generator will execute. When the `-f` option is used, the generation specification will be read from a file, otherwise the generator specification will be read from `stdin`.
 
-The following sections of the JSON document concern what each data generator worker will do.
+A generator specification follows this structure:
+
+```json
+{
+  "states": [ ... ],
+  "emitters": [ ... ],
+  "target": { },
+  "interarrival": { }
+}
+```
+
+The sections of the JSON document concern what each data generator worker will do.
 
 * A list of [`states`](docs/genspec-states.md) that a worker can transition through.
 * A list of [`emitters`](docs/genspec-emitters.md), listing the dimensions that will be output by a worker and what data they will contain.
-* A [`target`]('docs/tarspec.md) definition, stating where records should be written. This is optional, and can be supplied as a file using the `-o` argument.
-
-Finally, the specification sets the `interarrival` time, controlling how often a new worker is spawned. The default maximum number of workers is 100, unless the `-m` argument is used.
+* A [`target`](docs/tarspec.md) definition (optional), stating where records should be written. When not provided inside a generator specification, a separate JSON file can be specified using the `-o` argument. This allows for the same generator to be used with different targets.
+* The `interarrival` time, controlling how often a new worker is spawned. The default maximum number of workers is 100, unless the `-m` argument is used.
 
 ### Target specification
 
