@@ -7,5 +7,5 @@ Maintained by: ImplyData, Inc.
 All rights reserved. Unauthorized use, distribution, or modification is prohibited.
 """
 
-__author__ = 'ImplyData, Inc.'
-__license__ = 'Proprietary'
+__author__ = "Imply Data, Inc."
+__license__ = "Apache License 2.0"
