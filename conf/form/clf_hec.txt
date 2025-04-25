@@ -1,0 +1,16 @@
+{
+    "source":"lumina_web/httpd/access_combined.log",
+    "sourcetype": "access_combined",
+    "index": "lumina_web",
+    "host": "$host",
+    "time": "$time",
+    "event": "$clientip $ident $authuser [$time] \"$request_method $request_url $request_protocol\" $status $bytes \"$referrer_url\" \"$useragent\"",
+    "fields":{
+        "method": "$request_method",
+        "clientip": $clientip,
+        "uri": "$request_url",
+        "status": $status,
+        "referer": "$referrer_url",
+        "useragent": "$useragent",
+        "bytes": $bytes
+}

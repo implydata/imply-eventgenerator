@@ -8,6 +8,15 @@ from ieg.core import DataDriver
 
 DEFAULT_CONCURRENCY = 100
 
+def validate_concurrency(value):
+    try:
+        ivalue = int(value)
+        if ivalue < 1 or ivalue > 1000:
+            raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 1000.")
+        return ivalue
+    except ValueError:
+        raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 1000.")
+
 def main():
 
     # Parse command line arguments
@@ -30,9 +39,10 @@ def main():
     parser.add_argument(
         '-m',
         dest='concurrency',
+        type=validate_concurrency,
         nargs='?',
         default=DEFAULT_CONCURRENCY,
-        help='Max entities concurrently generating events'
+        help='Max entities concurrently generating events (1-1000)'
     )
 
     args = parser.parse_args()

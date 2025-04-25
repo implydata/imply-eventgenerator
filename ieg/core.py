@@ -2,6 +2,7 @@
 
 import json
 import random
+import string
 
 from ieg.distributions import *
 from ieg.targets import *
@@ -293,10 +294,12 @@ class DataDriver:
             for emitter in self.config.get("emitters", []):
                 for dimension in emitter.get("dimensions", []):
                     available_fields.add(dimension["name"])
+
             try:
                 # Use a dummy dictionary with available fields to test the pattern
                 dummy_record = {field: "" for field in available_fields}
-                self.record_format.format(**dummy_record)
+                template = string.Template(self.record_format.strip())
+                template.substitute(dummy_record)
             except KeyError as e:
                 raise KeyError(f"Global pattern references an unknown field: {e}. Ensure all fields in the pattern are defined in the emitters or are default fields.")
             except ValueError as e:
@@ -411,24 +414,23 @@ class DataDriver:
 
     def format_record_with_pattern(self, record):
         if not self.record_format:
-            # Handle type-based formatting for JSON serialization
+            # If no record format is provided, return the record as a JSON string.
             for key, value in record.items():
                 if isinstance(value, datetime):
-                    record[key] = value.isoformat()  # Default to ISO 8601 for datetime
-                elif value is None:
-                    record[key] = "null"  # Convert None to "null"
-                else:
-                    record[key] = str(value)  # Convert other types to strings
-            return json.dumps(record)  # Default to JSON if no pattern is provided
+                    record[key] = value.isoformat()
+            return json.dumps(record)
 
         try:
-            # Pre-format datetime fields and handle other types
-            formatted_record = self.record_format.format(
+            # Strip whitespace from the record format
+            stripped_format = self.record_format.strip()
+            # Use string.Template for formatting
+            template = string.Template(stripped_format)
+            formatted_record = template.substitute(
                 **{
                     key: (
                         value.strftime("%Y-%m-%d %H:%M:%S")  # Default datetime format
                         if isinstance(value, datetime)
-                        else "null"
+                        else ""
                         if value is None
                         else str(value)
                     )
