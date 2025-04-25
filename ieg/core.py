@@ -290,7 +290,7 @@ class DataDriver:
             if 'variables' not in state.keys():
                 variables = []
             else:
-                variables = get_variables(state['variables'])
+                variables = get_variables(state['variables'], self.global_clock)
             dimensions = self.emitters[emitter_name]
             delay = parse_distribution(state['delay'])
             transitions = Transition.parse_transitions(state['transitions'])
@@ -349,7 +349,6 @@ class DataDriver:
             else:
                 if isinstance(element, DimensionTimestampClock) or not element.is_missing():
                     record[element.name] = element.get_stochastic_value()
-
         return record
 
     def set_variable_values(self, variables, dimensions):

@@ -4,6 +4,7 @@
     {
       "name": "apache_combined_log",
       "dimensions": [
+        { "name": "time", "type": "clock" },
         {
           "name": "host",
           "type": "enum",

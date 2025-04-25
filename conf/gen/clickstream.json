@@ -3,6 +3,7 @@
     {
     "name": "click",
     "dimensions": [
+      {"type": "clock", "name":"__time"},
       {"type": "variable", "name": "user_id", "variable": "user_id"},
       {"type": "variable", "name": "event_type", "variable": "event_type"},
       {"type": "variable", "name": "client_ip", "variable": "client_ip"},

@@ -4,6 +4,39 @@
       "name": "example_record_1",
       "dimensions": [
         {
+          "type": "clock",
+          "name": "__time"
+        },
+        {
+          "type": "int",
+          "name": "user_id",
+          "distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 4000
+          },
+          "cardinality": 0,
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 4000
+          }
+        },
+        {
+          "type": "ipaddress",
+          "name": "client_ip",
+          "distribution": {
+            "type": "uniform",
+            "min": 2130706433,
+            "max": 2147483647
+          },
+          "cardinality": 1000,
+          "cardinality_distribution": {
+            "type": "exponential",
+            "mean": 100
+          }
+        },
+        {
           "type": "enum",
           "name": "username",
           "values": ["willow", "mia", "leon", "milton", "miette", "gus", "jojo", "rocket"],

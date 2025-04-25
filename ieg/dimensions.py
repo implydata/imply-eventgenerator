@@ -243,17 +243,13 @@ class DimensionString(DimensionBase):
 # 
 
 class DimensionTimestampClock:
-    # Returns the current value of the generator's clock as a datetime object.
-    def __init__(self, global_clock):
-        self.global_clock = global_clock
-        self.name = "time"  # Add a default name attribute
-
-    def __str__(self):
-        return 'DimensionTimestampClock()'
+    def __init__(self, clock, desc):
+        self.clock = clock
+        self.name = desc['name']  # Ensure self.name is set
 
     def get_stochastic_value(self):
-        # Return the current time as a datetime object
-        return self.global_clock.now()
+        # Retrieve the current time from the Clock instance
+        return self.clock.now()
 
 class DimensionTimestamp(DimensionBase):
     # Generates random timestamps as datetime objects based on a distribution.
@@ -388,7 +384,7 @@ class DimensionObject():
 
     def __init__(self, desc):
         self.name = desc['name']
-        self.dimensions = get_variables(desc['dimensions'])
+        self.dimensions = get_variables(desc['dimensions'], self.global_clock)
         if 'percent_nulls' in desc.keys():
             self.percent_nulls = desc['percent_nulls'] / 100.0
         else:
@@ -453,7 +449,7 @@ class DimensionList():
 
     def __init__(self, desc):
         self.name = desc['name']
-        self.elements = get_variables(desc['elements'])
+        self.elements = get_variables(desc['elements'], self.global_clock)
         self.length_distribution = parse_distribution(desc['length_distribution'])
         self.selection_distribution = parse_distribution(desc['selection_distribution'])
         if 'percent_nulls' in desc.keys():
@@ -545,7 +541,7 @@ class DimensionVariable:
 # Configuration parsing functions
 #
 
-def parse_element(desc):
+def parse_element(desc, global_clock):
     # Parses a given dimension configuration and returns the corresponding dimension object.
 
     if desc['type'].lower() == 'counter':
@@ -560,6 +556,8 @@ def parse_element(desc):
         el = DimensionFloat(desc)
     elif desc['type'].lower() == 'timestamp':
         el = DimensionTimestamp(desc)
+    elif desc['type'].lower() == 'clock':
+        el = DimensionTimestampClock(global_clock, desc)  # Pass global_clock
     elif desc['type'].lower() == 'ipaddress':
         el = DimensionIPAddress(desc)
     elif desc['type'].lower() == 'variable':
@@ -573,16 +571,14 @@ def parse_element(desc):
         raise Exception(msg)
     return el
 
-def get_variables(desc):
+def get_variables(desc, global_clock):
     # Parses the emitter configuration and returns a list of dimension objects using parse_element().
     elements = []
     for element in desc:
-        el = parse_element(element)
-        elements.append(el)
+        elements.append(parse_element(element, global_clock))  # Pass global_clock
     return elements
 
 def get_dimensions(desc, global_clock):
     # Parses the emitter configuration and returns a list of dimension objects using parse_element().
-    elements = get_variables(desc)
-    elements.insert(0, DimensionTimestampClock(global_clock))  # Adds the time dimension
+    elements = get_variables(desc, global_clock)  # Pass global_clock
     return elements

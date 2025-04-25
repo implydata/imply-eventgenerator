@@ -6,6 +6,7 @@ Whenever a worker encounters a field generator, whether via an emitter dimension
 
 The value that is generated depends on the field generator `type`. Available field generator types are:
 
+* [`clock`](#clock) generates a timestamp using the simulated clock.
 * [`timestamp`](./type-timestamp.md) generates a timestamp between a range.
 * [`string`](./type-string.md) creates a synthetic string, optionally limited to a specific list of characters.
 * [`int`](./type-int.md) generates whole numbers.
@@ -17,6 +18,19 @@ The value that is generated depends on the field generator `type`. Available fie
 * [`list`](#list)
 
 For information, including examples, see the individual pages for each field generator type.
+
+#### `clock`
+
+A fundamental field generator, often used for an event timestamp on each row. The value is taken from the clock that runs behind-the-scenes as the generator runs.
+
+Clock dimensions have the following very simple format:
+
+```
+{
+  "type": "clock",
+  "name": "<dimension name>"
+}
+```
 
 #### `enum`
 
