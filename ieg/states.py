@@ -41,7 +41,7 @@ class State:
         return random.choices(self.transistion_states, weights=self.transistion_probabilities, k=1)[0]
 
 
-class SimEnd:
+class Controller:
     # Manages the simulation end conditions.
     # Tracks the total records generated and runtime duration.
     def __init__(self, total_recs, runtime, global_clock):

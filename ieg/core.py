@@ -2,6 +2,7 @@
 
 import json
 import re
+import os
 
 from ieg.distributions import *
 from ieg.targets import *
@@ -20,6 +21,18 @@ import threading
 import time
 
 TEMPLATE_REGEX = re.compile(r"{{\s*([^}]+)\s*}}")
+
+def render_env_variables(config):
+    """
+    Replace placeholders in the configuration with environment variable values.
+    Placeholders should be in the format %VARIABLE_NAME%.
+    """
+    if isinstance(config, dict):
+        return {k: render_env_variables(v) for k, v in config.items()}
+    elif isinstance(config, str):
+        return re.sub(r"%(\w+)%", lambda match: os.getenv(match.group(1), match.group(0)), config)
+    else:
+        return config
 
 class FutureEvent:
     # Represents a future event in the simulation clock.
@@ -176,12 +189,15 @@ class DataDriver:
         self.status_msg = 'Creating...'
         self.record_format = record_format
 
+        if self.record_format:
+            self.record_format = render_env_variables(record_format)
+
         #
         # Set up the global clock
         #
 
         self.global_clock = Clock(time_type, start_time)
-        self.sim_control = SimEnd(total_recs, runtime, self.global_clock)
+        self.sim_control = Controller(total_recs, runtime, self.global_clock)
 
         #
         # Set up the output target
@@ -310,7 +326,7 @@ class DataDriver:
         else:
             return pattern
 
-    def format_record_with_pattern(self, record):
+    def render_record(self, record):
         if not self.record_format:
             # If no record format is provided, return the record as a JSON string.
             for key, value in record.items():
@@ -350,7 +366,7 @@ class DataDriver:
         while True:
             self.set_variable_values(variables, current_state.variables)
             record = self.create_record(current_state.dimensions, variables)
-            formatted_record = self.format_record_with_pattern(record)  # Format the record here
+            formatted_record = self.render_record(record)  # Format the record here
             self.target_printer.print(formatted_record)  # Pass the formatted record to the target printer
             self.sim_control.inc_rec_count()
             if self.sim_control.is_done():

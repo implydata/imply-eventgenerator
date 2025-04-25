@@ -1,11 +1,11 @@
 {
-    "source":"lumina_web/httpd/access_combined.log",
+    "source": "lumina_web/httpd/access_combined.log",
     "sourcetype": "access_combined",
-    "index": "lumina_web",
+    "index": "%IEG_INDEX%",
     "host": "{{host}}",
-    "time": "{{time"}},
+    "time": "{{time}}",
     "event": "{{clientip}} {{ident}} {{authuser}} [{{time}}] \"{{request_method}} {{request_url}} {{request_protocol}}\" {{status}} {{bytes}} \"{{referrer_url}}\" \"{{useragent}}\"",
-    "fields":{
+    "fields": {
         "method": "{{request_method}}",
         "clientip": {{clientip}},
         "uri": "{{request_url}}",
@@ -13,4 +13,5 @@
         "referer": "{{referrer_url}}",
         "useragent": "{{useragent}}",
         "bytes": {{bytes}}
+    }
 }
