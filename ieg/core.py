@@ -3,6 +3,7 @@
 import json
 import random
 import string
+import re
 
 from ieg.distributions import *
 from ieg.targets import *
@@ -22,6 +23,8 @@ import json
 import random
 import threading
 import time
+
+TEMPLATE_REGEX = re.compile(r"{{\s*([^}]+)\s*}}")
 
 class FutureEvent:
     # Represents a future event in the simulation clock.
@@ -286,24 +289,7 @@ class DataDriver:
         self.start_time = start_time
         self.max_entities = max_entities
         self.status_msg = 'Creating...'
-
-        # Validate the global pattern
         self.record_format = record_format
-        if self.record_format:
-            available_fields = {"time"}  # "time" is always emitted
-            for emitter in self.config.get("emitters", []):
-                for dimension in emitter.get("dimensions", []):
-                    available_fields.add(dimension["name"])
-
-            try:
-                # Use a dummy dictionary with available fields to test the pattern
-                dummy_record = {field: "" for field in available_fields}
-                template = string.Template(self.record_format.strip())
-                template.substitute(dummy_record)
-            except KeyError as e:
-                raise KeyError(f"Global pattern references an unknown field: {e}. Ensure all fields in the pattern are defined in the emitters or are default fields.")
-            except ValueError as e:
-                raise ValueError(f"Invalid global pattern: {e}. Check for mismatched or invalid format strings.")
 
         #
         # Set up the global clock
@@ -412,6 +398,33 @@ class DataDriver:
             if self.initial_state is None:
                 self.initial_state = this_state
 
+    @staticmethod
+    def get_value(record, key, default=""):
+        """
+        Retrieve the value for a given key from the record dictionary.
+        Supports nested keys using dot notation (e.g., "field.subfield").
+        Returns the default value if the key is missing.
+        """
+        keys = key.split(".")  # Split the key by dots for nested access
+        value = record
+        for k in keys:
+            if isinstance(value, dict) and k in value:
+                value = value[k]
+            else:
+                return default  # Return default if key is missing
+        return value
+
+    def render_template(self, template, record):
+        return TEMPLATE_REGEX.sub(lambda match: str(self.get_value(record, match.group(1))) or '', template)
+
+    def apply_pattern(self, pattern, record):
+        if isinstance(pattern, dict):
+            return {k: self.apply_pattern(v, record) for k, v in pattern.items()}
+        elif isinstance(pattern, str):
+            return self.render_template(pattern, record)
+        else:
+            return pattern
+
     def format_record_with_pattern(self, record):
         if not self.record_format:
             # If no record format is provided, return the record as a JSON string.
@@ -421,26 +434,9 @@ class DataDriver:
             return json.dumps(record)
 
         try:
-            # Strip whitespace from the record format
-            stripped_format = self.record_format.strip()
-            # Use string.Template for formatting
-            template = string.Template(stripped_format)
-            formatted_record = template.substitute(
-                **{
-                    key: (
-                        value.strftime("%Y-%m-%d %H:%M:%S")  # Default datetime format
-                        if isinstance(value, datetime)
-                        else ""
-                        if value is None
-                        else str(value)
-                    )
-                    for key, value in record.items()
-                }
-            )
-
-        except KeyError as e:
-            raise KeyError(f"Missing key in record for pattern: {e}")
-        except ValueError as e:
+            # Apply the pattern using the new approach
+            formatted_record = self.apply_pattern(self.record_format, record)
+        except Exception as e:
             raise ValueError(f"Error formatting record with pattern: {e}")
         return formatted_record
 
