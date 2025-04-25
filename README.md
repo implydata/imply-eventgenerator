@@ -13,7 +13,7 @@ python generator.py \
         -t <target specification file> \
         -s <start timestamp> \
         -n <record limit> \
-        -r <duration limit> \
+        -r <duration limit in ISO8610 format> \
         -p <pattern specification file>
 ```
 
@@ -25,7 +25,7 @@ python generator.py \
 | [`-s`](#simulated-clock) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
 | [`-n`](#generation-limit) | The number of records to generate. Must not be used in combinaton with `-t`. |
-| [`-t`](#generation-limit) | The length of time to create records for. Must not be used in combination with `-n`. |
+| [`-t`](#generation-limit) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
 
 ### Prerequities
 
@@ -83,24 +83,24 @@ Use either `-n` or `-t` to limit how long generation executes for. If neither op
 
 #### Limit generation to a length of time
 
-Time durations may be specified in terms of seconds, minutes or hours.
+Time durations may be specified in ISO8601 format.
 
 For example, specify 30 seconds as follows:
 
 ```bash
-python generator.py -f generator_spec.json -o target_spec.json -t 30S
+python generator.py -f generator_spec.json -o target_spec.json -r PT30S
 ```
 
 Specify 10 minutes as follows:
 
 ```bash
-python generator.py -f generator_spec.json -o target_spec.json -t 10M
+python generator.py -f generator_spec.json -o target_spec.json -r PT10M
 ```
 
 Or, specify 1 hour as follows:
 
 ```bash
-python generator.py -f generator_spec.json -o target_spec.json -t 1H
+python generator.py -f generator_spec.json -o target_spec.json -r PT1H
 ```
 
 #### Limit generation to a number of records
