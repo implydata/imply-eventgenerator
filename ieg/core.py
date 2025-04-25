@@ -3,23 +3,9 @@
 import json
 import random
 
-from ieg.distributions import (
-    parse_distribution
-)
-
-from ieg.targets import (
-    TargetStdout,
-    TargetFile,
-    TargetKafka,
-    TargetConfluent
-)
-
-from ieg.dimensions import (
-    DimensionStringTime,
-    DimensionVariable,
-    get_dimensions,
-    get_variables
-)
+from ieg.distributions import *
+from ieg.targets import *
+from ieg.dimensions import *
 
 # Additional modules.
 
@@ -425,12 +411,31 @@ class DataDriver:
 
     def format_record_with_pattern(self, record):
         if not self.record_format:
+            # Handle type-based formatting for JSON serialization
+            for key, value in record.items():
+                if isinstance(value, datetime):
+                    record[key] = value.isoformat()  # Default to ISO 8601 for datetime
+                elif value is None:
+                    record[key] = "null"  # Convert None to "null"
+                else:
+                    record[key] = str(value)  # Convert other types to strings
             return json.dumps(record)  # Default to JSON if no pattern is provided
 
         try:
-            # Use Python string formatting with `{key}` placeholders
-            # TODO: Support full Pythonic formatting with `{key:format}` placeholders.
-            formatted_record = self.record_format.format(**record)
+            # Pre-format datetime fields and handle other types
+            formatted_record = self.record_format.format(
+                **{
+                    key: (
+                        value.strftime("%Y-%m-%d %H:%M:%S")  # Default datetime format
+                        if isinstance(value, datetime)
+                        else "null"
+                        if value is None
+                        else str(value)
+                    )
+                    for key, value in record.items()
+                }
+            )
+
         except KeyError as e:
             raise KeyError(f"Missing key in record for pattern: {e}")
         except ValueError as e:
@@ -441,14 +446,12 @@ class DataDriver:
         record = {}
         for element in dimensions:
             if isinstance(element, DimensionVariable):
-                # Fetch the value from the variables dictionary
                 record[element.name] = variables[element.variable_name]
             else:
-                if isinstance(element, DimensionStringTime) or not element.is_missing():
+                if isinstance(element, DimensionTimestampClock) or not element.is_missing():
                     record[element.name] = element.get_stochastic_value()
 
-        # Apply the global pattern to the record
-        return self.format_record_with_pattern(record)
+        return record
 
     def set_variable_values(self, variables, dimensions):
         for d in dimensions:
@@ -464,7 +467,8 @@ class DataDriver:
         while True:
             self.set_variable_values(variables, current_state.variables)
             record = self.create_record(current_state.dimensions, variables)
-            self.target_printer.print(record)  # Pass the formatted record to the target printer
+            formatted_record = self.format_record_with_pattern(record)  # Format the record here
+            self.target_printer.print(formatted_record)  # Pass the formatted record to the target printer
             self.sim_control.inc_rec_count()
             if self.sim_control.is_done():
                 break

@@ -238,25 +238,25 @@ class DimensionString(DimensionBase):
             s = '"'+self.name+'":"'+str(value)+'"'
         return s
 
-class DimensionStringTime:
-    # Generates the current timestamp in ISO format.
+#  
+# TIMESTAMP dimensions
+# 
+
+class DimensionTimestampClock:
+    # Returns the current value of the generator's clock as a datetime object.
     def __init__(self, global_clock):
         self.global_clock = global_clock
         self.name = "time"  # Add a default name attribute
 
     def __str__(self):
-        return 'DimensionStringTime()'
-
-    def get_json_field_string(self):
-        now = self.global_clock.now().isoformat()[:-3]
-        return '"time":"' + now + '"'
+        return 'DimensionTimestampClock()'
 
     def get_stochastic_value(self):
-        # Return the current time value
-        return self.global_clock.now().isoformat()[:-3]
+        # Return the current time as a datetime object
+        return self.global_clock.now()
 
-class DimensionStringTimestamp(DimensionBase):
-    # Generates random timestamps based on a distribution.
+class DimensionTimestamp(DimensionBase):
+    # Generates random timestamps as datetime objects based on a distribution.
     def __init__(self, desc):
         self.name = desc['name']
         self.value_distribution = parse_timestamp_distribution(desc['distribution'])
@@ -278,7 +278,7 @@ class DimensionStringTimestamp(DimensionBase):
             self.cardinality = []
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
             for i in range(cardinality):
-                Value = None
+                value = None
                 while True:
                     value = self.get_stochastic_value()
                     if value not in self.cardinality:
@@ -286,10 +286,11 @@ class DimensionStringTimestamp(DimensionBase):
                 self.cardinality.append(value)
 
     def __str__(self):
-        return 'DimensionStringTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'DimensionTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        return datetime.fromtimestamp(self.value_distribution.get_sample()).isoformat()[:-3]
+        # Return a random timestamp as a datetime object
+        return datetime.fromtimestamp(self.value_distribution.get_sample())
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
@@ -558,7 +559,7 @@ def parse_element(desc):
     elif desc['type'].lower() == 'float':
         el = DimensionFloat(desc)
     elif desc['type'].lower() == 'timestamp':
-        el = DimensionStringTimestamp(desc)
+        el = DimensionTimestamp(desc)
     elif desc['type'].lower() == 'ipaddress':
         el = DimensionIPAddress(desc)
     elif desc['type'].lower() == 'variable':
@@ -583,5 +584,5 @@ def get_variables(desc):
 def get_dimensions(desc, global_clock):
     # Parses the emitter configuration and returns a list of dimension objects using parse_element().
     elements = get_variables(desc)
-    elements.insert(0, DimensionStringTime(global_clock))
+    elements.insert(0, DimensionTimestampClock(global_clock))  # Adds the time dimension
     return elements

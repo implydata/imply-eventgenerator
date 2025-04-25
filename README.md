@@ -19,13 +19,13 @@ python generator.py \
 
 | Argument | Description |
 |---|---|
-| [`-f`](#generator-specification) | The name of the file in the `config_file` folder containing the [generator specification](#generator-specification).|
+| [`-c`](#generator-specification) | The name of the file in the `config_file` folder containing the [generator specification](#generator-specification).|
+| [`-t`](#target-specification) | The name of the file that contains the [target definition](#target.md). |
+| [`-f`](#record-format) | A file that contains a pattern that can be used to format the output records. If not specified, JSON is used. |
+| [`-s`](#simulated-clock) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
-| [`-o`](#target-specification) | The name of the file that contains the [target definition](#target.md). |
-| [`-s`](#simulated-clock) | Use a simulated clock, starting at the specified ISO time, rather than using the system clock. |
 | [`-n`](#generation-limit) | The number of records to generate. Must not be used in combinaton with `-t`. |
 | [`-t`](#generation-limit) | The length of time to create records for. Must not be used in combination with `-n`. |
-| [`-p`](#pattern-specification) | A file that contains a pattern that can be used to format the output records. If not specified, JSON is used. |
 
 ### Prerequities
 
@@ -71,7 +71,7 @@ Set the output of the data generator by setting the `target` object.
 
 Use the _-o_ option to designate a target definition file name. The [target](docs/target.md) defines where the generated messages are sent.
 
-### Pattern specification
+### Record format
 
 A text file with key names in braces (`{` and `}`) where emitter dimensions will be inserted.
 

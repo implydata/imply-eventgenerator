@@ -11,20 +11,15 @@ DEFAULT_CONCURRENCY = 100
 def main():
 
     # Parse command line arguments
-
     parser = argparse.ArgumentParser(description='Generates synthetic event data.')
     parser.add_argument('-c', dest='config_file', required=True, help='Generator configuration file')
     parser.add_argument('-t', dest='target_file', help='Target configuration file')
     parser.add_argument('-f', dest='record_format_file', help='Format file for record pattern.')
 
     parser.add_argument(
-        '-s', 
-        dest='time_type', 
-        nargs='?',
-        const='SIM', 
-        default='REAL', 
-        choices=['SIM', 'REAL'], 
-        help='Clock source (simulated or real)'
+        '-s',
+        dest='start_time',
+        help='Specify the start time for the clock (ISO 8601 format). Defaults to the current time if not specified.'
     )
 
     group = parser.add_mutually_exclusive_group(required=False)
@@ -32,27 +27,29 @@ def main():
     group.add_argument('-n', dest='n_recs', help='Number of records to generate (may not be used with -r)')
 
     parser.add_argument(
-        '-m', 
-        dest='concurrency', 
-        nargs='?', 
-        default=DEFAULT_CONCURRENCY, 
-        help='max entities concurrently generating events'
+        '-m',
+        dest='concurrency',
+        nargs='?',
+        default=DEFAULT_CONCURRENCY,
+        help='Max entities concurrently generating events'
     )
 
     args = parser.parse_args()
 
-    runtime = args.time
+    # Determine start_time and time_type
+    if args.start_time:
+        try:
+            start_time = dateutil.parser.isoparse(args.start_time)
+            time_type = 'SIM'  # Simulated time when start_time is explicitly provided
+        except ValueError as e:
+            raise ValueError(f"Invalid start time format: {args.start_time}. Ensure it is in ISO 8601 format.") from e
+    else:
+        start_time = datetime.now()
+        time_type = 'REAL'  # Real time when start_time is not provided
 
+    runtime = args.time
     max_entities = int(args.concurrency)  # Convert to integer. Safe as there is a default.
     total_recs = int(args.n_recs) if args.n_recs else None
-    time_type = args.time_type
-    if time_type == 'SIM':
-        start_time = datetime.now()
-    elif time_type == 'REAL':
-        start_time = datetime.now()
-    else:
-        start_time = dateutil.parser.isoparse(time_type)
-        time_type = 'SIM'
 
     try:
         # Load configuration file
