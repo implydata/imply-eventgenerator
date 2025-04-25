@@ -1,5 +1,8 @@
 # IEG classes and functions.
 
+import json
+import random
+
 from ieg.distributions import (
     parse_distribution
 )
@@ -287,7 +290,7 @@ class DataDriver:
     # Main driver class for generating data.
     # Handles configuration, state machine, and output targets.
 
-    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, global_pattern):
+    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format):
         self.name = name
         self.config = config
         self.runtime = runtime
@@ -298,8 +301,8 @@ class DataDriver:
         self.status_msg = 'Creating...'
 
         # Validate the global pattern
-        self.global_pattern = global_pattern
-        if self.global_pattern:
+        self.record_format = record_format
+        if self.record_format:
             available_fields = {"time"}  # "time" is always emitted
             for emitter in self.config.get("emitters", []):
                 for dimension in emitter.get("dimensions", []):
@@ -307,7 +310,7 @@ class DataDriver:
             try:
                 # Use a dummy dictionary with available fields to test the pattern
                 dummy_record = {field: "" for field in available_fields}
-                self.global_pattern.format(**dummy_record)
+                self.record_format.format(**dummy_record)
             except KeyError as e:
                 raise KeyError(f"Global pattern references an unknown field: {e}. Ensure all fields in the pattern are defined in the emitters or are default fields.")
             except ValueError as e:
@@ -387,104 +390,47 @@ class DataDriver:
             msg = 'Error: Unknown target type "'+target['type']+'"'
             raise Exception(msg)
 
-        self.type='generator'
-        if 'type' in config.keys():
-            self.type=config['type']
+        # Remove type validation and default to generator
+        self.type = 'generator'
 
-        if self.type=='replay':        
-            if 'source_file' in config.keys():
-                self.replay_file = config['source_file']
-            else:
-                msg='Error: "type" = `replay` requires a "source_file".'
-                raise Exception(msg)
-            if 'source_format' in config.keys():
-                self.source_format = config['source_format']
-            else:
-                self.source_format = 'csv' # default to csv as it is the only supported format for now
+        # Set up the interarrival rate
+        rate = self.config['interarrival']
+        self.rate_delay = parse_distribution(rate)
 
-            if 'time_field' in config.keys():
-                self.time_field = config['time_field']
-            else:
-                msg = 'Error: "type" = `replay` requires a the specification of a "time_field".'
-                raise Exception(msg)
-            if 'time_format' in config.keys():
-                self.time_format = config['time_format']
-            else:
-                print('Info: time_format was not specified, using default "%Y-%m-%d %H:%M:%S" which is for timestamps in the form "YYYY-MM-DD hh:mm:ss". See https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes for accepted format values.')
-                self.time_format = '%Y-%m-%d %H:%M:%S'
-            if 'null_injection' in config.keys():
-                self.do_null_injection = True
-                self.null_injections = config['null_injection']
-                msg = 'Error: "null_injection" must be an array in the form: [{"field":"field1","null_probability":0.05},{"field":"field2", "null_probability":0.01}].'
-                if not isinstance(self.null_injections, list):
-                    raise Exception(msg)
-                else:
-                    for injection in self.null_injections:
-                        if not isinstance(injection, dict) or 'field' not in injection.keys() or 'null_probability' not in injection.keys():
-                            raise Exception(msg)
-            else:
-                self.do_null_injection = False
-            if 'time_skipping' in config.keys():
-                self.do_time_skips = True
-                self.time_skip_config = config['time_skipping']
-                if not isinstance(self.time_skip_config, dict) \
-                    or 'skip_probability' not in self.time_skip_config.keys() \
-                    or 'min_skip_duration' not in self.time_skip_config.keys() \
-                    or 'max_skip_duration' not in self.time_skip_config.keys():
-                    msg='Error: "time_skipping" must have the form: {"skip_probability": 0.01, "min_skip_duration": 5, "max_skip_duration": 300}"'
-                    raise Exception(msg)
-            else:
-                self.do_time_skips = False
+        # Set up emitters list
+        self.emitters = {}
+        for emitter in self.config['emitters']:
+            name = emitter['name']
+            dimensions = get_dimensions(emitter['dimensions'], self.global_clock)
+            self.emitters[name] = dimensions
 
-        elif self.type=='generator':
-            #
-            # Set up the interarrival rate
-            #
-            self.type='generator'
-            rate = self.config['interarrival']
-            self.rate_delay = parse_distribution(rate)
-
-            #
-            # Set up emitters list
-            #
-            self.emitters = {}
-            for emitter in self.config['emitters']:
-                name = emitter['name']
-                dimensions = get_dimensions(emitter['dimensions'], self.global_clock)
-                self.emitters[name] = dimensions
-
-            #
-            # Set up the state machine
-            #
-            state_desc = self.config['states']
-            self.initial_state = None
-            self.states = {}
-            for state in state_desc:
-                name = state['name']
-                emitter_name = state['emitter']
-                if 'variables' not in state.keys():
-                    variables = []
-                else:
-                    variables = get_variables(state['variables'])
-                dimensions = self.emitters[emitter_name]
-                delay = parse_distribution(state['delay'])
-                transitions = parse_transitions(state['transitions'])
-                this_state = State(name, dimensions, delay, transitions, variables)
-                self.states[name] = this_state
-                if self.initial_state == None:
-                    self.initial_state = this_state
-        else:
-            msg = f"Error: Unknown `type` = {self.type}."
-            raise Exception(msg)        
+        # Set up the state machine
+        state_desc = self.config['states']
+        self.initial_state = None
+        self.states = {}
+        for state in state_desc:
+            name = state['name']
+            emitter_name = state['emitter']
+            if 'variables' not in state.keys():
+                variables = []
+            else:
+                variables = get_variables(state['variables'])
+            dimensions = self.emitters[emitter_name]
+            delay = parse_distribution(state['delay'])
+            transitions = parse_transitions(state['transitions'])
+            this_state = State(name, dimensions, delay, transitions, variables)
+            self.states[name] = this_state
+            if self.initial_state is None:
+                self.initial_state = this_state
 
     def format_record_with_pattern(self, record):
-        if not self.global_pattern:
+        if not self.record_format:
             return json.dumps(record)  # Default to JSON if no pattern is provided
 
         try:
             # Use Python string formatting with `{key}` placeholders
             # TODO: Support full Pythonic formatting with `{key:format}` placeholders.
-            formatted_record = self.global_pattern.format(**record)
+            formatted_record = self.record_format.format(**record)
         except KeyError as e:
             raise KeyError(f"Missing key in record for pattern: {e}")
         except ValueError as e:
@@ -556,89 +502,15 @@ class DataDriver:
         # shut off clock simulator
         self.global_clock.end_thread()
 
-    def parse_time_from_record(self, json_obj, time_field, time_format) -> datetime:
-        if time_format == 'millis':
-            return datetime.fromtimestamp(float(json_obj[time_field])/1000.0)
-        elif time_format == 'seconds' or time_format == 'epoch' or time_format == 'posix':
-            return datetime.fromtimestamp(float(json_obj[time_field]))
-        elif time_format == 'nanos':
-            return datetime.fromtimestamp(float(json_obj[time_field])/1000000.0)
-        else:
-            return datetime.strptime(json_obj[time_field], time_format)
-
     def get_new_time_for_record(self):
             return self.global_clock.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
-    def replay_thread(self):
-        # Processes a replay file to generate events based on the global clock.
-        # Supports null injection and time skipping.
-        # process replay file, generate events based on global clock
-        # read the source file
-        import json
-        import csv
-        import copy
-        import random
-
-        self.global_clock.activate_thread()
-
-        data = []
-        self.status_msg = f"Reading data from file {self.replay_file}..."
-        with open(self.replay_file, 'r') as csvfile:
-            for line in csv.DictReader(csvfile):
-                data.append(line)
-        total_source_recs = len(data)
-        cycle = 0
-        self.status_msg = f"Read {total_source_recs} rows from file... sim control is done = {self.sim_control.is_done()}"
-        sim_start_time = self.global_clock.now()
-        while not self.sim_control.is_done():
-            cycle += 1
-            self.status_msg =  f"Generating data, cycle:{cycle} with max of {total_source_recs} messages per cycle."
-            i = 0 # start each cycle through from the beginning of the replay event sequence
-            while i < total_source_recs:
-                current_source_time = self.parse_time_from_record( data[i], self.time_field, self.time_format)
-                json_obj = copy.deepcopy(data[i])
-                # reset time on the output object to simulated time
-                json_obj[self.time_field]=self.get_new_time_for_record()
-                self.status_msg =  f"Replaying: Cycle:{cycle} msg:{i} - Sim clock:{json_obj[self.time_field]}."
-                #do null injections if configured
-                if self.do_null_injection:
-                    for nuller in self.null_injections:
-                        if random.random()<nuller['null_probability']:
-                            json_obj[nuller['field']] = None
-                # print record to defined target
-                record = json.dumps(json_obj)
-                self.target_printer.print(record)
-                self.sim_control.inc_rec_count()
-                i += 1 # move to next event in the replay set
-                if i < total_source_recs:
-                    next_source_time = self.parse_time_from_record( data[i], self.time_field, self.time_format)
-                    if self.do_time_skips and random.random()<self.time_skip_config['skip_probability']:
-                        # calculate skip time in seconds
-                        skip_time = random.uniform(self.time_skip_config['min_skip_duration'], self.time_skip_config['max_skip_duration'])
-                        self.status_msg =  f"Replaying: Cycle:{cycle} msg:{i} - Sim clock:{json_obj[self.time_field]}. Skipping {skip_time} seconds."
-                        # find the next event in the sequence that is after the skip time
-                        while ((next_source_time - current_source_time).total_seconds() < skip_time) and (i < total_source_recs-1):
-                            i += 1
-                            next_source_time = self.parse_time_from_record( data[i], self.time_field, self.time_format)
-                            self.status_msg =  f"Replaying: Cycle:{cycle} msg:{i} - Sim clock:{json_obj[self.time_field]}. Skipping {skip_time} seconds."
-                    # advance time according to the elapsed time between events in the replay file
-                    self.global_clock.sleep(float((next_source_time - current_source_time).total_seconds()))
-                if self.sim_control.is_done():
-                    break
-        self.global_clock.end_thread()
-
     def simulate(self):
         # Starts the simulation based on the configuration.
-        self.status_msg=f'Starting {self.type} job.'
-        if self.type == 'replay':
-            # run a single replay thread, no data generation needed except for new timestamps
-            thread_name = 'DigitalTwinSimulator'
-            self.sim_control.add_entity()
-            thrd = threading.Thread(target=self.replay_thread, name=thread_name, daemon=True)
-            thrd.start()
-        else:
-            thrd = threading.Thread(target=self.spawning_thread, args=(), name='Spawning', daemon=True)
-            thrd.start()
+        self.status_msg = f'Starting {self.type} job.'
+        thread_name = 'Spawning'
+        thrd = threading.Thread(target=self.spawning_thread, args=(), name=thread_name, daemon=True)
+        thrd.start()
         thrd.join()
 
     def terminate(self):

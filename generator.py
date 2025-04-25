@@ -6,28 +6,45 @@ from datetime import datetime
 import dateutil.parser
 from ieg.core import DataDriver
 
+DEFAULT_CONCURRENCY = 100
+
 def main():
 
     # Parse command line arguments
 
     parser = argparse.ArgumentParser(description='Generates synthetic event data.')
-    parser.add_argument('-f', dest='config_file', nargs='?', help='the workload config file name')
-    parser.add_argument('-o', dest='target_file', nargs='?', help='the message output target file name')
-    parser.add_argument('-t', dest='time', nargs='?', help='the script runtime (may not be used with -n)')
-    parser.add_argument('-n', dest='n_recs', nargs='?', help='the number of records to generate (may not be used with -t)')
-    parser.add_argument('-s', dest='time_type', nargs='?', const='SIM', default='REAL', help='simulate time (default is real, not simulated)')
-    parser.add_argument('-m', dest='concurrency', nargs='?', default=100, help='max entities concurrently generating events')
-    parser.add_argument('-p', dest='global_pattern_file', nargs='?', help='the file containing the global pattern')
+    parser.add_argument('-c', dest='config_file', required=True, help='Generator configuration file')
+    parser.add_argument('-t', dest='target_file', help='Target configuration file')
+    parser.add_argument('-f', dest='record_format_file', help='Format file for record pattern.')
+
+    parser.add_argument(
+        '-s', 
+        dest='time_type', 
+        nargs='?',
+        const='SIM', 
+        default='REAL', 
+        choices=['SIM', 'REAL'], 
+        help='Clock source (simulated or real)'
+    )
+
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('-r', dest='time', help='Length of time to generate data (may not be used with -n)')
+    group.add_argument('-n', dest='n_recs', help='Number of records to generate (may not be used with -r)')
+
+    parser.add_argument(
+        '-m', 
+        dest='concurrency', 
+        nargs='?', 
+        default=DEFAULT_CONCURRENCY, 
+        help='max entities concurrently generating events'
+    )
 
     args = parser.parse_args()
+
     runtime = args.time
 
-    # Validate command line arguments
-
-    max_entities = int(args.concurrency) # Convert to integer. Safe as there is a default.
-    total_recs = None
-    if args.n_recs is not None:
-        total_recs = int(args.n_recs)
+    max_entities = int(args.concurrency)  # Convert to integer. Safe as there is a default.
+    total_recs = int(args.n_recs) if args.n_recs else None
     time_type = args.time_type
     if time_type == 'SIM':
         start_time = datetime.now()
@@ -37,54 +54,42 @@ def main():
         start_time = dateutil.parser.isoparse(time_type)
         time_type = 'SIM'
 
-    if (runtime is not None) and (total_recs is not None):
-        print("Use either -t or -n, but not both")
-        parser.print_help()
-        exit()
-
     try:
-        config_file_name = f'{args.config_file}'
-        if config_file_name:
-            with open(config_file_name, 'r') as f:
-                try:
-                    config = json.load(f)
-                except json.JSONDecodeError as e:
-                    raise ValueError(f"Error parsing config file '{config_file_name}': {e}")
-        else:
+        # Load configuration file
+        with open(args.config_file, 'r') as f:
             try:
-                config = json.load(sys.stdin)
+                config = json.load(f)
             except json.JSONDecodeError as e:
-                raise ValueError(f"Error parsing config from stdin: {e}")
-            
-        target_file_name = args.target_file
-        if target_file_name:
-            with open(target_file_name, 'r') as f:
+                raise ValueError(f"Error parsing config file '{args.config_file}': {e}")
+
+        # Load target file or use target from config
+        if args.target_file:
+            with open(args.target_file, 'r') as f:
                 try:
                     target = json.load(f)
                 except json.JSONDecodeError as e:
-                    raise ValueError(f"Error parsing target file '{target_file_name}': {e}")
+                    raise ValueError(f"Error parsing target file '{args.target_file}': {e}")
         elif 'target' in config.keys():
             target = config['target']
         else:
             raise ValueError("No target specified in the config file or as a separate target file.")
 
-        global_pattern_file = args.global_pattern_file
-        if global_pattern_file:
-            if os.path.exists(global_pattern_file):
+        # Load record format file
+        if args.record_format_file:
+            if os.path.exists(args.record_format_file):
                 try:
-                    with open(global_pattern_file, 'r') as f:
+                    with open(args.record_format_file, 'r') as f:
                         # Interpret escape sequences like \t
-                        global_pattern = f.read().strip().encode('utf-8').decode('unicode_escape')
+                        record_format = f.read().strip().encode('utf-8').decode('unicode_escape')
                 except UnicodeDecodeError as e:
-                    raise ValueError(f"Error decoding global pattern file '{global_pattern_file}': {e}")
+                    raise ValueError(f"Error decoding record format file '{args.record_format_file}': {e}")
             else:
-                raise FileNotFoundError(f"Global pattern file '{global_pattern_file}' not found. Ensure the file path is correct.")
+                raise FileNotFoundError(f"Record format file '{args.record_format_file}' not found. Ensure the file path is correct.")
         else:
-            global_pattern = None
+            record_format = None
 
         # Start a new data driver
-
-        driver = DataDriver(  # Use the explicitly imported DataDriver
+        driver = DataDriver(
             name='cli',
             config=config,
             target=target,
@@ -93,7 +98,7 @@ def main():
             time_type=time_type,
             start_time=start_time,
             max_entities=max_entities,
-            global_pattern=global_pattern
+            record_format=record_format
         )
         driver.simulate()
 

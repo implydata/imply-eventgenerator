@@ -8,12 +8,12 @@ Run the `generator.py` script from the command line to create synthetic data in 
 
 ```bash
 python generator.py \
-        -f <generator specification file> \
+        -c <generator specification file> \
         -m <generator workers limit> \
-        -o <target specification file> \
+        -t <target specification file> \
         -s <start timestamp> \
         -n <record limit> \
-        -t <duration limit> \
+        -r <duration limit> \
         -p <pattern specification file>
 ```
 
