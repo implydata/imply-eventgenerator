@@ -10,10 +10,7 @@ from ieg.states import *
 
 # Additional modules.
 
-from confluent_kafka import Producer
-from kafka import KafkaProducer
 from sortedcontainers import SortedList
-import numpy as np
 
 # Standard modules.
 

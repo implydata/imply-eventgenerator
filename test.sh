@@ -15,7 +15,7 @@ mv test.json test_004.json
 cat test_004.json
 
 echo "Test 5: Generate ten minutes worth of data to a file from clickstream.json using simulated clock"
-python3 generator.py -c conf/gen/clickstream.json -t conf/tar/file.json -r 10m -s "2027-03-12" -m 2
+python3 generator.py -c conf/gen/clickstream.json -t conf/tar/file.json -r PT10M -s "2027-03-12" -m 2
 mv test.json test_005.json
 cat test_005.json
 
