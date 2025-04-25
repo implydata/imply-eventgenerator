@@ -13,7 +13,8 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Generates synthetic event data.')
     parser.add_argument('-c', dest='config_file', required=True, help='Generator configuration file')
-    parser.add_argument('-t', dest='target_file', help='Target configuration file')
+    parser.add_argument('-t', dest='target_file', help='Target configuration file. If not specified, the target from the config file will be used. If neither is specified, stdout will be used as the target.')
+    
     parser.add_argument('-f', dest='record_format_file', help='Format file for record pattern.')
 
     parser.add_argument(
@@ -69,7 +70,7 @@ def main():
         elif 'target' in config.keys():
             target = config['target']
         else:
-            raise ValueError("No target specified in the config file or as a separate target file.")
+            target = {"type": "stdout"}
 
         # Load record format file
         if args.record_format_file:

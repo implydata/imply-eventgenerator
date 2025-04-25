@@ -1,5 +1,4 @@
 {
-  "target": { "type": "stdout" },
   "interarrival": { "type": "exponential", "mean": 1.0 },
   "emitters": [
     {

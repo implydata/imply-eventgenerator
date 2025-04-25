@@ -1,0 +1,6 @@
+{
+    "type": "kafka",
+    "endpoint": "host.docker.internal:9092",
+    "topic": "clicks",
+    "topic_key": ["user_id"]
+}

@@ -20,7 +20,7 @@ python generator.py \
 | Argument | Description |
 |---|---|
 | [`-c`](#generator-specification) | The name of the file in the `config_file` folder containing the [generator specification](#generator-specification).|
-| [`-t`](#target-specification) | The name of the file that contains the [target definition](#target.md). |
+| [`-t`](#target-specification) | The name of the file that contains the [target definition](#target.md). This over-rides any `target` specified in the generator specification. If neither is provided, stdout will be used. |
 | [`-f`](#record-format) | A file that contains a pattern that can be used to format the output records. If not specified, JSON is used. |
 | [`-s`](#simulated-clock) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
