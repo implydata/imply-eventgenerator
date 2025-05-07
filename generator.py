@@ -17,6 +17,25 @@ def validate_concurrency(value):
     except ValueError:
         raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 1000.")
 
+def validate_state_transitions(config):
+    """
+    Validates that all states in the configuration are reachable and transitions are well-defined.
+    """
+    states = {state['name'] for state in config.get('states', [])}
+    transitions = set()
+
+    for state in config.get('states', []):
+        for transition in state.get('transitions', []):
+            transitions.add(transition['next'])
+
+    unreachable_states = states - transitions - {'initial', 'stop'}
+    if unreachable_states:
+        raise ValueError(f"The following states are unreachable: {', '.join(unreachable_states)}")
+
+    invalid_transitions = transitions - states - {'stop'}
+    if invalid_transitions:
+        raise ValueError(f"The following transitions point to undefined states: {', '.join(invalid_transitions)}")
+
 def main():
 
     # Parse command line arguments
@@ -69,6 +88,9 @@ def main():
                 config = json.load(f)
             except json.JSONDecodeError as e:
                 raise ValueError(f"Error parsing config file '{args.config_file}': {e}")
+
+        # Validate state transitions
+        validate_state_transitions(config)
 
         # Load target file or use target from config
         if args.target_file:
