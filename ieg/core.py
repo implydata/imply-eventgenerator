@@ -20,7 +20,8 @@ import json
 import threading
 import time
 
-TEMPLATE_REGEX = re.compile(r"{{\s*([^}]+)\s*}}")
+# Update TEMPLATE_REGEX to capture optional strftime format
+TEMPLATE_REGEX = re.compile(r"{{\s*([^|}]+)(?:\|([^}]+))?\s*}}")
 
 def render_env_variables(config):
     """
@@ -316,7 +317,23 @@ class DataDriver:
         return value
 
     def render_template(self, template, record):
-        return TEMPLATE_REGEX.sub(lambda match: str(self.get_value(record, match.group(1))) or '', template)
+        """
+        Replace placeholders in the template with values from the record.
+        Supports optional strftime formatting for datetime values.
+        """
+        def replace_placeholder(match):
+            key = match.group(1)  # Placeholder name (e.g., "time")
+            format_str = match.group(2)  # Optional strftime format (e.g., "%Y-%m-%d")
+            value = self.get_value(record, key)  # Retrieve the value from the record
+
+            if isinstance(value, datetime) and format_str:
+                try:
+                    return value.strftime(format_str)  # Apply strftime if format is provided
+                except ValueError as e:
+                    raise ValueError(f"Invalid strftime format '{format_str}' for key '{key}': {e}")
+            return str(value) if value is not None else ''  # Default to string conversion
+
+        return TEMPLATE_REGEX.sub(replace_placeholder, template)
 
     def apply_pattern(self, pattern, record):
         if isinstance(pattern, dict):
