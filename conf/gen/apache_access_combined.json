@@ -122,6 +122,23 @@
       ]
     },
     {
+      "name": "browse_products",
+      "emitter": "apache_combined_log",
+      "variables": [
+        { "name": "var_request", "type": "enum", "values": ["/products"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_referrer_url", "type": "enum", "values": ["-"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "exponential", "mean": 2.0 },
+      "transitions": [
+        { "next": "browse_cat_indoor_lighting", "probability": 0.4 },
+        { "next": "browse_cat_outdoor_lighting", "probability": 0.2 },
+        { "next": "browse_cat_smart_lighting", "probability": 0.15 },
+        { "next": "browse_cat_led_lighting", "probability": 0.15 },
+        { "next": "browse_cat_vintage_lighting", "probability": 0.08 },
+        { "next": "not_found", "probability": 0.02 }
+      ]
+    },
+    {
       "name": "browse_cat_indoor_lighting",
       "emitter": "apache_combined_log",
       "variables": [
@@ -129,27 +146,26 @@
           "name": "var_request",
           "type": "enum",
           "values": [
-            "/products/indoor-lighting/aurora-chandelier",
-            "/products/indoor-lighting/nebula-table-lamp",
-            "/products/indoor-lighting/stellar-floor-lamp",
-            "/products/indoor-lighting/eclipse-wall-sconce",
-            "/products/indoor-lighting/orion-pendant-light",
-            "/products/indoor-lighting/celestial-ceiling-light",
-            "/products/indoor-lighting/galaxy-desk-lamp",
-            "/products/indoor-lighting/meteor-track-light",
-            "/products/indoor-lighting/comet-wall-lamp",
-            "/products/indoor-lighting/constellation-chandelier"
+            "/categories/indoor-lighting/aurora-chandelier",
+            "/categories/indoor-lighting/nebula-table-lamp",
+            "/categories/indoor-lighting/stellar-floor-lamp",
+            "/categories/indoor-lighting/eclipse-wall-sconce",
+            "/categories/indoor-lighting/orion-pendant-light",
+            "/categories/indoor-lighting/celestial-ceiling-light",
+            "/categories/indoor-lighting/galaxy-desk-lamp",
+            "/categories/indoor-lighting/meteor-track-light",
+            "/categories/indoor-lighting/comet-wall-lamp",
+            "/categories/indoor-lighting/constellation-chandelier"
           ],
           "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
         }
       ],
       "delay": { "type": "exponential", "mean": 2.0 },
       "transitions": [
-        { "next": "add_to_cart", "probability": 0.25 },
-        { "next": "browse_cat_indoor_lighting", "probability": 0.2 },
-        { "next": "browse_cat_lighting", "probability": 0.25 },
-        { "next": "browse_products", "probability": 0.15 },
-        { "next": "stop", "probability": 0.15 }
+        { "next": "add_to_cart", "probability": 0.3 },
+        { "next": "browse_cat_indoor_lighting", "probability": 0.4 },
+        { "next": "browse_products", "probability": 0.2 },
+        { "next": "stop", "probability": 0.1 }
       ]
     },
     {
@@ -160,28 +176,27 @@
           "name": "var_request",
           "type": "enum",
           "values": [
-            "/products/outdoor-lighting/solar-path-light",
-            "/products/outdoor-lighting/moonlit-garden-lamp",
-            "/products/outdoor-lighting/starlight-wall-lantern",
-            "/products/outdoor-lighting/twilight-post-light",
-            "/products/outdoor-lighting/aurora-string-lights",
-            "/products/outdoor-lighting/dusk-to-dawn-floodlight",
-            "/products/outdoor-lighting/galactic-spotlight",
-            "/products/outdoor-lighting/nebula-patio-light",
-            "/products/outdoor-lighting/orbit-wall-light",
-            "/products/outdoor-lighting/meteor-garden-lamp",
-            "/products/outdoor-lighting/cosmic-deck-light"
+            "/categories/outdoor-lighting/solar-path-light",
+            "/categories/outdoor-lighting/moonlit-garden-lamp",
+            "/categories/outdoor-lighting/starlight-wall-lantern",
+            "/categories/outdoor-lighting/twilight-post-light",
+            "/categories/outdoor-lighting/aurora-string-lights",
+            "/categories/outdoor-lighting/dusk-to-dawn-floodlight",
+            "/categories/outdoor-lighting/galactic-spotlight",
+            "/categories/outdoor-lighting/nebula-patio-light",
+            "/categories/outdoor-lighting/orbit-wall-light",
+            "/categories/outdoor-lighting/meteor-garden-lamp",
+            "/categories/outdoor-lighting/cosmic-deck-light"
           ],
           "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
         }
       ],
       "delay": { "type": "exponential", "mean": 2.0 },
       "transitions": [
-        { "next": "add_to_cart", "probability": 0.25 },
-        { "next": "browse_cat_outdoor_lighting", "probability": 0.2 },
-        { "next": "browse_cat_lighting", "probability": 0.25 },
-        { "next": "browse_products", "probability": 0.15 },
-        { "next": "stop", "probability": 0.15 }
+        { "next": "add_to_cart", "probability": 0.3 },
+        { "next": "browse_cat_outdoor_lighting", "probability": 0.4 },
+        { "next": "browse_products", "probability": 0.2 },
+        { "next": "stop", "probability": 0.1 }
       ]
     },
     {
@@ -192,27 +207,26 @@
           "name": "var_request",
           "type": "enum",
           "values": [
-            "/products/smart-lighting/voice-controlled-bulb",
-            "/products/smart-lighting/color-changing-bulb",
-            "/products/smart-lighting/wifi-led-strip",
-            "/products/smart-lighting/app-controlled-lamp",
-            "/products/smart-lighting/smart-ceiling-light",
-            "/products/smart-lighting/ambient-desk-lamp",
-            "/products/smart-lighting/smart-wall-sconce",
-            "/products/smart-lighting/energy-saving-smart-light",
-            "/products/smart-lighting/smart-pendant-light",
-            "/products/smart-lighting/automated-floor-lamp"
+            "/categories/smart-lighting/voice-controlled-bulb",
+            "/categories/smart-lighting/color-changing-bulb",
+            "/categories/smart-lighting/wifi-led-strip",
+            "/categories/smart-lighting/app-controlled-lamp",
+            "/categories/smart-lighting/smart-ceiling-light",
+            "/categories/smart-lighting/ambient-desk-lamp",
+            "/categories/smart-lighting/smart-wall-sconce",
+            "/categories/smart-lighting/energy-saving-smart-light",
+            "/categories/smart-lighting/smart-pendant-light",
+            "/categories/smart-lighting/automated-floor-lamp"
           ],
           "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
         }
       ],
       "delay": { "type": "exponential", "mean": 2.0 },
       "transitions": [
-        { "next": "add_to_cart", "probability": 0.25 },
-        { "next": "browse_cat_smart_lighting", "probability": 0.2 },
-        { "next": "browse_cat_lighting", "probability": 0.25 },
-        { "next": "browse_products", "probability": 0.15 },
-        { "next": "stop", "probability": 0.15 }
+        { "next": "add_to_cart", "probability": 0.3 },
+        { "next": "browse_cat_smart_lighting", "probability": 0.4 },
+        { "next": "browse_products", "probability": 0.2 },
+        { "next": "stop", "probability": 0.1 }
       ]
     },
     {
@@ -223,27 +237,26 @@
           "name": "var_request",
           "type": "enum",
           "values": [
-            "/products/led-lighting/ultra-bright-led-bulb",
-            "/products/led-lighting/eco-friendly-led-panel",
-            "/products/led-lighting/led-desk-lamp",
-            "/products/led-lighting/led-track-light",
-            "/products/led-lighting/led-wall-washer",
-            "/products/led-lighting/led-ceiling-panel",
-            "/products/led-lighting/led-pendant-light",
-            "/products/led-lighting/led-floor-lamp",
-            "/products/led-lighting/led-strip-light",
-            "/products/led-lighting/led-recessed-light"
+            "/categories/led-lighting/ultra-bright-led-bulb",
+            "/categories/led-lighting/eco-friendly-led-panel",
+            "/categories/led-lighting/led-desk-lamp",
+            "/categories/led-lighting/led-track-light",
+            "/categories/led-lighting/led-wall-washer",
+            "/categories/led-lighting/led-ceiling-panel",
+            "/categories/led-lighting/led-pendant-light",
+            "/categories/led-lighting/led-floor-lamp",
+            "/categories/led-lighting/led-strip-light",
+            "/categories/led-lighting/led-recessed-light"
           ],
           "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
         }
       ],
       "delay": { "type": "exponential", "mean": 2.0 },
       "transitions": [
-        { "next": "add_to_cart", "probability": 0.25 },
-        { "next": "browse_cat_led_lighting", "probability": 0.2 },
-        { "next": "browse_cat_lighting", "probability": 0.25 },
-        { "next": "browse_products", "probability": 0.15 },
-        { "next": "stop", "probability": 0.15 }
+        { "next": "add_to_cart", "probability": 0.3 },
+        { "next": "browse_cat_led_lighting", "probability": 0.4 },
+        { "next": "browse_products", "probability": 0.2 },
+        { "next": "stop", "probability": 0.1 }
       ]
     },
     {
@@ -254,209 +267,27 @@
           "name": "var_request",
           "type": "enum",
           "values": [
-            "/products/vintage-lighting/retro-chandelier",
-            "/products/vintage-lighting/antique-wall-lamp",
-            "/products/vintage-lighting/industrial-pendant-light",
-            "/products/vintage-lighting/edison-bulb-lamp",
-            "/products/vintage-lighting/victorian-table-lamp",
-            "/products/vintage-lighting/art-deco-floor-lamp",
-            "/products/vintage-lighting/rustic-ceiling-light",
-            "/products/vintage-lighting/steampunk-wall-sconce",
-            "/products/vintage-lighting/classic-desk-lamp",
-            "/products/vintage-lighting/heritage-track-light",
-            "/products/vintage-lighting/nostalgic-patio-light"
+            "/categories/vintage-lighting/retro-chandelier",
+            "/categories/vintage-lighting/antique-wall-lamp",
+            "/categories/vintage-lighting/industrial-pendant-light",
+            "/categories/vintage-lighting/edison-bulb-lamp",
+            "/categories/vintage-lighting/victorian-table-lamp",
+            "/categories/vintage-lighting/art-deco-floor-lamp",
+            "/categories/vintage-lighting/rustic-ceiling-light",
+            "/categories/vintage-lighting/steampunk-wall-sconce",
+            "/categories/vintage-lighting/classic-desk-lamp",
+            "/categories/vintage-lighting/heritage-track-light",
+            "/categories/vintage-lighting/nostalgic-patio-light"
           ],
           "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
         }
       ],
       "delay": { "type": "exponential", "mean": 2.0 },
       "transitions": [
-        { "next": "add_to_cart", "probability": 0.25 },
-        { "next": "browse_cat_vintage_lighting", "probability": 0.2 },
-        { "next": "browse_cat_lighting", "probability": 0.25 },
-        { "next": "browse_products", "probability": 0.15 },
-        { "next": "stop", "probability": 0.15 }
-      ]
-    },
-    {
-      "name": "browse_cat_tools",
-      "emitter": "apache_combined_log",
-      "variables": [
-        {
-          "name": "var_request",
-          "type": "enum",
-          "values": [
-            "/products/tools/cordless-drill",
-            "/products/tools/hammer",
-            "/products/tools/screwdriver-set",
-            "/products/tools/wrench-set",
-            "/products/tools/circular-saw",
-            "/products/tools/level-tool",
-            "/products/tools/tape-measure",
-            "/products/tools/pliers",
-            "/products/tools/toolbox",
-            "/products/tools/sander"
-          ],
-          "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
-        }
-      ],
-      "delay": { "type": "exponential", "mean": 2.0 },
-      "transitions": [
-        { "next": "add_to_cart", "probability": 0.25 },
-        { "next": "browse_cat_tools", "probability": 0.2 },
-        { "next": "browse_cat_lighting", "probability": 0.25 },
-        { "next": "browse_products", "probability": 0.15 },
-        { "next": "stop", "probability": 0.15 }
-      ]
-    },
-    {
-      "name": "browse_cat_appliances",
-      "emitter": "apache_combined_log",
-      "variables": [
-        {
-          "name": "var_request",
-          "type": "enum",
-          "values": [
-            "/products/appliances/refrigerator",
-            "/products/appliances/microwave",
-            "/products/appliances/dishwasher",
-            "/products/appliances/washing-machine",
-            "/products/appliances/dryer",
-            "/products/appliances/air-conditioner",
-            "/products/appliances/vacuum-cleaner",
-            "/products/appliances/coffee-maker",
-            "/products/appliances/blender",
-            "/products/appliances/toaster"
-          ],
-          "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
-        }
-      ],
-      "delay": { "type": "exponential", "mean": 2.0 },
-      "transitions": [
-        { "next": "add_to_cart", "probability": 0.25 },
-        { "next": "browse_cat_appliances", "probability": 0.2 },
-        { "next": "browse_cat_lighting", "probability": 0.25 },
-        { "next": "browse_products", "probability": 0.15 },
-        { "next": "stop", "probability": 0.15 }
-      ]
-    },
-    {
-      "name": "browse_cat_gardening_lawn",
-      "emitter": "apache_combined_log",
-      "variables": [
-        {
-          "name": "var_request",
-          "type": "enum",
-          "values": [
-            "/products/gardening/lawn-mower",
-            "/products/gardening/hedge-trimmer",
-            "/products/gardening/garden-hose"
-          ],
-          "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
-        }
-      ],
-      "delay": { "type": "exponential", "mean": 2.0 },
-      "transitions": [
-        { "next": "add_to_cart", "probability": 0.25 },
-        { "next": "browse_cat_gardening_lawn", "probability": 0.2 },
-        { "next": "browse_cat_lighting", "probability": 0.25 },
-        { "next": "browse_products", "probability": 0.15 },
-        { "next": "stop", "probability": 0.15 }
-      ]
-    },
-    {
-      "name": "browse_cat_gardening_tools",
-      "emitter": "apache_combined_log",
-      "variables": [
-        {
-          "name": "var_request",
-          "type": "enum",
-          "values": [
-            "/products/gardening/shovel",
-            "/products/gardening/rake",
-            "/products/gardening/wheelbarrow"
-          ],
-          "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
-        }
-      ],
-      "delay": { "type": "exponential", "mean": 2.0 },
-      "transitions": [
-        { "next": "add_to_cart", "probability": 0.25 },
-        { "next": "browse_cat_gardening_tools", "probability": 0.2 },
-        { "next": "browse_cat_lighting", "probability": 0.25 },
-        { "next": "browse_products", "probability": 0.15 },
-        { "next": "stop", "probability": 0.15 }
-      ]
-    },
-    {
-      "name": "browse_cat_gardening_supplies",
-      "emitter": "apache_combined_log",
-      "variables": [
-        {
-          "name": "var_request",
-          "type": "enum",
-          "values": [
-            "/products/gardening/plant-pots",
-            "/products/gardening/soil",
-            "/products/gardening/fertilizer",
-            "/products/gardening/garden-shears"
-          ],
-          "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
-        }
-      ],
-      "delay": { "type": "exponential", "mean": 2.0 },
-      "transitions": [
-        { "next": "add_to_cart", "probability": 0.25 },
-        { "next": "browse_cat_gardening_supplies", "probability": 0.2 },
-        { "next": "browse_cat_lighting", "probability": 0.25 },
-        { "next": "browse_products", "probability": 0.15 },
-        { "next": "stop", "probability": 0.15 }
-      ]
-    },
-    {
-      "name": "browse_cat_gardening",
-      "emitter": "apache_combined_log",
-      "variables": [
-        { "name": "var_request", "type": "enum", "values": ["/gardening"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
-      ],
-      "delay": { "type": "exponential", "mean": 2.0 },
-      "transitions": [
-        { "next": "browse_cat_gardening_lawn", "probability": 0.4 },
-        { "next": "browse_cat_gardening_tools", "probability": 0.3 },
-        { "next": "browse_cat_gardening_supplies", "probability": 0.2 },
-        { "next": "browse_products", "probability": 0.1 }
-      ]
-    },
-    {
-      "name": "browse_cat_lighting",
-      "emitter": "apache_combined_log",
-      "variables": [
-        { "name": "var_request", "type": "enum", "values": ["/lighting"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
-      ],
-      "delay": { "type": "exponential", "mean": 2.0 },
-      "transitions": [
-        { "next": "browse_cat_indoor_lighting", "probability": 0.25 },
-        { "next": "browse_cat_outdoor_lighting", "probability": 0.2 },
-        { "next": "browse_cat_smart_lighting", "probability": 0.15 },
-        { "next": "browse_cat_led_lighting", "probability": 0.15 },
-        { "next": "browse_cat_vintage_lighting", "probability": 0.1 },
-        { "next": "browse_products", "probability": 0.15 }
-      ]
-    },
-    {
-      "name": "browse_products",
-      "emitter": "apache_combined_log",
-      "variables": [
-        { "name": "var_request", "type": "enum", "values": ["/products"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
-        { "name": "var_referrer_url", "type": "enum", "values": ["-"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
-      ],
-      "delay": { "type": "exponential", "mean": 2.0 },
-      "transitions": [
-        { "next": "browse_cat_lighting", "probability": 0.3 },
-        { "next": "browse_cat_tools", "probability": 0.25 },
-        { "next": "browse_cat_appliances", "probability": 0.15 },
-        { "next": "browse_cat_gardening", "probability": 0.15 },
-        { "next": "stop", "probability": 0.15 }
+        { "next": "add_to_cart", "probability": 0.3 },
+        { "next": "browse_cat_vintage_lighting", "probability": 0.4 },
+        { "next": "browse_products", "probability": 0.2 },
+        { "next": "stop", "probability": 0.1 }
       ]
     },
     {
@@ -467,9 +298,9 @@
       ],
       "delay": { "type": "exponential", "mean": 1.5 },
       "transitions": [
-        { "next": "checkout", "probability": 0.4 },
+        { "next": "checkout", "probability": 0.3 },
         { "next": "browse_products", "probability": 0.5 },
-        { "next": "stop", "probability": 0.1 }
+        { "next": "stop", "probability": 0.2 }
       ]
     },
     {
@@ -481,9 +312,9 @@
       ],
       "delay": { "type": "exponential", "mean": 3.0 },
       "transitions": [
-        { "next": "thank_you", "probability": 0.8 },
+        { "next": "thank_you", "probability": 0.6 },
         { "next": "try_again", "probability": 0.1 },
-        { "next": "stop", "probability": 0.1 }
+        { "next": "stop", "probability": 0.3 }
       ]
     },
     {
