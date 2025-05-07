@@ -1,1 +1,1 @@
-{{clientip}} {{ident}} {{authuser}} [{{time}}] "{{request_method}} {{request_url}} {{request_protocol}}" {{status}} {{bytes}} "{{referrer_url}}" "{{useragent}}"
+{{clientip}} {{ident}} {{authuser}} [{{time|%d/%b/%Y:%H:%M:%S %z}}] "{{request_method}} {{request_url}} {{request_protocol}}" {{status}} {{bytes}} "{{referrer_url}}" "{{useragent}}"

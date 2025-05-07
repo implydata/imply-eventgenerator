@@ -6,8 +6,8 @@ Whenever a worker encounters a field generator, whether via an emitter dimension
 
 The value that is generated depends on the field generator `type`. Available field generator types are:
 
-* [`clock`](#clock) generates a timestamp using the simulated clock.
-* [`timestamp`](./type-timestamp.md) generates a timestamp between a range.
+* [`clock`](#clock) generates a datetime using the simulated clock.
+* [`timestamp`](./type-timestamp.md) generates a datetime between a range.
 * [`string`](./type-string.md) creates a synthetic string, optionally limited to a specific list of characters.
 * [`int`](./type-int.md) generates whole numbers.
 * [`float`](./type-float.md) generates floating point numbers.
@@ -21,9 +21,20 @@ For information, including examples, see the individual pages for each field gen
 
 #### `clock`
 
-A fundamental field generator, often used for an event timestamp on each row. The value is taken from the clock that runs behind-the-scenes as the generator runs.
+Use the `clock`-type field generator to mimic an event timestamp.
 
-Clock dimensions have the following very simple format:
+Every state machine worker has an internal clock that starts at the time the worker is created by the data generator.
+
+* The very first worker starts either at the current date time, or by using the `-s` argument at the [command line](./command-line.md), at a simulated clock start time.
+* The next output event for that worker is emitted based on the `delay` between `states`. For more information, see [`states`](./genspec-states.md).
+
+The data generator spawns additional workers up to a configurable maximum, e.g. using the `-m` argument at the [command line](./command-line.md). The interval between workers being spawned is controlled by the `interarrival` time, set in the [generator specification](./genspec.md).
+
+```bash
+python3 src/generator.py -f example.json -n 10 -m 1
+```
+
+Clock dimensions have the following structure:
 
 ```
 {
@@ -80,6 +91,10 @@ Object field generators create nested data.
           "cardinality": 0,
           "dimensions": [
             {
+              "type": "clock",
+              "name": "__time"
+            },
+            {
               "type": "enum",
               "name": "enum_dim",
               "values": ["A", "B", "C"],
@@ -127,6 +142,10 @@ Object field generators create nested data.
           "cardinality": 3,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 },
           "dimensions": [
+            {
+              "type": "clock",
+              "name": "__time"
+            },
             {
               "type": "enum",
               "name": "enum_dim",
