@@ -1,0 +1,271 @@
+{
+  "states": [
+    {
+      "name": "initial",
+      "emitter": "ssh_session_open_emitter",
+      "delay": { "type": "constant", "value": 5 },
+      "variables": [
+        { "name": "time", "type": "clock" },
+        {
+          "type": "enum",
+          "name": "var_username",
+          "values": ["jdoe", "admin", "guest", "root"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 3 }
+        },
+        {
+          "type": "int",
+          "name": "var_session_id",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 1, "max": 100 }
+        },
+        {
+          "type": "ipaddress",
+          "name": "var_ip_address",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 3232235520, "max": 3232301055 }
+        },
+        {
+          "type": "int",
+          "name": "var_port",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 1024, "max": 65535 }
+        }
+      ],
+      "transitions": [
+        { "next": "ssh_login_failed", "probability": 0.5 },
+        { "next": "ssh_login_success", "probability": 0.5 }
+      ]
+    },
+    {
+      "name": "ssh_login_failed",
+      "emitter": "ssh_login_failed_emitter",
+      "delay": { "type": "constant", "value": 60 },
+      "transitions": [
+        { "next": "ssh_login_success", "probability": 0.5 },
+        { "next": "stop", "probability": 0.5 }
+      ]
+    },
+    {
+      "name": "ssh_login_success",
+      "emitter": "ssh_login_success_emitter",
+      "delay": { "type": "constant", "value": 1 },
+      "transitions": [
+        { "next": "session_start", "probability": 1.0 }
+      ]
+    },
+    {
+      "name": "session_start",
+      "emitter": "session_start_emitter",
+      "delay": { "type": "constant", "value": 45 },
+      "transitions": [
+        { "next": "sudo_command", "probability": 1.0 }
+      ]
+    },
+    {
+      "name": "sudo_command",
+      "emitter": "sudo_command_emitter",
+      "delay": { "type": "constant", "value": 180 },
+      "transitions": [
+        { "next": "session_end", "probability": 0.6 },
+        { "next": "stop", "probability": 0.4 }
+      ]
+    },
+    {
+      "name": "session_end",
+      "emitter": "session_end_emitter",
+      "delay": { "type": "constant", "value": 5 },
+      "transitions": [
+        { "next": "ssh_disconnect", "probability": 0.7 },
+        { "next": "stop", "probability": 0.3 }
+      ]
+    },
+    {
+      "name": "ssh_disconnect",
+      "emitter": "ssh_disconnect_emitter",
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    }
+  ],
+  "emitters": [
+    {
+      "name": "ssh_session_open_emitter",
+      "dimensions": [
+        { "type": "variable", "name": "ip_address", "variable": "var_ip_address" },
+        { "type": "variable", "name": "port", "variable": "var_port" },
+        {
+          "type": "enum",
+          "name": "process",
+          "values": ["sshd[1234]", "sshd[5678]", "sshd[9101]"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "type": "enum",
+          "name": "log_message",
+          "values": [
+            "Connection from 192.168.1.100 port 54022",
+            "Connection from 10.0.0.5 port 12345",
+            "Connection from 203.0.113.10 port 58742"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        }
+      ]
+    },
+    {
+      "name": "ssh_login_failed_emitter",
+      "dimensions": [
+        { "type": "variable", "name": "username", "variable": "var_username" },
+        { "type": "variable", "name": "ip_address", "variable": "var_ip_address" },
+        { "type": "variable", "name": "port", "variable": "var_port" },
+        {
+          "type": "enum",
+          "name": "process",
+          "values": ["sshd[1234]", "sshd[5678]", "sshd[9101]"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "type": "enum",
+          "name": "log_message",
+          "values": [
+            "Failed password for invalid user root from 203.0.113.10 port 58742 ssh2",
+            "Failed password for admin from 192.168.1.101 port 54022 ssh2",
+            "Failed password for guest from 10.0.0.5 port 12345 ssh2"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        }
+      ]
+    },
+    {
+      "name": "ssh_login_success_emitter",
+      "dimensions": [
+        { "type": "variable", "name": "username", "variable": "var_username" },
+        { "type": "variable", "name": "ip_address", "variable": "var_ip_address" },
+        { "type": "variable", "name": "port", "variable": "var_port" },
+        {
+          "type": "enum",
+          "name": "process",
+          "values": ["sshd[1235]", "sshd[6789]", "sshd[1122]"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "type": "enum",
+          "name": "log_message",
+          "values": [
+            "Accepted password for jdoe from 192.168.1.100 port 54022 ssh2",
+            "Accepted password for admin from 10.0.0.5 port 12345 ssh2",
+            "Accepted password for guest from 203.0.113.10 port 58742 ssh2"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        }
+      ]
+    },
+    {
+      "name": "session_start_emitter",
+      "dimensions": [
+        { "type": "variable", "name": "session_id", "variable": "var_session_id" },
+        { "type": "variable", "name": "username", "variable": "var_username" },
+        { "type": "variable", "name": "port", "variable": "var_port" },
+        {
+          "type": "enum",
+          "name": "process",
+          "values": ["systemd-logind[567]", "systemd-logind[890]", "systemd-logind[123]"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "type": "enum",
+          "name": "log_message",
+          "values": [
+            "New session 42 of user jdoe",
+            "New session 99 of user admin",
+            "New session 15 of user guest"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        }
+      ]
+    },
+    {
+      "name": "sudo_command_emitter",
+      "dimensions": [
+        { "type": "variable", "name": "username", "variable": "var_username" },
+        {
+          "type": "enum",
+          "name": "command",
+          "values": [
+            "/bin/systemctl restart nginx",
+            "/bin/systemctl restart apache",
+            "/bin/systemctl restart mysql",
+            "/bin/systemctl stop nginx",
+            "/bin/systemctl start apache",
+            "/bin/systemctl reload mysql"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 5 }
+        },
+        {
+          "type": "enum",
+          "name": "process",
+          "values": ["sudo", "sudo[1234]", "sudo[5678]"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "type": "enum",
+          "name": "log_message",
+          "values": [
+            "jdoe : TTY=pts/0 ; PWD=/home/jdoe ; USER=root ; COMMAND=/bin/systemctl restart nginx",
+            "admin : TTY=pts/1 ; PWD=/root ; USER=root ; COMMAND=/bin/systemctl restart apache",
+            "guest : TTY=pts/2 ; PWD=/home/guest ; USER=root ; COMMAND=/bin/systemctl restart mysql"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        }
+      ]
+    },
+    {
+      "name": "session_end_emitter",
+      "dimensions": [
+        { "type": "variable", "name": "session_id", "variable": "var_session_id" },
+        { "type": "variable", "name": "username", "variable": "var_username" },
+        { "type": "variable", "name": "port", "variable": "var_port" },
+        {
+          "type": "enum",
+          "name": "process",
+          "values": ["systemd-logind[567]", "systemd-logind[890]", "systemd-logind[123]"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "type": "enum",
+          "name": "log_message",
+          "values": [
+            "Removed session 42",
+            "Removed session 99",
+            "Removed session 15"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        }
+      ]
+    },
+    {
+      "name": "ssh_disconnect_emitter",
+      "dimensions": [
+        { "type": "variable", "name": "ip_address", "variable": "var_ip_address" },
+        { "type": "variable", "name": "port", "variable": "var_port" },
+        {
+          "type": "enum",
+          "name": "process",
+          "values": ["sshd[1235]", "sshd[6789]", "sshd[1122]"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "type": "enum",
+          "name": "log_message",
+          "values": [
+            "Disconnected from 192.168.1.100 port 54022",
+            "Disconnected from 10.0.0.5 port 12345",
+            "Disconnected from 203.0.113.10 port 58742"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        }
+      ]
+    }
+  ],
+  "interarrival": { "type": "exponential", "mean": 1.0 }
+}
