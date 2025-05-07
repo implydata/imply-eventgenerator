@@ -73,9 +73,21 @@ Use the _-o_ option to designate a target definition file name. The [target](doc
 
 ### Record format
 
-A text file with key names in braces (`{` and `}`) where emitter dimensions will be inserted.
+A text file with key names in braces (`{{` and `}}`) where emitter dimensions will be inserted.
 
 This allows for formats other than JSON to be generated, such as CSV or TSV.
+
+When the key relates to a dimension containing a datetime-type, like `clock` or `timestamp`, you can apply an strftime pattern by using a `|` symbol.  For example, the following will apply an "access_combined"-style date and time format to the `time` dimension:
+
+```
+[{{time|%d/%b/%Y:%H:%M:%S %z}}]
+```
+
+This becomes:
+
+```
+[23/Sep/2023:14:30:00 +0000]
+```
 
 ### Generation limit
 

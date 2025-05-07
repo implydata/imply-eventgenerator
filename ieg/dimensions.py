@@ -1,7 +1,7 @@
 import random
 import string
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from ieg.distributions import parse_distribution, parse_timestamp_distribution
 
 #
@@ -249,7 +249,10 @@ class DimensionTimestampClock:
 
     def get_stochastic_value(self):
         # Retrieve the current time from the Clock instance
-        return self.clock.now()
+        current_time = self.clock.now()
+        if current_time.tzinfo is None:
+            current_time = current_time.replace(tzinfo=timezone.utc)  # Default to UTC if no timezone
+        return current_time
 
 class DimensionTimestamp(DimensionBase):
     # Generates random timestamps as datetime objects based on a distribution.
@@ -286,7 +289,10 @@ class DimensionTimestamp(DimensionBase):
 
     def get_stochastic_value(self):
         # Return a random timestamp as a datetime object
-        return datetime.fromtimestamp(self.value_distribution.get_sample())
+        timestamp = datetime.fromtimestamp(self.value_distribution.get_sample())
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)  # Default to UTC if no timezone
+        return timestamp
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
