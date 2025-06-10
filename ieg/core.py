@@ -287,12 +287,6 @@ class DataDriver:
             raise RuntimeError("The generator configuration has no states defined.")
         self.initial_state = None
         self.states = {}
-
-        for state in self.states.values():
-            for next_state_name in state.transitions.keys():
-                if next_state_name.lower() != 'stop' and next_state_name not in self.states:
-                    raise RuntimeError(f"State '{next_state_name}' referenced in transitions but not defined in state machine.")
-
         for state in state_desc:
             name = state['name']
             emitter_name = state['emitter']
@@ -307,6 +301,11 @@ class DataDriver:
             self.states[name] = this_state
             if self.initial_state is None:
                 self.initial_state = this_state
+
+        for state in self.states.values():
+            for next_state_name in state.transitions.keys():
+                if next_state_name.lower() != 'stop' and next_state_name not in self.states:
+                    raise RuntimeError(f"State '{next_state_name}' referenced in transitions but not defined in state machine.")
 
     @staticmethod
     def get_value(record, key, default=""):
@@ -388,6 +387,8 @@ class DataDriver:
         current_state = self.initial_state
         variables = {}
         while True:
+            if current_state is None:
+                raise RuntimeError("Unexpected error: current state of the state machine is None.")
             self.set_variable_values(variables, current_state.variables)
             record = self.create_record(current_state.dimensions, variables)
             formatted_record = self.render_record(record)  # Format the record here
@@ -404,7 +405,7 @@ class DataDriver:
             next_state_name = current_state.get_next_state_name()
             if next_state_name.lower() == 'stop':
                 break
-            current_state = self.states[next_state_name]
+            current_state = self.states.get(next_state_name)
 
         #print('Thread '+threading.current_thread().name+' done!')
         self.global_clock.end_thread()
