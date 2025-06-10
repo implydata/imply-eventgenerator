@@ -68,7 +68,7 @@ class DimensionBase:
         This method is intended to be overridden by subclasses to provide specific
         stochastic value generation logic.
         """
-        pass
+        raise NotImplementedError("Subclasses must implement get_stochastic_value()")
 
     def get_json_field_string(self):
         """
