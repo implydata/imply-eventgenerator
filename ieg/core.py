@@ -282,9 +282,17 @@ class DataDriver:
             self.emitters[name] = dimensions
 
         # Set up the state machine
-        state_desc = self.config['states']
+        state_desc = self.config.get('states')
+        if not state_desc or not isinstance(state_desc, list) or len(state_desc) == 0:
+            raise RuntimeError("The generator configuration has no states defined.")
         self.initial_state = None
         self.states = {}
+
+        for state in self.states.values():
+            for next_state_name in state.transitions.keys():
+                if next_state_name.lower() != 'stop' and next_state_name not in self.states:
+                    raise RuntimeError(f"State '{next_state_name}' referenced in transitions but not defined in state machine.")
+
         for state in state_desc:
             name = state['name']
             emitter_name = state['emitter']
