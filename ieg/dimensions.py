@@ -68,7 +68,7 @@ class DimensionBase:
         This method is intended to be overridden by subclasses to provide specific
         stochastic value generation logic.
         """
-        raise NotImplementedError("Subclasses must implement get_stochastic_value()")
+        raise NotImplementedError("Unexpected error: Subclasses must implement get_stochastic_value()")
 
     def get_json_field_string(self):
         """
@@ -388,7 +388,8 @@ class DimensionObject():
 
     # Generates JSON objects with nested dimensions.
 
-    def __init__(self, desc):
+    def __init__(self, clock, desc):
+        self.global_clock = clock
         self.name = desc['name']
         self.dimensions = get_variables(desc['dimensions'], self.global_clock)
         if 'percent_nulls' in desc.keys():
@@ -453,7 +454,8 @@ class DimensionList():
 
     # Generates lists of elements based on length and selection distributions.
 
-    def __init__(self, desc):
+    def __init__(self, clock, desc):
+        self.global_clock = clock
         self.name = desc['name']
         self.elements = get_variables(desc['elements'], self.global_clock)
         self.length_distribution = parse_distribution(desc['length_distribution'])
@@ -569,9 +571,9 @@ def parse_element(desc, global_clock):
     elif desc['type'].lower() == 'variable':
         el = DimensionVariable(desc)
     elif desc['type'].lower() == 'object':
-        el = DimensionObject(desc)
+        el = DimensionObject(global_clock, desc)
     elif desc['type'].lower() == 'list':
-        el = DimensionList(desc)
+        el = DimensionList(global_clock, desc)
     else:
         msg = 'Error: Unknown dimension type "'+desc['type']+'"'
         raise Exception(msg)

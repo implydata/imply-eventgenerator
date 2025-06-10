@@ -303,7 +303,8 @@ class DataDriver:
                 self.initial_state = this_state
 
         for state in self.states.values():
-            for next_state_name in state.transitions.keys():
+            for transition in state.transitions:
+                next_state_name = transition.next_state
                 if next_state_name.lower() != 'stop' and next_state_name not in self.states:
                     raise RuntimeError(f"State '{next_state_name}' referenced in transitions but not defined in state machine.")
 

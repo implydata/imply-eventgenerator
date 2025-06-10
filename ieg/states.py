@@ -22,7 +22,6 @@ class Transition:
             transitions.append(Transition(next_state, probability))
         return transitions
 
-
 class State:
     # Represents a state in the state machine.
     # Defines dimensions, delay, transitions, and variables for the state.
@@ -30,6 +29,7 @@ class State:
         self.name = name
         self.dimensions = dimensions
         self.delay = delay
+        self.transitions = transitions
         self.transistion_states = [t.next_state for t in transitions]
         self.transistion_probabilities = [t.probability for t in transitions]
         self.variables = variables
@@ -39,7 +39,6 @@ class State:
 
     def get_next_state_name(self):
         return random.choices(self.transistion_states, weights=self.transistion_probabilities, k=1)[0]
-
 
 class Controller:
     # Manages the simulation end conditions.
