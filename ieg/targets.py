@@ -23,9 +23,9 @@ class TargetFile:
     """
     Outputs generated records to a specified file.
     """
-    f = None
-
     def __init__(self, file_name):
+        if not file_name:
+            raise ValueError("file_name is required")
         self.file_name = file_name
         self.f = open(file_name, 'w')
 
@@ -44,6 +44,12 @@ class TargetKafka:
     topic = None
 
     def __init__(self, endpoint, topic, security_protocol, compression_type, topic_key):
+        if endpoint is None:
+            raise ValueError("endpoint is required")
+        if topic is None:
+            raise ValueError("topic is required")
+        if topic_key is None:
+            raise ValueError("topic_key is required")
         self.endpoint = endpoint
         self.producer = KafkaProducer(
             bootstrap_servers=endpoint,
@@ -54,9 +60,11 @@ class TargetKafka:
         self.topic_key = topic_key
 
     def __str__(self):
-        return 'TargetKafka(endpoint='+self.endpoint+', topic='+self.topic+', topic_key='+self.topic_key+')'
+        return 'TargetKafka(endpoint='+self.endpoint+', topic='+self.topic+', topic_key='+str(self.topic_key)+')'
 
     def print(self, record):
+        if self.producer is None:
+            raise RuntimeError("Kafka producer is not initialized.")
         if len(self.topic_key) == 0:
             self.producer.send(topic=self.topic, value=bytes(record, 'utf-8'))
         else:
@@ -91,9 +99,11 @@ class TargetConfluent:
         self.topic_key = topic_key
 
     def __str__(self):
-        return 'TargetConfluent(servers='+self.servers+', topic='+self.topic+', username='+self.username+', password='+self.password+', topic_key='+self.topic_key+')'
+        return 'TargetConfluent(servers='+str(self.servers)+', topic='+str(self.topic)+', username='+str(self.username)+', password='+str(self.password)+', topic_key='+str(self.topic_key)+')'
 
     def print(self, record):
+        if self.producer is None:
+            raise RuntimeError("Confluent Kafka producer is not initialized.")
         if len(self.topic_key) == 0:
             self.producer.produce(topic=self.topic, value=str(record))
         else:
