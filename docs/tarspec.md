@@ -25,7 +25,7 @@ Print events to standard out.
 }
 ```
 
-#### `file`
+#### `file`
 
 Write events to the specified file.
 
@@ -61,7 +61,7 @@ Where:
 - <i>security_protocol</i> (optional) a protocol specifier ("PLAINTEXT" (default if omitted), "SSL", "SASL_PLAINTEXT", "SASL_SSL")
 - <i>compression_type</i> (optional) a compression specifier ("gzip", "snappy", "lz4") - if omitted, no compression is used
 
-#### `confluent`
+#### `confluent`
 
 Write events to a Confluent Cloud topic.
 

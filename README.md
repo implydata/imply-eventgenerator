@@ -9,12 +9,12 @@ Run the `generator.py` script from the command line to create synthetic data in 
 ```bash
 python generator.py \
         -c <generator specification file> \
-        -m <generator workers limit> \
         -t <target specification file> \
+        -f <pattern specification file> \
         -s <start timestamp> \
+        -m <generator workers limit> \
         -n <record limit> \
-        -r <duration limit in ISO8610 format> \
-        -p <pattern specification file>
+        -r <duration limit in ISO8610 format>
 ```
 
 | Argument | Description |
@@ -25,9 +25,9 @@ python generator.py \
 | [`-s`](#simulated-clock) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
 | [`-n`](#generation-limit) | The number of records to generate. Must not be used in combinaton with `-t`. |
-| [`-t`](#generation-limit) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
+| [`-r`](#generation-limit) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
 
-### Prerequities
+## Prerequisites
 
 The data generator requires Python 3.
 
@@ -43,7 +43,24 @@ Install dependencies using the `requirements.txt` file:
 pip install -r requirements.txt
 ```
 
-### Generator specification
+## Quickstart
+
+Run the following example to test the generator script:
+
+```sh
+python3 generator.py -c conf/gen/apache_access_combined.json -m 1 -n 10 -t conf/tar/stdout.json
+```
+
+This command generates logs in the format of [Apache access combined logs](https://httpd.apache.org/docs/2.4/logs.html).
+It uses a single worker to generate 10 records, and it outputs the results to the standard output stream, such as the terminal window.
+For more examples and test cases, see [`test.sh`](./test.sh).
+
+For additional configurations, see the following directories:
+* `./conf/gen`: Type of the generated data, such as Apache logs
+* `./conf/tar`: Format for target output, such as `file` or `stdout`
+* `./conf/form`: Format of the generated data, such as TSV
+
+## Generator specification
 
 The [generator specification](docs/genspec.md) is a JSON document that sets how the data generator will execute. When the `-f` option is used, the generation specification will be read from a file, otherwise the generator specification will be read from `stdin`.
 
@@ -65,13 +82,13 @@ The sections of the JSON document concern what each data generator worker will d
 * A [`target`](docs/tarspec.md) definition (optional), stating where records should be written. When not provided inside a generator specification, a separate JSON file can be specified using the `-o` argument. This allows for the same generator to be used with different targets.
 * The `interarrival` time, controlling how often a new worker is spawned. The default maximum number of workers is 100, unless the `-m` argument is used.
 
-### Target specification
+## Target specification
 
 Set the output of the data generator by setting the `target` object.
 
 Use the _-o_ option to designate a target definition file name. The [target](docs/target.md) defines where the generated messages are sent.
 
-### Record format
+## Record format
 
 A text file with key names in braces (`{{` and `}}`) where emitter dimensions will be inserted.
 
@@ -89,11 +106,11 @@ This becomes:
 [23/Sep/2023:14:30:00 +0000]
 ```
 
-### Generation limit
+## Generation limit
 
-Use either `-n` or `-t` to limit how long generation executes for. If neither option is present, the script will run indefinitely.
+Use either `-n` or `-r` to limit how long generation executes for. If neither option is present, the script will run indefinitely.
 
-#### Limit generation to a length of time
+### Limit generation to a length of time
 
 Time durations may be specified in ISO8601 format.
 
@@ -115,7 +132,7 @@ Or, specify 1 hour as follows:
 python generator.py -f generator_spec.json -o target_spec.json -r PT1H
 ```
 
-#### Limit generation to a number of records
+### Limit generation to a number of records
 
 Use `-n` to limit generation to a number of records.
 
@@ -123,7 +140,7 @@ Use `-n` to limit generation to a number of records.
 python generator.py -f generator_spec.json -o target_spec.json -n 1000
 ```
 
-### Simulated clock
+## Simulated clock
 
 Specify a start time in ISO format to instruct the driver to use simulated time instead of the system clock time (the default).
 
