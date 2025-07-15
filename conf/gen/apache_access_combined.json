@@ -12,7 +12,7 @@
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 4 }
         },
         { "name": "ident", "type": "string", "cardinality": 0, "length_distribution": { "type": "constant", "value": 1 }, "chars": "-" },
-        { "name": "authuser", "type": "string", "cardinality": 0, "length_distribution": { "type": "constant", "value": 1 }, "chars": "-" },
+        { "name": "authuser", "type": "string", "cardinality": 0, "length_distribution": { "type": "constant", "value": 1 }, "chars": ["charles", "victoria", "jill", "brian", "wanru"] },
         { "name": "request_url", "type": "variable", "variable": "var_request" },
         { "name": "request_method", "type": "variable", "variable": "var_method" },
         { "name": "request_protocol", "type": "variable", "variable": "var_protocol" },
