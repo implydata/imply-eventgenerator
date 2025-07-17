@@ -13,7 +13,7 @@ processors:
 
 exporters:
   splunk_hec:
-    token: 91ff3ed1-d4d1-4446-b6c0-97a4c30675a6
+    token: <token>
     endpoint: https://splunk-hec.us1.api.lumi.dev.imply.io/services/collector
     source: json-log-sender
     sourcetype: access_combined
@@ -30,7 +30,7 @@ service:
               prometheus:
                 host: '0.0.0.0'
                 port: 8889
-                
+
   pipelines:
     logs:
       receivers: [otlp]

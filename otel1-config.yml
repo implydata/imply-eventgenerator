@@ -13,7 +13,7 @@ processors:
 
 exporters:
   splunk_hec:
-    token: 7b1457ba-6e99-443d-a07a-543f72f75671
+    token: <token>
     endpoint: https://http-inputs-implydata.splunkcloud.com/services/collector
     source: json-log-sender
     sourcetype: access_combined
