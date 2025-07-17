@@ -12,7 +12,7 @@
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 4 }
         },
         { "name": "ident", "type": "string", "cardinality": 0, "length_distribution": { "type": "constant", "value": 1 }, "chars": "-" },
-        { "name": "authuser", "type": "string", "cardinality": 0, "length_distribution": { "type": "constant", "value": 1 }, "chars": "-" },
+        { "name": "authuser", "type": "variable", "variable": "var_authuser"},
         { "name": "request_url", "type": "variable", "variable": "var_request" },
         { "name": "request_method", "type": "variable", "variable": "var_method" },
         { "name": "request_protocol", "type": "variable", "variable": "var_protocol" },
@@ -35,6 +35,23 @@
           "cardinality": 5,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 5 },
           "distribution": { "type": "uniform", "min": 184549376, "max": 2127008767 }
+        },
+        {
+          "name": "var_authuser",
+          "type": "enum",
+          "values": ["natalie38", "herbertdixon", "-", "gusosborne", "sallyosborne", 
+                     "willowlim", "mialim", "miltonle", "bambismith", "rocketsmith", 
+                     "hannahrobinson", "aaron94", "jasmine23", "bernd73", "kennethjohnson", 
+                     "alice997", "janet27", "ochambers", "jaredevans", "charlenefields", 
+                     "davidbarry", "roy04", "rhawkins", "michelle00", "geraldine77", 
+                     "elaine554", "grahambrown", "-", "eileenconnor", "-", "ethelmcdonald", 
+                     "tiffany76", "-", "carrillojames", "aliciaclark", "fosternicole", 
+                     "byrdjennifer", "donald43", "lharmon", "lynnkristina", "gonzalesbrad", 
+                     "suzanne83", "tsummers", "kevin19", "anthonyvincent", "daniel79", 
+                     "cmolina", "watsontracey", "-", "jenkinskrista", "shawkatherine", 
+                     "sentancefinley", "waniarchasamuel", "cunninghammary", "pandrews", 
+                     "windsorbella", "nielsenursula", "parkeranthony", "horace778"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 55 }
         },
         {
           "name": "var_request",
