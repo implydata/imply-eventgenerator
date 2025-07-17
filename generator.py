@@ -17,7 +17,7 @@ def validate_concurrency(value):
     except ValueError:
         raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 1000.")
 
-def main():
+def main(argv=None):
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Generates synthetic event data.')
@@ -45,7 +45,7 @@ def main():
         help='Max entities concurrently generating events (1-1000)'
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Determine start_time and time_type
     if args.start_time:

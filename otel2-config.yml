@@ -1,0 +1,38 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4319
+
+processors:
+  transform/logs:
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["event"], body)
+
+exporters:
+  splunk_hec:
+    token: 91ff3ed1-d4d1-4446-b6c0-97a4c30675a6
+    endpoint: https://splunk-hec.us1.api.lumi.dev.imply.io/services/collector
+    source: json-log-sender
+    sourcetype: access_combined
+    index: global_dds_web_dev
+    tls:
+      insecure: true
+
+service:
+  telemetry:
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: '0.0.0.0'
+                port: 8889
+                
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [transform/logs]
+      exporters: [splunk_hec]
