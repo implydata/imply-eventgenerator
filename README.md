@@ -24,7 +24,7 @@ python generator.py \
 | [`-f`](#record-format) | A file that contains a pattern that can be used to format the output records. If not specified, JSON is used. |
 | [`-s`](#simulated-clock) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
-| [`-n`](#generation-limit) | The number of records to generate. Must not be used in combinaton with `-t`. |
+| [`-n`](#generation-limit) | The number of records to generate. Must not be used in combination with `-r`. |
 | [`-r`](#generation-limit) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
 
 ## Prerequisites
