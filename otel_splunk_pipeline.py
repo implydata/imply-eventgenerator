@@ -61,7 +61,7 @@ def send_log(json_obj):
 
     response1 = requests.post(OTLP1_ENDPOINT, json=log_record)
     response2 = requests.post(OTLP2_ENDPOINT, json=log_record)
-    if response1.status_code != 200 or response2.status_code != 200:
+    if response1.status_code != 200: 
         print("Failed to send log")
         # Print the response for debugging
         try:
@@ -69,7 +69,7 @@ def send_log(json_obj):
             print(f"Error details: {error_info}")
         except: 
             print("Failed. No response text available")
-    time.sleep(0.05)  # Rate limit to avoid overwhelming the server
+    time.sleep(0.03)  # Rate limit to avoid overwhelming the server
 
 def safe_json_load(line):
     try:
@@ -106,9 +106,10 @@ def send_file(file_path):
     with open(file_path) as f:
         for line in f:
             try:
+                line = line.replace("+00:00", "+0000")
                 obj = safe_json_load(line)
                 if obj is None:
-                    print("Ojb is None: Skipping invalid JSON line")
+                    print("Obj is None: Skipping invalid JSON line")
                     continue
                 send_log(obj)
             except json.JSONDecodeError:

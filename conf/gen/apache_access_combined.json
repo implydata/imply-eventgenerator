@@ -132,7 +132,7 @@
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
         }
       ],
-      "delay": { "type": "exponential", "mean": 1.0 },
+      "delay": { "type": "uniform", "min": 0.3, "max": 1.2 },
       "transitions": [
         { "next": "browse_products", "probability": 0.999 },
         { "next": "hacker", "probability": 0.001 }
@@ -145,7 +145,7 @@
         { "name": "var_request", "type": "enum", "values": ["/products"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
         { "name": "var_referrer_url", "type": "enum", "values": ["-"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
       ],
-      "delay": { "type": "exponential", "mean": 2.0 },
+      "delay": { "type": "uniform", "min": 1.0, "max": 3.0 },
       "transitions": [
         { "next": "browse_cat_indoor_lighting", "probability": 0.4 },
         { "next": "browse_cat_outdoor_lighting", "probability": 0.2 },
@@ -177,7 +177,7 @@
           "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
         }
       ],
-      "delay": { "type": "exponential", "mean": 2.0 },
+      "delay": { "type": "uniform", "min": 1.0, "max": 3.0 },
       "transitions": [
         { "next": "add_to_cart", "probability": 0.3 },
         { "next": "browse_cat_indoor_lighting", "probability": 0.4 },
@@ -208,7 +208,7 @@
           "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
         }
       ],
-      "delay": { "type": "exponential", "mean": 2.0 },
+      "delay": { "type": "uniform", "min": 1.0, "max": 3.0 },
       "transitions": [
         { "next": "add_to_cart", "probability": 0.3 },
         { "next": "browse_cat_outdoor_lighting", "probability": 0.4 },
@@ -238,7 +238,7 @@
           "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
         }
       ],
-      "delay": { "type": "exponential", "mean": 2.0 },
+      "delay": { "type": "uniform", "min": 1.0, "max": 3.0 },
       "transitions": [
         { "next": "add_to_cart", "probability": 0.3 },
         { "next": "browse_cat_smart_lighting", "probability": 0.4 },
@@ -268,7 +268,7 @@
           "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
         }
       ],
-      "delay": { "type": "exponential", "mean": 2.0 },
+      "delay": { "type": "uniform", "min": 1.0, "max": 3.0 },
       "transitions": [
         { "next": "add_to_cart", "probability": 0.3 },
         { "next": "browse_cat_led_lighting", "probability": 0.4 },
@@ -299,7 +299,7 @@
           "cardinality_distribution": { "type": "exponential", "mean": 2.0 }
         }
       ],
-      "delay": { "type": "exponential", "mean": 2.0 },
+      "delay": { "type": "uniform", "min": 1.0, "max": 3.0 },
       "transitions": [
         { "next": "add_to_cart", "probability": 0.3 },
         { "next": "browse_cat_vintage_lighting", "probability": 0.4 },
@@ -313,7 +313,7 @@
       "variables": [
         { "name": "var_request", "type": "enum", "values": ["/cart"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 } }
       ],
-      "delay": { "type": "exponential", "mean": 1.5 },
+      "delay": { "type": "uniform", "min": 0.8, "max": 2.0 },
       "transitions": [
         { "next": "checkout", "probability": 0.3 },
         { "next": "browse_products", "probability": 0.5 },
@@ -327,7 +327,7 @@
         { "name": "var_request", "type": "enum", "values": ["/checkout"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
         { "name": "var_method", "type": "enum", "values": ["POST"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
       ],
-      "delay": { "type": "exponential", "mean": 3.0 },
+      "delay": { "type": "uniform", "min": 6.0, "max": 20.0 },
       "transitions": [
         { "next": "thank_you", "probability": 0.6 },
         { "next": "try_again", "probability": 0.1 },
@@ -340,7 +340,7 @@
       "variables": [
         { "name": "var_request", "type": "enum", "values": ["/thank-you"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
       ],
-      "delay": { "type": "exponential", "mean": 1.0 },
+      "delay": { "type": "uniform", "min": 0.6, "max": 1.8 },
       "transitions": [
         { "next": "stop", "probability": 1.0 }
       ]
@@ -352,7 +352,7 @@
         { "name": "var_request", "type": "enum", "values": ["/try-again"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
         { "name": "var_status", "type": "enum", "values": [400], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
       ],
-      "delay": { "type": "exponential", "mean": 2.0 },
+      "delay": { "type": "uniform", "min": 1.2, "max": 2.8 },
       "transitions": [
         { "next": "checkout", "probability": 0.95 },
         { "next": "stop", "probability": 0.05 }
@@ -381,7 +381,7 @@
         },
         { "name": "var_status", "type": "enum", "values": [404], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
       ],
-      "delay": { "type": "exponential", "mean": 1.0 },
+      "delay": { "type": "uniform", "min": 0.6, "max": 1.8 },
       "transitions": [
         { "next": "browse_products", "probability": 1.0 }
       ]

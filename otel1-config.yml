@@ -10,6 +10,8 @@ processors:
       - context: log
         statements:
           - set(attributes["event"], body)
+          - merge_maps(attributes, ParseJSON(body), "upsert") where IsMatch(body, "^\\{")
+          - set(time_unix_nano, UnixNano(Time(attributes["time"], "%Y-%m-%d %H:%M:%S.%f%z")))
 
 exporters:
   splunk_hec:
@@ -17,7 +19,7 @@ exporters:
     endpoint: https://http-inputs-implydata.splunkcloud.com/services/collector
     source: json-log-sender
     sourcetype: access_combined
-    index: global_dds_web_dev
+    index: global_sec_web_dev
     tls:
       insecure: true
 

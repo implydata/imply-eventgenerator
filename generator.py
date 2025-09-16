@@ -18,7 +18,7 @@ def validate_concurrency(value):
         raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 1000.")
 
 def main(argv=None):
-
+    print("Starting synthetic event data generator at ", datetime.now().isoformat())
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Generates synthetic event data.')
     parser.add_argument('-c', dest='config_file', required=True, help='Generator configuration file')
@@ -119,7 +119,7 @@ def main(argv=None):
     except Exception as e:
         print(f"An unexpected error occurred: {e}", file=sys.stderr)
         sys.exit(1)
-
+    print("Synthetic event data generation completed at ", datetime.now().isoformat())
 
 if __name__ == "__main__":
     main()
