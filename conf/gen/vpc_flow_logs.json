@@ -1,0 +1,845 @@
+{
+  "_comment": "AWS VPC Flow Logs Generator - Models realistic VPC traffic patterns",
+  "_description": "This configuration generates AWS VPC Flow Log records that simulate various traffic scenarios including web traffic, database connections, SSH sessions, internal API calls, and malicious patterns like port scans. Each flow represents a network connection with proper lifecycle modeling.",
+
+  "_vpc_flow_log_format": "version account-id interface-id srcaddr dstaddr srcport dstport protocol packets bytes start end action log-status",
+
+  "_design_notes": {
+    "traffic_distribution": "40% web, 25% database, 10% SSH, 20% internal APIs, 3% port scans, 2% DNS",
+    "ip_ranges": {
+      "internal": "10.0.0.0/16",
+      "web_servers": "10.0.0.0-10.0.0.4",
+      "app_servers": "10.0.0.0-10.0.0.9",
+      "db_servers": "10.0.1.0-10.0.1.2",
+      "microservices": "10.0.2.0-10.0.2.19"
+    },
+    "protocols": {
+      "tcp": 6,
+      "udp": 17,
+      "icmp": 1
+    },
+    "state_machine": "Start->Activity->Emit pattern: Start captures connection vars & var_start, Activity delays for flow duration, Emit captures var_end/packets/bytes and outputs, Continue loops back with new var_start"
+  },
+
+  "interarrival": {
+    "type": "exponential",
+    "mean": 0.5,
+    "_comment": "New connections initiated every ~0.5 seconds on average"
+  },
+
+  "emitters": [
+    {
+      "name": "routing_emitter",
+      "_comment": "Dummy emitter for initial routing state - not used in output",
+      "dimensions": []
+    },
+    {
+      "name": "vpc_flow_log",
+      "dimensions": [
+        {
+          "name": "version",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 2 },
+          "_comment": "VPC Flow Logs version 2"
+        },
+        {
+          "name": "account_id",
+          "type": "variable",
+          "variable": "var_account_id"
+        },
+        {
+          "name": "interface_id",
+          "type": "variable",
+          "variable": "var_interface_id"
+        },
+        {
+          "name": "srcaddr",
+          "type": "variable",
+          "variable": "var_srcaddr"
+        },
+        {
+          "name": "dstaddr",
+          "type": "variable",
+          "variable": "var_dstaddr"
+        },
+        {
+          "name": "srcport",
+          "type": "variable",
+          "variable": "var_srcport"
+        },
+        {
+          "name": "dstport",
+          "type": "variable",
+          "variable": "var_dstport"
+        },
+        {
+          "name": "protocol",
+          "type": "variable",
+          "variable": "var_protocol"
+        },
+        {
+          "name": "packets",
+          "type": "variable",
+          "variable": "var_packets"
+        },
+        {
+          "name": "bytes",
+          "type": "variable",
+          "variable": "var_bytes"
+        },
+        {
+          "name": "start",
+          "type": "variable",
+          "variable": "var_start"
+        },
+        {
+          "name": "end",
+          "type": "variable",
+          "variable": "var_end"
+        },
+        {
+          "name": "action",
+          "type": "variable",
+          "variable": "var_action"
+        },
+        {
+          "name": "log_status",
+          "type": "enum",
+          "values": ["OK"],
+          "cardinality_distribution": { "type": "constant", "value": 0 },
+          "_comment": "Flow log status - OK means logged successfully"
+        }
+      ]
+    }
+  ],
+
+  "states": [
+    {
+      "name": "initial",
+      "_comment": "Entry point - routes to specific traffic patterns (no output emitted)",
+      "emitter": "routing_emitter",
+      "variables": [
+        {
+          "name": "var_account_id",
+          "type": "enum",
+          "values": ["123456789012", "123456789013", "123456789014"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 }
+        },
+        {
+          "name": "var_action",
+          "type": "enum",
+          "values": ["ACCEPT"],
+          "cardinality_distribution": { "type": "constant", "value": 0 }
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "web_traffic_start", "probability": 0.40 },
+        { "next": "database_traffic_start", "probability": 0.25 },
+        { "next": "ssh_traffic_start", "probability": 0.10 },
+        { "next": "internal_api_start", "probability": 0.20 },
+        { "next": "port_scan_init", "probability": 0.03 },
+        { "next": "dns_traffic_init", "probability": 0.02 }
+      ]
+    },
+
+    {
+      "name": "web_traffic_start",
+      "_comment": "Web traffic - Start: Capture var_start + all connection variables (5-tuple, account, interface, action), emit nothing",
+      "emitter": "routing_emitter",
+      "variables": [
+        {
+          "name": "var_account_id",
+          "type": "enum",
+          "values": ["123456789012", "123456789013", "123456789014"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 }
+        },
+        {
+          "name": "var_srcaddr",
+          "type": "ipaddress",
+          "cardinality": 1000,
+          "cardinality_distribution": { "type": "exponential", "mean": 100 },
+          "distribution": { "type": "uniform", "min": 134744064, "max": 3758096383 },
+          "_comment": "External IPs (8.8.0.0 - 223.255.255.255)"
+        },
+        {
+          "name": "var_dstaddr",
+          "type": "ipaddress",
+          "cardinality": 5,
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 4 },
+          "distribution": { "type": "uniform", "min": 167772160, "max": 167772164 },
+          "_comment": "Web servers (10.0.0.0-10.0.0.4)"
+        },
+        {
+          "name": "var_srcport",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 49152, "max": 65535 },
+          "_comment": "Ephemeral ports"
+        },
+        {
+          "name": "var_dstport",
+          "type": "enum",
+          "values": [80, 443],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
+        },
+        {
+          "name": "var_protocol",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 6 },
+          "_comment": "TCP"
+        },
+        {
+          "name": "var_action",
+          "type": "enum",
+          "values": ["ACCEPT"],
+          "cardinality_distribution": { "type": "constant", "value": 0 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock",
+          "_comment": "Capture flow window start time"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "web_traffic_activity", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "web_traffic_activity",
+      "_comment": "Web traffic - Activity: No new variables (all persist from start), delay for flow duration, emit nothing",
+      "emitter": "routing_emitter",
+      "variables": [],
+      "delay": { "type": "exponential", "mean": 5.0 },
+      "transitions": [
+        { "next": "web_traffic_emit", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "web_traffic_emit",
+      "_comment": "Web traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 50, "max": 500 }
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 5000, "max": 500000 },
+          "_comment": "5KB to 500KB"
+        },
+        {
+          "name": "var_end",
+          "type": "clock",
+          "_comment": "Capture flow window end time (after activity delay)"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "web_traffic_continue", "probability": 0.25 },
+        { "next": "stop", "probability": 0.75 }
+      ]
+    },
+
+    {
+      "name": "web_traffic_continue",
+      "_comment": "Web traffic - Continue: Capture new var_start from clock (becomes next window start), loop back to activity",
+      "emitter": "routing_emitter",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock",
+          "_comment": "New window start time (previous var_end becomes this var_start logically)"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "web_traffic_activity", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "database_traffic_start",
+      "_comment": "Database traffic - Start: Capture var_start + all connection variables, emit nothing",
+      "emitter": "routing_emitter",
+      "variables": [
+        {
+          "name": "var_account_id",
+          "type": "enum",
+          "values": ["123456789012", "123456789013", "123456789014"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60007", "eni-0a1b2c3d4e5f60008"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
+        },
+        {
+          "name": "var_srcaddr",
+          "type": "ipaddress",
+          "cardinality": 10,
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 9 },
+          "distribution": { "type": "uniform", "min": 167772160, "max": 167772169 },
+          "_comment": "App servers (10.0.0.0-10.0.0.9)"
+        },
+        {
+          "name": "var_dstaddr",
+          "type": "ipaddress",
+          "cardinality": 3,
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 },
+          "distribution": { "type": "uniform", "min": 167772416, "max": 167772418 },
+          "_comment": "DB servers (10.0.1.0-10.0.1.2)"
+        },
+        {
+          "name": "var_srcport",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 49152, "max": 65535 }
+        },
+        {
+          "name": "var_dstport",
+          "type": "enum",
+          "values": [3306, 5432, 1433, 27017],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 3 },
+          "_comment": "MySQL, PostgreSQL, SQL Server, MongoDB"
+        },
+        {
+          "name": "var_protocol",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 6 }
+        },
+        {
+          "name": "var_action",
+          "type": "enum",
+          "values": ["ACCEPT"],
+          "cardinality_distribution": { "type": "constant", "value": 0 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "database_traffic_activity", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "database_traffic_activity",
+      "_comment": "Database traffic - Activity: Delay for query execution time, emit nothing",
+      "emitter": "routing_emitter",
+      "variables": [],
+      "delay": { "type": "exponential", "mean": 2.0 },
+      "transitions": [
+        { "next": "database_traffic_emit", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "database_traffic_emit",
+      "_comment": "Database traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 10, "max": 200 }
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 1000, "max": 100000 }
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "database_traffic_continue", "probability": 0.60 },
+        { "next": "stop", "probability": 0.40 }
+      ]
+    },
+
+    {
+      "name": "database_traffic_continue",
+      "_comment": "Database traffic - Continue: Capture new var_start, loop back to activity for next query",
+      "emitter": "routing_emitter",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "database_traffic_activity", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "ssh_traffic_start",
+      "_comment": "SSH traffic - Start: Capture var_start + all connection variables, emit nothing",
+      "emitter": "routing_emitter",
+      "variables": [
+        {
+          "name": "var_account_id",
+          "type": "enum",
+          "values": ["123456789012", "123456789013"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
+        },
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "name": "var_srcaddr",
+          "type": "ipaddress",
+          "cardinality": 20,
+          "cardinality_distribution": { "type": "exponential", "mean": 5 },
+          "distribution": { "type": "uniform", "min": 134744064, "max": 184549375 },
+          "_comment": "Corporate IPs / VPN"
+        },
+        {
+          "name": "var_dstaddr",
+          "type": "ipaddress",
+          "cardinality": 15,
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 14 },
+          "distribution": { "type": "uniform", "min": 167772160, "max": 167772174 },
+          "_comment": "Internal servers (10.0.0.0-10.0.0.14)"
+        },
+        {
+          "name": "var_srcport",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 49152, "max": 65535 }
+        },
+        {
+          "name": "var_dstport",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 22 }
+        },
+        {
+          "name": "var_protocol",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 6 }
+        },
+        {
+          "name": "var_action",
+          "type": "enum",
+          "values": ["ACCEPT", "REJECT"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "ssh_traffic_activity", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "ssh_traffic_activity",
+      "_comment": "SSH traffic - Activity: Delay for SSH session duration, emit nothing",
+      "emitter": "routing_emitter",
+      "variables": [],
+      "delay": { "type": "exponential", "mean": 20.0 },
+      "transitions": [
+        { "next": "ssh_traffic_emit", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "ssh_traffic_emit",
+      "_comment": "SSH traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 100, "max": 2000 }
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 10000, "max": 200000 }
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "ssh_traffic_continue", "probability": 0.40 },
+        { "next": "stop", "probability": 0.60 }
+      ]
+    },
+
+    {
+      "name": "ssh_traffic_continue",
+      "_comment": "SSH traffic - Continue: Capture new var_start, loop back to activity for next session window",
+      "emitter": "routing_emitter",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "ssh_traffic_activity", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "internal_api_start",
+      "_comment": "Internal API traffic - Start: Capture var_start + all connection variables, emit nothing",
+      "emitter": "routing_emitter",
+      "variables": [
+        {
+          "name": "var_account_id",
+          "type": "enum",
+          "values": ["123456789012"],
+          "cardinality_distribution": { "type": "constant", "value": 0 }
+        },
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
+        },
+        {
+          "name": "var_srcaddr",
+          "type": "ipaddress",
+          "cardinality": 20,
+          "cardinality_distribution": { "type": "exponential", "mean": 8 },
+          "distribution": { "type": "uniform", "min": 167772672, "max": 167772691 },
+          "_comment": "Microservices (10.0.2.0-10.0.2.19)"
+        },
+        {
+          "name": "var_dstaddr",
+          "type": "ipaddress",
+          "cardinality": 20,
+          "cardinality_distribution": { "type": "exponential", "mean": 8 },
+          "distribution": { "type": "uniform", "min": 167772672, "max": 167772691 }
+        },
+        {
+          "name": "var_srcport",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 49152, "max": 65535 }
+        },
+        {
+          "name": "var_dstport",
+          "type": "enum",
+          "values": [8080, 8081, 8443, 9090, 3000, 4000, 5000, 6000],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 7 }
+        },
+        {
+          "name": "var_protocol",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 6 }
+        },
+        {
+          "name": "var_action",
+          "type": "enum",
+          "values": ["ACCEPT"],
+          "cardinality_distribution": { "type": "constant", "value": 0 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "internal_api_activity", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "internal_api_activity",
+      "_comment": "Internal API traffic - Activity: Delay for API call duration, emit nothing",
+      "emitter": "routing_emitter",
+      "variables": [],
+      "delay": { "type": "exponential", "mean": 0.5 },
+      "transitions": [
+        { "next": "internal_api_emit", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "internal_api_emit",
+      "_comment": "Internal API traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 10, "max": 100 }
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 500, "max": 50000 }
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "internal_api_continue", "probability": 0.20 },
+        { "next": "stop", "probability": 0.80 }
+      ]
+    },
+
+    {
+      "name": "internal_api_continue",
+      "_comment": "Internal API traffic - Continue: Capture new var_start, loop back to activity for next API call",
+      "emitter": "routing_emitter",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "internal_api_activity", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "port_scan_init",
+      "_comment": "Port scanning attack - rapid connection attempts",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_account_id",
+          "type": "enum",
+          "values": ["123456789012", "123456789013", "123456789014"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
+        },
+        {
+          "name": "var_srcaddr",
+          "type": "ipaddress",
+          "cardinality": 5,
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 4 },
+          "distribution": { "type": "uniform", "min": 200000000, "max": 300000000 },
+          "_comment": "Known attacker IPs"
+        },
+        {
+          "name": "var_dstaddr",
+          "type": "ipaddress",
+          "cardinality": 50,
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 49 },
+          "distribution": { "type": "uniform", "min": 167772160, "max": 167772209 },
+          "_comment": "Scanning range (10.0.0.0-10.0.0.49)"
+        },
+        {
+          "name": "var_srcport",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 1024, "max": 65535 }
+        },
+        {
+          "name": "var_dstport",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 1, "max": 65535 },
+          "_comment": "Scanning all ports"
+        },
+        {
+          "name": "var_protocol",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 6 }
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 1 },
+          "_comment": "Single SYN probe"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 60 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        },
+        {
+          "name": "var_action",
+          "type": "enum",
+          "values": ["REJECT", "REJECT", "REJECT", "ACCEPT"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 3 },
+          "_comment": "Most scans rejected, 25% find open ports"
+        }
+      ],
+      "delay": { "type": "exponential", "mean": 0.01 },
+      "transitions": [
+        { "next": "port_scan_init", "probability": 0.95 },
+        { "next": "stop", "probability": 0.05 }
+      ]
+    },
+
+    {
+      "name": "dns_traffic_init",
+      "_comment": "DNS queries using UDP",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_account_id",
+          "type": "enum",
+          "values": ["123456789012", "123456789013"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
+        },
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003"
+          ],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
+        },
+        {
+          "name": "var_srcaddr",
+          "type": "ipaddress",
+          "cardinality": 30,
+          "cardinality_distribution": { "type": "exponential", "mean": 10 },
+          "distribution": { "type": "uniform", "min": 167772160, "max": 167772189 },
+          "_comment": "Internal hosts (10.0.0.0-10.0.0.29)"
+        },
+        {
+          "name": "var_dstaddr",
+          "type": "ipaddress",
+          "cardinality": 2,
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 },
+          "distribution": { "type": "uniform", "min": 167772162, "max": 167772163 },
+          "_comment": "DNS servers (10.0.0.2-10.0.0.3)"
+        },
+        {
+          "name": "var_srcport",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 49152, "max": 65535 }
+        },
+        {
+          "name": "var_dstport",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 53 }
+        },
+        {
+          "name": "var_protocol",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 17 },
+          "_comment": "UDP"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 2, "max": 4 }
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 100, "max": 500 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        },
+        {
+          "name": "var_action",
+          "type": "enum",
+          "values": ["ACCEPT"],
+          "cardinality_distribution": { "type": "constant", "value": 0 }
+        }
+      ],
+      "delay": { "type": "uniform", "min": 0.5, "max": 2.0 },
+      "transitions": [
+        { "next": "dns_traffic_init", "probability": 0.30 },
+        { "next": "stop", "probability": 0.70 }
+      ]
+    }
+  ]
+}
