@@ -254,6 +254,266 @@ HAVING ports_scanned > 10
 - Unusually large byte transfers
 - Connections to external IPs from database/app servers
 
+## SPL Analysis Examples
+
+These Splunk Processing Language (SPL) queries help analyze the generated VPC Flow Logs data.
+
+### Traffic Volume Analysis
+
+**Top talkers by bytes transferred:**
+
+```spl
+sourcetype=vpc_flow_logs action=ACCEPT
+| stats sum(bytes) as total_bytes by srcaddr
+| sort -total_bytes
+| head 10
+| eval total_mb = round(total_bytes/1024/1024, 2)
+| table srcaddr total_mb
+```
+
+**Traffic distribution by protocol:**
+
+```spl
+sourcetype=vpc_flow_logs
+| eval protocol_name = case(protocol=6, "TCP", protocol=17, "UDP", 1=1, "Other")
+| stats count as flow_count, sum(bytes) as total_bytes by protocol_name
+| eval total_gb = round(total_bytes/1024/1024/1024, 3)
+| table protocol_name flow_count total_gb
+```
+
+**Hourly traffic patterns:**
+
+```spl
+sourcetype=vpc_flow_logs action=ACCEPT
+| bucket _time span=1h
+| stats sum(bytes) as bytes_per_hour by _time
+| eval gb_per_hour = round(bytes_per_hour/1024/1024/1024, 2)
+| timechart span=1h sum(gb_per_hour) as GB
+```
+
+### Security Detection
+
+**Port scan detection:**
+
+```spl
+sourcetype=vpc_flow_logs packets=1
+| stats dc(dstport) as unique_ports,
+        count as connection_attempts,
+        sum(eval(if(action="REJECT",1,0))) as rejections
+        by srcaddr
+| where unique_ports > 10
+| eval reject_rate = round(rejections/connection_attempts*100, 1)
+| sort -unique_ports
+| table srcaddr unique_ports connection_attempts rejections reject_rate
+```
+
+**Failed connection attempts:**
+
+```spl
+sourcetype=vpc_flow_logs action=REJECT
+| stats count as reject_count by srcaddr, dstaddr, dstport
+| sort -reject_count
+| head 20
+| table srcaddr dstaddr dstport reject_count
+```
+
+**Connections from unexpected sources to databases:**
+
+```spl
+sourcetype=vpc_flow_logs dstport IN (3306, 5432, 1433, 27017) action=ACCEPT
+| where NOT match(srcaddr, "^10\.0\.0\.")
+| stats count as suspicious_connections,
+        sum(bytes) as total_bytes,
+        values(dstport) as db_ports
+        by srcaddr, dstaddr
+| eval total_mb = round(total_bytes/1024/1024, 2)
+| table srcaddr dstaddr db_ports suspicious_connections total_mb
+```
+
+### Network Performance
+
+**Average connection duration by service:**
+
+```spl
+sourcetype=vpc_flow_logs action=ACCEPT
+| eval duration = end - start
+| eval service = case(
+    dstport=443 OR dstport=80, "Web",
+    dstport IN (3306,5432,1433,27017), "Database",
+    dstport=22, "SSH",
+    dstport IN (8080,8081,8443,9090), "API",
+    dstport=53, "DNS",
+    1=1, "Other")
+| stats avg(duration) as avg_duration_sec,
+        median(duration) as median_duration_sec,
+        count as flow_count
+        by service
+| eval avg_duration_sec = round(avg_duration_sec, 2)
+| eval median_duration_sec = round(median_duration_sec, 2)
+| table service flow_count avg_duration_sec median_duration_sec
+```
+
+**Connection success rate by destination port:**
+
+```spl
+sourcetype=vpc_flow_logs
+| stats count as total,
+        sum(eval(if(action="ACCEPT",1,0))) as accepted,
+        sum(eval(if(action="REJECT",1,0))) as rejected
+        by dstport
+| eval success_rate = round(accepted/total*100, 1)
+| where total > 5
+| sort -total
+| head 20
+| table dstport total accepted rejected success_rate
+```
+
+**Packets per flow analysis:**
+
+```spl
+sourcetype=vpc_flow_logs action=ACCEPT
+| stats avg(packets) as avg_packets,
+        median(packets) as median_packets,
+        max(packets) as max_packets,
+        count as flows
+        by dstport
+| where flows > 10
+| eval avg_packets = round(avg_packets, 0)
+| sort -avg_packets
+| head 15
+| table dstport flows avg_packets median_packets max_packets
+```
+
+### Traffic Pattern Analysis
+
+**Web traffic patterns (HTTP/HTTPS):**
+
+```spl
+sourcetype=vpc_flow_logs dstport IN (80, 443) action=ACCEPT
+| eval web_service = if(dstport=443, "HTTPS", "HTTP")
+| stats count as requests,
+        avg(bytes) as avg_bytes,
+        avg(packets) as avg_packets,
+        sum(bytes) as total_bytes
+        by web_service
+| eval avg_kb = round(avg_bytes/1024, 1)
+| eval total_gb = round(total_bytes/1024/1024/1024, 2)
+| table web_service requests avg_kb avg_packets total_gb
+```
+
+**Database query patterns:**
+
+```spl
+sourcetype=vpc_flow_logs dstport IN (3306, 5432, 1433, 27017) action=ACCEPT
+| eval db_type = case(
+    dstport=3306, "MySQL",
+    dstport=5432, "PostgreSQL",
+    dstport=1433, "SQL Server",
+    dstport=27017, "MongoDB")
+| eval duration = end - start
+| stats count as queries,
+        avg(duration) as avg_duration,
+        avg(bytes) as avg_bytes,
+        sum(bytes) as total_bytes
+        by db_type, dstaddr
+| eval avg_duration = round(avg_duration, 2)
+| eval avg_kb = round(avg_bytes/1024, 1)
+| eval total_mb = round(total_bytes/1024/1024, 1)
+| table db_type dstaddr queries avg_duration avg_kb total_mb
+```
+
+**SSH session analysis:**
+
+```spl
+sourcetype=vpc_flow_logs dstport=22 action=ACCEPT
+| eval duration = end - start
+| stats count as sessions,
+        avg(duration) as avg_duration,
+        sum(duration) as total_duration,
+        avg(bytes) as avg_bytes,
+        dc(srcaddr) as unique_sources
+        by dstaddr
+| eval avg_duration_min = round(avg_duration/60, 1)
+| eval total_duration_hours = round(total_duration/3600, 2)
+| eval avg_kb = round(avg_bytes/1024, 1)
+| table dstaddr sessions unique_sources avg_duration_min total_duration_hours avg_kb
+```
+
+### ENI and Account Analysis
+
+**Traffic distribution by ENI:**
+
+```spl
+sourcetype=vpc_flow_logs
+| stats count as flows,
+        sum(bytes) as total_bytes,
+        dc(srcaddr) as unique_sources,
+        dc(dstaddr) as unique_destinations
+        by interface_id
+| eval total_gb = round(total_bytes/1024/1024/1024, 2)
+| sort -total_gb
+| table interface_id flows total_gb unique_sources unique_destinations
+```
+
+**Cross-account traffic:**
+
+```spl
+sourcetype=vpc_flow_logs
+| stats count as flows,
+        sum(bytes) as total_bytes,
+        dc(interface_id) as unique_enis
+        by account_id
+| eval total_gb = round(total_bytes/1024/1024/1024, 2)
+| table account_id flows total_gb unique_enis
+```
+
+### Advanced Security Analytics
+
+**Anomalous data transfer (potential exfiltration):**
+
+```spl
+sourcetype=vpc_flow_logs action=ACCEPT
+| where NOT match(dstaddr, "^10\.")
+| stats sum(bytes) as bytes_out, count as connections by srcaddr, dstaddr
+| where bytes_out > 100000000
+| eval mb_out = round(bytes_out/1024/1024, 1)
+| sort -mb_out
+| table srcaddr dstaddr connections mb_out
+```
+
+**Lateral movement detection (unusual internal connections):**
+
+```spl
+sourcetype=vpc_flow_logs
+| where match(srcaddr, "^10\.") AND match(dstaddr, "^10\.")
+| eval src_subnet = replace(srcaddr, "^(10\.\d+)\.\d+\.\d+", "\1")
+| eval dst_subnet = replace(dstaddr, "^(10\.\d+)\.\d+\.\d+", "\1")
+| where src_subnet != dst_subnet
+| stats count as cross_subnet_connections,
+        dc(dstaddr) as unique_destinations,
+        dc(dstport) as unique_ports,
+        sum(bytes) as total_bytes
+        by srcaddr, src_subnet, dst_subnet
+| eval total_mb = round(total_bytes/1024/1024, 1)
+| sort -cross_subnet_connections
+| table srcaddr src_subnet dst_subnet cross_subnet_connections unique_destinations unique_ports total_mb
+```
+
+**Connection baseline and anomaly detection:**
+
+```spl
+sourcetype=vpc_flow_logs action=ACCEPT
+| eval hour = strftime(_time, "%H")
+| eval is_business_hours = if(hour >= 8 AND hour <= 18, "business", "after_hours")
+| stats count as connections,
+        avg(bytes) as avg_bytes,
+        avg(packets) as avg_packets
+        by dstport, is_business_hours
+| eval avg_kb = round(avg_bytes/1024, 1)
+| table dstport is_business_hours connections avg_kb avg_packets
+| sort dstport is_business_hours
+```
+
 ## Customization
 
 To modify the configuration:
