@@ -302,55 +302,30 @@
       ],
       "transitions": [
         {
-          "next": "web_traffic_data_setup",
+          "next": "web_traffic_data",
           "probability": 0.95
         },
         {
-          "next": "web_traffic_rst_setup",
+          "next": "web_traffic_rst",
           "probability": 0.05
         }
       ]
     },
     {
-      "name": "web_traffic_data_setup",
-      "_comment": "Data transfer - Capture new var_start for data phase",
-      "variables": [
+      "name": "web_traffic_data",
+      "_comment": "Data transfer - Capture var_start, delay for data transfer (1-10s), emit flow record",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
         {
           "name": "var_start",
           "type": "clock"
         }
       ],
       "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "web_traffic_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "web_traffic_activity",
-      "_comment": "Web traffic - Activity: Delay for data transfer duration",
-      "variables": [],
-      "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 10.0
       },
-      "transitions": [
-        {
-          "next": "web_traffic_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "web_traffic_emit",
-      "_comment": "Web traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -396,81 +371,47 @@
           "_comment": "Capture flow window end time (after activity delay)"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "web_traffic_continue",
           "probability": 0.25
         },
         {
-          "next": "web_traffic_fin_setup",
+          "next": "web_traffic_fin",
           "probability": 0.75
         }
       ]
     },
     {
       "name": "web_traffic_continue",
-      "_comment": "Web traffic - Continue: Capture new var_start, loop back to activity",
-      "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "web_traffic_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "web_traffic_fin_setup",
-      "_comment": "TCP FIN - Setup: Capture var_start for FIN phase",
-      "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "web_traffic_fin_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "web_traffic_fin_activity",
-      "_comment": "TCP FIN - Activity: Delay for FIN handshake (1-2s)",
+      "_comment": "Web traffic - Continue: Loop back for next data window",
       "variables": [],
+      "delay": {
+        "type": "constant",
+        "value": 0
+      },
+      "transitions": [
+        {
+          "next": "web_traffic_data",
+          "probability": 1.0
+        }
+      ]
+    },
+    {
+      "name": "web_traffic_fin",
+      "_comment": "TCP FIN - Capture var_start, delay for FIN handshake (1-2s), emit close record",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "web_traffic_fin_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "web_traffic_fin_emit",
-      "_comment": "TCP FIN - Emit: Graceful connection close",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -513,10 +454,6 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "stop",
@@ -525,45 +462,20 @@
       ]
     },
     {
-      "name": "web_traffic_rst_setup",
-      "_comment": "TCP RST - Setup: Capture var_start for RST",
-      "variables": [
+      "name": "web_traffic_rst",
+      "_comment": "TCP RST - Capture var_start, delay for RST (1-2s), emit reset record",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
         {
           "name": "var_start",
           "type": "clock"
         }
       ],
       "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "web_traffic_rst_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "web_traffic_rst_activity",
-      "_comment": "TCP RST - Activity: Delay for RST (1-2s)",
-      "variables": [],
-      "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "web_traffic_rst_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "web_traffic_rst_emit",
-      "_comment": "TCP RST - Emit: Connection reset/refused",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -606,10 +518,6 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "stop",
@@ -746,35 +654,30 @@
       ],
       "transitions": [
         {
-          "next": "database_traffic_activity",
+          "next": "database_traffic_data",
           "probability": 0.95
         },
         {
-          "next": "database_traffic_rst_setup",
+          "next": "database_traffic_rst",
           "probability": 0.05
         }
       ]
     },
     {
-      "name": "database_traffic_activity",
-      "_comment": "Database traffic - Activity: Delay for query execution time, emit nothing",
-      "variables": [],
+      "name": "database_traffic_data",
+      "_comment": "Database traffic - Data: Query execution with flow record",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 3.0
       },
-      "transitions": [
-        {
-          "next": "database_traffic_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "database_traffic_emit",
-      "_comment": "Database traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -818,81 +721,47 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "database_traffic_continue",
           "probability": 0.6
         },
         {
-          "next": "database_traffic_fin_setup",
+          "next": "database_traffic_fin",
           "probability": 0.4
         }
       ]
     },
     {
       "name": "database_traffic_continue",
-      "_comment": "Database traffic - Continue: Capture new var_start, loop back to activity for next query",
-      "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "database_traffic_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "database_traffic_fin_setup",
-      "_comment": "TCP FIN - Setup: Capture var_start for FIN phase",
-      "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "database_traffic_fin_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "database_traffic_fin_activity",
-      "_comment": "TCP FIN - Activity: Delay for FIN handshake (1-2s)",
+      "_comment": "Database traffic - Continue: Loop back for next query",
       "variables": [],
+      "delay": {
+        "type": "constant",
+        "value": 0
+      },
+      "transitions": [
+        {
+          "next": "database_traffic_data",
+          "probability": 1.0
+        }
+      ]
+    },
+    {
+      "name": "database_traffic_fin",
+      "_comment": "TCP FIN - Graceful connection close",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "database_traffic_fin_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "database_traffic_fin_emit",
-      "_comment": "TCP FIN - Emit: Graceful connection close",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -936,10 +805,6 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "stop",
@@ -948,45 +813,20 @@
       ]
     },
     {
-      "name": "database_traffic_rst_setup",
-      "_comment": "TCP RST - Setup: Capture var_start for RST",
-      "variables": [
+      "name": "database_traffic_rst",
+      "_comment": "TCP RST - Connection reset/refused",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
         {
           "name": "var_start",
           "type": "clock"
         }
       ],
       "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "database_traffic_rst_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "database_traffic_rst_activity",
-      "_comment": "TCP RST - Activity: Delay for RST (1-2s)",
-      "variables": [],
-      "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "database_traffic_rst_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "database_traffic_rst_emit",
-      "_comment": "TCP RST - Emit: Connection reset/refused",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -1030,10 +870,6 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "stop",
@@ -1162,35 +998,30 @@
       ],
       "transitions": [
         {
-          "next": "ssh_traffic_activity",
+          "next": "ssh_traffic_data",
           "probability": 0.95
         },
         {
-          "next": "ssh_traffic_rst_setup",
+          "next": "ssh_traffic_rst",
           "probability": 0.05
         }
       ]
     },
     {
-      "name": "ssh_traffic_activity",
-      "_comment": "SSH traffic - Activity: Delay for session time, emit nothing",
-      "variables": [],
+      "name": "ssh_traffic_data",
+      "_comment": "SSH traffic - Data: Session activity with flow record",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 40.0
       },
-      "transitions": [
-        {
-          "next": "ssh_traffic_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "ssh_traffic_emit",
-      "_comment": "SSH traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -1234,81 +1065,47 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "ssh_traffic_continue",
           "probability": 0.4
         },
         {
-          "next": "ssh_traffic_fin_setup",
+          "next": "ssh_traffic_fin",
           "probability": 0.6
         }
       ]
     },
     {
       "name": "ssh_traffic_continue",
-      "_comment": "SSH traffic - Continue: Capture new var_start, loop back to activity for next session window",
-      "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "ssh_traffic_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "ssh_traffic_fin_setup",
-      "_comment": "TCP FIN - Setup: Capture var_start for FIN phase",
-      "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "ssh_traffic_fin_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "ssh_traffic_fin_activity",
-      "_comment": "TCP FIN - Activity: Delay for FIN handshake (1-2s)",
+      "_comment": "SSH traffic - Continue: Loop back for next session window",
       "variables": [],
+      "delay": {
+        "type": "constant",
+        "value": 0
+      },
+      "transitions": [
+        {
+          "next": "ssh_traffic_data",
+          "probability": 1.0
+        }
+      ]
+    },
+    {
+      "name": "ssh_traffic_fin",
+      "_comment": "TCP FIN - Graceful connection close",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "ssh_traffic_fin_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "ssh_traffic_fin_emit",
-      "_comment": "TCP FIN - Emit: Graceful connection close",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -1352,10 +1149,6 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "stop",
@@ -1364,45 +1157,20 @@
       ]
     },
     {
-      "name": "ssh_traffic_rst_setup",
-      "_comment": "TCP RST - Setup: Capture var_start for RST",
-      "variables": [
+      "name": "ssh_traffic_rst",
+      "_comment": "TCP RST - Connection reset/refused",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
         {
           "name": "var_start",
           "type": "clock"
         }
       ],
       "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "ssh_traffic_rst_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "ssh_traffic_rst_activity",
-      "_comment": "TCP RST - Activity: Delay for RST (1-2s)",
-      "variables": [],
-      "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "ssh_traffic_rst_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "ssh_traffic_rst_emit",
-      "_comment": "TCP RST - Emit: Connection reset/refused",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -1446,10 +1214,6 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "stop",
@@ -1586,35 +1350,30 @@
       ],
       "transitions": [
         {
-          "next": "internal_api_activity",
+          "next": "internal_api_data",
           "probability": 0.95
         },
         {
-          "next": "internal_api_rst_setup",
+          "next": "internal_api_rst",
           "probability": 0.05
         }
       ]
     },
     {
-      "name": "internal_api_activity",
-      "_comment": "Internal API traffic - Activity: Delay for API call time, emit nothing",
-      "variables": [],
+      "name": "internal_api_data",
+      "_comment": "Internal API traffic - Data: API call with flow record",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 3.0
       },
-      "transitions": [
-        {
-          "next": "internal_api_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "internal_api_emit",
-      "_comment": "Internal API traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -1658,81 +1417,47 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "internal_api_continue",
           "probability": 0.7
         },
         {
-          "next": "internal_api_fin_setup",
+          "next": "internal_api_fin",
           "probability": 0.3
         }
       ]
     },
     {
       "name": "internal_api_continue",
-      "_comment": "Internal API traffic - Continue: Capture new var_start, loop back to activity for next API call",
-      "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "internal_api_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "internal_api_fin_setup",
-      "_comment": "TCP FIN - Setup: Capture var_start for FIN phase",
-      "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "internal_api_fin_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "internal_api_fin_activity",
-      "_comment": "TCP FIN - Activity: Delay for FIN handshake (1-2s)",
+      "_comment": "Internal API traffic - Continue: Loop back for next API call",
       "variables": [],
+      "delay": {
+        "type": "constant",
+        "value": 0
+      },
+      "transitions": [
+        {
+          "next": "internal_api_data",
+          "probability": 1.0
+        }
+      ]
+    },
+    {
+      "name": "internal_api_fin",
+      "_comment": "TCP FIN - Graceful connection close",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "internal_api_fin_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "internal_api_fin_emit",
-      "_comment": "TCP FIN - Emit: Graceful connection close",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -1776,10 +1501,6 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "stop",
@@ -1788,45 +1509,20 @@
       ]
     },
     {
-      "name": "internal_api_rst_setup",
-      "_comment": "TCP RST - Setup: Capture var_start for RST",
-      "variables": [
+      "name": "internal_api_rst",
+      "_comment": "TCP RST - Connection reset/refused",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
         {
           "name": "var_start",
           "type": "clock"
         }
       ],
       "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "internal_api_rst_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "internal_api_rst_activity",
-      "_comment": "TCP RST - Activity: Delay for RST (1-2s)",
-      "variables": [],
-      "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "internal_api_rst_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "internal_api_rst_emit",
-      "_comment": "TCP RST - Emit: Connection reset/refused",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -1870,10 +1566,6 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "stop",
