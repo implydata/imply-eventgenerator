@@ -159,21 +159,6 @@
       "emitter": "routing_emitter",
       "variables": [
         {
-          "name": "var_account_id",
-          "type": "enum",
-          "values": ["123456789012", "123456789013", "123456789014"],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
-        },
-        {
-          "name": "var_interface_id",
-          "type": "enum",
-          "values": [
-            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
-            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
-          ],
-          "cardinality_distribution": { "type": "exponential", "mean": 2 }
-        },
-        {
           "name": "var_srcaddr",
           "type": "ipaddress",
           "cardinality": 1000,
@@ -208,12 +193,6 @@
           "cardinality": 0,
           "distribution": { "type": "constant", "value": 6 },
           "_comment": "TCP"
-        },
-        {
-          "name": "var_action",
-          "type": "enum",
-          "values": ["ACCEPT"],
-          "cardinality_distribution": { "type": "constant", "value": 0 }
         },
         {
           "name": "var_start",
@@ -292,20 +271,6 @@
       "emitter": "routing_emitter",
       "variables": [
         {
-          "name": "var_account_id",
-          "type": "enum",
-          "values": ["123456789012", "123456789013", "123456789014"],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
-        },
-        {
-          "name": "var_interface_id",
-          "type": "enum",
-          "values": [
-            "eni-0a1b2c3d4e5f60007", "eni-0a1b2c3d4e5f60008"
-          ],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
-        },
-        {
           "name": "var_srcaddr",
           "type": "ipaddress",
           "cardinality": 10,
@@ -339,12 +304,6 @@
           "type": "int",
           "cardinality": 0,
           "distribution": { "type": "constant", "value": 6 }
-        },
-        {
-          "name": "var_action",
-          "type": "enum",
-          "values": ["ACCEPT"],
-          "cardinality_distribution": { "type": "constant", "value": 0 }
         },
         {
           "name": "var_start",
@@ -419,20 +378,6 @@
       "emitter": "routing_emitter",
       "variables": [
         {
-          "name": "var_account_id",
-          "type": "enum",
-          "values": ["123456789012", "123456789013"],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
-        },
-        {
-          "name": "var_interface_id",
-          "type": "enum",
-          "values": [
-            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003"
-          ],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
-        },
-        {
           "name": "var_srcaddr",
           "type": "ipaddress",
           "cardinality": 20,
@@ -465,12 +410,6 @@
           "type": "int",
           "cardinality": 0,
           "distribution": { "type": "constant", "value": 6 }
-        },
-        {
-          "name": "var_action",
-          "type": "enum",
-          "values": ["ACCEPT", "REJECT"],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
         },
         {
           "name": "var_start",
@@ -545,20 +484,6 @@
       "emitter": "routing_emitter",
       "variables": [
         {
-          "name": "var_account_id",
-          "type": "enum",
-          "values": ["123456789012"],
-          "cardinality_distribution": { "type": "constant", "value": 0 }
-        },
-        {
-          "name": "var_interface_id",
-          "type": "enum",
-          "values": [
-            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005"
-          ],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
-        },
-        {
           "name": "var_srcaddr",
           "type": "ipaddress",
           "cardinality": 20,
@@ -590,12 +515,6 @@
           "type": "int",
           "cardinality": 0,
           "distribution": { "type": "constant", "value": 6 }
-        },
-        {
-          "name": "var_action",
-          "type": "enum",
-          "values": ["ACCEPT"],
-          "cardinality_distribution": { "type": "constant", "value": 0 }
         },
         {
           "name": "var_start",
@@ -670,20 +589,6 @@
       "emitter": "vpc_flow_log",
       "variables": [
         {
-          "name": "var_account_id",
-          "type": "enum",
-          "values": ["123456789012", "123456789013", "123456789014"],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
-        },
-        {
-          "name": "var_interface_id",
-          "type": "enum",
-          "values": [
-            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002"
-          ],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
-        },
-        {
           "name": "var_srcaddr",
           "type": "ipaddress",
           "cardinality": 5,
@@ -742,9 +647,8 @@
         {
           "name": "var_action",
           "type": "enum",
-          "values": ["REJECT", "REJECT", "REJECT", "ACCEPT"],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 3 },
-          "_comment": "Most scans rejected, 25% find open ports"
+          "values": ["REJECT"],
+          "cardinality_distribution": { "type": "constant", "value": 0 }
         }
       ],
       "delay": { "type": "exponential", "mean": 0.01 },
@@ -759,20 +663,6 @@
       "_comment": "DNS queries using UDP",
       "emitter": "vpc_flow_log",
       "variables": [
-        {
-          "name": "var_account_id",
-          "type": "enum",
-          "values": ["123456789012", "123456789013"],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
-        },
-        {
-          "name": "var_interface_id",
-          "type": "enum",
-          "values": [
-            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003"
-          ],
-          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
-        },
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -827,12 +717,6 @@
         {
           "name": "var_end",
           "type": "clock"
-        },
-        {
-          "name": "var_action",
-          "type": "enum",
-          "values": ["ACCEPT"],
-          "cardinality_distribution": { "type": "constant", "value": 0 }
         }
       ],
       "delay": { "type": "uniform", "min": 0.5, "max": 2.0 },
