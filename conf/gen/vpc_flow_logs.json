@@ -149,35 +149,36 @@
       },
       "transitions": [
         {
-          "next": "web_traffic_connection_setup",
+          "next": "web_traffic_syn",
           "probability": 0.4
         },
         {
-          "next": "database_traffic_connection_setup",
+          "next": "database_traffic_syn",
           "probability": 0.25
         },
         {
-          "next": "ssh_traffic_connection_setup",
+          "next": "ssh_traffic_syn",
           "probability": 0.1
         },
         {
-          "next": "internal_api_connection_setup",
+          "next": "internal_api_syn",
           "probability": 0.2
         },
         {
-          "next": "port_scan_setup",
+          "next": "port_scan",
           "probability": 0.03
         },
         {
-          "next": "dns_traffic_setup",
+          "next": "dns_traffic",
           "probability": 0.02
         }
       ]
     },
     {
-      "name": "web_traffic_connection_setup",
-      "_comment": "Web traffic - Setup: Capture connection 5-tuple and var_start",
-      "variables": [
+      "name": "web_traffic_syn",
+      "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -246,40 +247,14 @@
         {
           "name": "var_start",
           "type": "clock",
-          "_comment": "Capture SYN flow start time"
+          "_comment": "Capture SYN flow start time before delay"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "web_traffic_syn_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "web_traffic_syn_activity",
-      "_comment": "TCP SYN - Delay for handshake duration (1-2s)",
-      "variables": [],
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "web_traffic_syn_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "web_traffic_syn_emit",
-      "_comment": "TCP SYN - Emit handshake flow record",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -325,10 +300,6 @@
           "_comment": "Capture end time after handshake delay"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "web_traffic_data_setup",
@@ -647,9 +618,10 @@
       ]
     },
     {
-      "name": "database_traffic_connection_setup",
-      "_comment": "Database traffic - Connection setup: Capture all connection variables, emit nothing",
-      "variables": [
+      "name": "database_traffic_syn",
+      "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -723,36 +695,10 @@
         }
       ],
       "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "database_traffic_syn_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "database_traffic_syn_activity",
-      "_comment": "TCP SYN - Delay for handshake duration (1-2s)",
-      "variables": [],
-      "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "database_traffic_syn_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "database_traffic_syn_emit",
-      "_comment": "TCP SYN - Emit handshake flow record",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -798,10 +744,6 @@
           "_comment": "Capture end time after handshake delay"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "database_traffic_activity",
@@ -1100,9 +1042,10 @@
       ]
     },
     {
-      "name": "ssh_traffic_connection_setup",
-      "_comment": "SSH traffic - Connection setup: Capture all connection variables, emit nothing",
-      "variables": [
+      "name": "ssh_traffic_syn",
+      "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -1168,36 +1111,10 @@
         }
       ],
       "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "ssh_traffic_syn_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "ssh_traffic_syn_activity",
-      "_comment": "TCP SYN - Delay for handshake duration (1-2s)",
-      "variables": [],
-      "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "ssh_traffic_syn_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "ssh_traffic_syn_emit",
-      "_comment": "TCP SYN - Emit handshake flow record",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -1243,10 +1160,6 @@
           "_comment": "Capture end time after handshake delay"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "ssh_traffic_activity",
@@ -1545,9 +1458,10 @@
       ]
     },
     {
-      "name": "internal_api_connection_setup",
-      "_comment": "Internal API traffic - Connection setup: Capture all connection variables, emit nothing",
-      "variables": [
+      "name": "internal_api_syn",
+      "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -1621,36 +1535,10 @@
         }
       ],
       "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "internal_api_syn_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "internal_api_syn_activity",
-      "_comment": "TCP SYN - Delay for handshake duration (1-2s)",
-      "variables": [],
-      "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "internal_api_syn_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "internal_api_syn_emit",
-      "_comment": "TCP SYN - Emit handshake flow record",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -1696,10 +1584,6 @@
           "_comment": "Capture end time after handshake delay"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "internal_api_activity",
@@ -1998,9 +1882,10 @@
       ]
     },
     {
-      "name": "port_scan_setup",
-      "_comment": "Port scan - Setup: Capture connection 5-tuple and var_start",
-      "variables": [
+      "name": "port_scan",
+      "_comment": "Port scan - Capture 5-tuple & var_start, delay for probe (1-2s), emit rejected scan",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
         {
           "name": "var_action",
           "type": "enum",
@@ -2080,36 +1965,10 @@
         }
       ],
       "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "port_scan_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "port_scan_activity",
-      "_comment": "Port scan - Activity: Delay for scan probe time",
-      "variables": [],
-      "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "port_scan_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "port_scan_emit",
-      "_comment": "Port scan - Emit: Output rejected scan attempt",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -2153,10 +2012,6 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
           "next": "port_scan_response_route",
@@ -2200,7 +2055,7 @@
       },
       "transitions": [
         {
-          "next": "port_scan_setup",
+          "next": "port_scan",
           "probability": 0.95
         },
         {
@@ -2427,9 +2282,10 @@
       ]
     },
     {
-      "name": "dns_traffic_setup",
-      "_comment": "DNS traffic - Setup: Capture connection 5-tuple and var_start",
-      "variables": [
+      "name": "dns_traffic",
+      "_comment": "DNS traffic - Capture 5-tuple & var_start, delay for query/response (1-2s), emit flow record",
+      "emitter": "vpc_flow_log",
+      "variables_on_entry": [
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -2496,36 +2352,10 @@
         }
       ],
       "delay": {
-        "type": "constant",
-        "value": 0
-      },
-      "transitions": [
-        {
-          "next": "dns_traffic_activity",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "dns_traffic_activity",
-      "_comment": "DNS traffic - Activity: Delay for query/response time",
-      "variables": [],
-      "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "transitions": [
-        {
-          "next": "dns_traffic_emit",
-          "probability": 1.0
-        }
-      ]
-    },
-    {
-      "name": "dns_traffic_emit",
-      "_comment": "DNS traffic - Emit: Output DNS query flow record",
-      "emitter": "vpc_flow_log",
       "variables": [
         {
           "name": "var_interface_id",
@@ -2569,13 +2399,9 @@
           "type": "clock"
         }
       ],
-      "delay": {
-        "type": "constant",
-        "value": 0
-      },
       "transitions": [
         {
-          "next": "dns_traffic_setup",
+          "next": "dns_traffic",
           "probability": 0.3
         },
         {
