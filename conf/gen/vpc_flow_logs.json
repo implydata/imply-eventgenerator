@@ -127,15 +127,6 @@
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
         },
         {
-          "name": "var_interface_id",
-          "type": "enum",
-          "values": [
-            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
-            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
-          ],
-          "cardinality_distribution": { "type": "exponential", "mean": 2 }
-        },
-        {
           "name": "var_action",
           "type": "enum",
           "values": ["ACCEPT"],
@@ -144,18 +135,18 @@
       ],
       "delay": { "type": "constant", "value": 0 },
       "transitions": [
-        { "next": "web_traffic_start", "probability": 0.40 },
-        { "next": "database_traffic_start", "probability": 0.25 },
-        { "next": "ssh_traffic_start", "probability": 0.10 },
-        { "next": "internal_api_start", "probability": 0.20 },
+        { "next": "web_traffic_connection_setup", "probability": 0.40 },
+        { "next": "database_traffic_connection_setup", "probability": 0.25 },
+        { "next": "ssh_traffic_connection_setup", "probability": 0.10 },
+        { "next": "internal_api_connection_setup", "probability": 0.20 },
         { "next": "port_scan_init", "probability": 0.03 },
         { "next": "dns_traffic_init", "probability": 0.02 }
       ]
     },
 
     {
-      "name": "web_traffic_start",
-      "_comment": "Web traffic - Start: Capture var_start + all connection variables (5-tuple, account, interface, action), emit nothing",
+      "name": "web_traffic_connection_setup",
+      "_comment": "Web traffic - Connection setup: Capture all connection variables (5-tuple, account, action), emit nothing",
       "emitter": "routing_emitter",
       "variables": [
         {
@@ -193,16 +184,56 @@
           "cardinality": 0,
           "distribution": { "type": "constant", "value": 6 },
           "_comment": "TCP"
-        },
-        {
-          "name": "var_start",
-          "type": "clock",
-          "_comment": "Capture flow window start time"
         }
       ],
       "delay": { "type": "constant", "value": 0 },
       "transitions": [
-        { "next": "web_traffic_activity", "probability": 1.0 }
+        { "next": "web_traffic_syn_emit", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "web_traffic_syn_emit",
+      "_comment": "TCP SYN - Connection establishment handshake",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 3 },
+          "_comment": "SYN, SYN-ACK, ACK"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 180, "max": 240 },
+          "_comment": "TCP handshake packets"
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "web_traffic_activity", "probability": 0.95 },
+        { "next": "web_traffic_rst_emit", "probability": 0.05 }
       ]
     },
 
@@ -210,7 +241,13 @@
       "name": "web_traffic_activity",
       "_comment": "Web traffic - Activity: No new variables (all persist from start), delay for flow duration, emit nothing",
       "emitter": "routing_emitter",
-      "variables": [],
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock",
+          "_comment": "Capture new flow window start time for data transfer phase"
+        }
+      ],
       "delay": { "type": "exponential", "mean": 5.0 },
       "transitions": [
         { "next": "web_traffic_emit", "probability": 1.0 }
@@ -222,6 +259,16 @@
       "_comment": "Web traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
         {
           "name": "var_packets",
           "type": "int",
@@ -244,7 +291,7 @@
       "delay": { "type": "constant", "value": 0 },
       "transitions": [
         { "next": "web_traffic_continue", "probability": 0.25 },
-        { "next": "stop", "probability": 0.75 }
+        { "next": "web_traffic_fin_emit", "probability": 0.75 }
       ]
     },
 
@@ -266,8 +313,94 @@
     },
 
     {
-      "name": "database_traffic_start",
-      "_comment": "Database traffic - Start: Capture var_start + all connection variables, emit nothing",
+      "name": "web_traffic_fin_emit",
+      "_comment": "TCP FIN - Graceful connection close",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 2 },
+          "_comment": "FIN, ACK"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 100, "max": 140 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "web_traffic_rst_emit",
+      "_comment": "TCP RST - Connection reset/refused",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 1 },
+          "_comment": "RST packet"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 50, "max": 70 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "database_traffic_connection_setup",
+      "_comment": "Database traffic - Connection setup: Capture all connection variables, emit nothing",
       "emitter": "routing_emitter",
       "variables": [
         {
@@ -304,15 +437,56 @@
           "type": "int",
           "cardinality": 0,
           "distribution": { "type": "constant", "value": 6 }
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "database_traffic_syn_emit", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "database_traffic_syn_emit",
+      "_comment": "TCP SYN - Connection establishment handshake",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 3 },
+          "_comment": "SYN, SYN-ACK, ACK"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 180, "max": 240 },
+          "_comment": "TCP handshake packets"
         },
         {
           "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
           "type": "clock"
         }
       ],
       "delay": { "type": "constant", "value": 0 },
       "transitions": [
-        { "next": "database_traffic_activity", "probability": 1.0 }
+        { "next": "database_traffic_activity", "probability": 0.95 },
+        { "next": "database_traffic_rst_emit", "probability": 0.05 }
       ]
     },
 
@@ -320,7 +494,13 @@
       "name": "database_traffic_activity",
       "_comment": "Database traffic - Activity: Delay for query execution time, emit nothing",
       "emitter": "routing_emitter",
-      "variables": [],
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock",
+          "_comment": "Capture new flow window start time for query phase"
+        }
+      ],
       "delay": { "type": "exponential", "mean": 2.0 },
       "transitions": [
         { "next": "database_traffic_emit", "probability": 1.0 }
@@ -332,6 +512,16 @@
       "_comment": "Database traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
         {
           "name": "var_packets",
           "type": "int",
@@ -352,7 +542,7 @@
       "delay": { "type": "constant", "value": 0 },
       "transitions": [
         { "next": "database_traffic_continue", "probability": 0.60 },
-        { "next": "stop", "probability": 0.40 }
+        { "next": "database_traffic_fin_emit", "probability": 0.40 }
       ]
     },
 
@@ -373,8 +563,94 @@
     },
 
     {
-      "name": "ssh_traffic_start",
-      "_comment": "SSH traffic - Start: Capture var_start + all connection variables, emit nothing",
+      "name": "database_traffic_fin_emit",
+      "_comment": "TCP FIN - Graceful connection close",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 2 },
+          "_comment": "FIN, ACK"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 100, "max": 140 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "database_traffic_rst_emit",
+      "_comment": "TCP RST - Connection reset/refused",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 1 },
+          "_comment": "RST packet"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 50, "max": 70 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "ssh_traffic_connection_setup",
+      "_comment": "SSH traffic - Connection setup: Capture all connection variables, emit nothing",
       "emitter": "routing_emitter",
       "variables": [
         {
@@ -410,15 +686,56 @@
           "type": "int",
           "cardinality": 0,
           "distribution": { "type": "constant", "value": 6 }
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "ssh_traffic_syn_emit", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "ssh_traffic_syn_emit",
+      "_comment": "TCP SYN - Connection establishment handshake",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 3 },
+          "_comment": "SYN, SYN-ACK, ACK"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 180, "max": 240 },
+          "_comment": "TCP handshake packets"
         },
         {
           "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
           "type": "clock"
         }
       ],
       "delay": { "type": "constant", "value": 0 },
       "transitions": [
-        { "next": "ssh_traffic_activity", "probability": 1.0 }
+        { "next": "ssh_traffic_activity", "probability": 0.95 },
+        { "next": "ssh_traffic_rst_emit", "probability": 0.05 }
       ]
     },
 
@@ -426,7 +743,13 @@
       "name": "ssh_traffic_activity",
       "_comment": "SSH traffic - Activity: Delay for SSH session duration, emit nothing",
       "emitter": "routing_emitter",
-      "variables": [],
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock",
+          "_comment": "Capture new flow window start time for SSH session phase"
+        }
+      ],
       "delay": { "type": "exponential", "mean": 20.0 },
       "transitions": [
         { "next": "ssh_traffic_emit", "probability": 1.0 }
@@ -438,6 +761,16 @@
       "_comment": "SSH traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
         {
           "name": "var_packets",
           "type": "int",
@@ -458,7 +791,7 @@
       "delay": { "type": "constant", "value": 0 },
       "transitions": [
         { "next": "ssh_traffic_continue", "probability": 0.40 },
-        { "next": "stop", "probability": 0.60 }
+        { "next": "ssh_traffic_fin_emit", "probability": 0.60 }
       ]
     },
 
@@ -479,8 +812,94 @@
     },
 
     {
-      "name": "internal_api_start",
-      "_comment": "Internal API traffic - Start: Capture var_start + all connection variables, emit nothing",
+      "name": "ssh_traffic_fin_emit",
+      "_comment": "TCP FIN - Graceful connection close",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 2 },
+          "_comment": "FIN, ACK"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 100, "max": 140 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "ssh_traffic_rst_emit",
+      "_comment": "TCP RST - Connection reset/refused",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 1 },
+          "_comment": "RST packet"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 50, "max": 70 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "internal_api_connection_setup",
+      "_comment": "Internal API traffic - Connection setup: Capture all connection variables, emit nothing",
       "emitter": "routing_emitter",
       "variables": [
         {
@@ -515,15 +934,56 @@
           "type": "int",
           "cardinality": 0,
           "distribution": { "type": "constant", "value": 6 }
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "internal_api_syn_emit", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "internal_api_syn_emit",
+      "_comment": "TCP SYN - Connection establishment handshake",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 3 },
+          "_comment": "SYN, SYN-ACK, ACK"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 180, "max": 240 },
+          "_comment": "TCP handshake packets"
         },
         {
           "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
           "type": "clock"
         }
       ],
       "delay": { "type": "constant", "value": 0 },
       "transitions": [
-        { "next": "internal_api_activity", "probability": 1.0 }
+        { "next": "internal_api_activity", "probability": 0.95 },
+        { "next": "internal_api_rst_emit", "probability": 0.05 }
       ]
     },
 
@@ -531,7 +991,13 @@
       "name": "internal_api_activity",
       "_comment": "Internal API traffic - Activity: Delay for API call duration, emit nothing",
       "emitter": "routing_emitter",
-      "variables": [],
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock",
+          "_comment": "Capture new flow window start time for API call phase"
+        }
+      ],
       "delay": { "type": "exponential", "mean": 0.5 },
       "transitions": [
         { "next": "internal_api_emit", "probability": 1.0 }
@@ -543,6 +1009,16 @@
       "_comment": "Internal API traffic - Emit: Capture var_end + var_packets + var_bytes, emit the VPC flow log record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
         {
           "name": "var_packets",
           "type": "int",
@@ -563,7 +1039,7 @@
       "delay": { "type": "constant", "value": 0 },
       "transitions": [
         { "next": "internal_api_continue", "probability": 0.20 },
-        { "next": "stop", "probability": 0.80 }
+        { "next": "internal_api_fin_emit", "probability": 0.80 }
       ]
     },
 
@@ -584,10 +1060,112 @@
     },
 
     {
-      "name": "port_scan_init",
-      "_comment": "Port scanning attack - rapid connection attempts",
+      "name": "internal_api_fin_emit",
+      "_comment": "TCP FIN - Graceful connection close",
       "emitter": "vpc_flow_log",
       "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 2 },
+          "_comment": "FIN, ACK"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 100, "max": 140 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "internal_api_rst_emit",
+      "_comment": "TCP RST - Connection reset/refused",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 1 },
+          "_comment": "RST packet"
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 50, "max": 70 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "port_scan_init",
+      "_comment": "Port scan attempt from attacker",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_action",
+          "type": "enum",
+          "values": ["REJECT"],
+          "cardinality_distribution": { "type": "constant", "value": 0 }
+        },
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -634,7 +1212,7 @@
           "name": "var_bytes",
           "type": "int",
           "cardinality": 0,
-          "distribution": { "type": "constant", "value": 60 }
+          "distribution": { "type": "uniform", "min": 40, "max": 80 }
         },
         {
           "name": "var_start",
@@ -643,18 +1221,133 @@
         {
           "name": "var_end",
           "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "port_scan_response_route", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "port_scan_response_route",
+      "_comment": "Decide how firewall/service responds to scan",
+      "emitter": "routing_emitter",
+      "variables": [],
+      "delay": { "type": "exponential", "mean": 0.01 },
+      "transitions": [
+        { "next": "port_scan_next_or_stop", "probability": 0.70, "_comment": "Filtered - no response" },
+        { "next": "port_scan_closed_response", "probability": 0.20, "_comment": "Port closed - RST" },
+        { "next": "port_scan_honeypot_response", "probability": 0.10, "_comment": "Honeypot - SYN-ACK" }
+      ]
+    },
+
+    {
+      "name": "port_scan_next_or_stop",
+      "_comment": "Continue scanning or stop",
+      "emitter": "routing_emitter",
+      "variables": [],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "port_scan_init", "probability": 0.95 },
+        { "next": "stop", "probability": 0.05 }
+      ]
+    },
+
+    {
+      "name": "port_scan_closed_response",
+      "_comment": "Port closed - service sends RST",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
         },
         {
           "name": "var_action",
           "type": "enum",
-          "values": ["REJECT"],
-          "cardinality_distribution": { "type": "constant", "value": 0 }
+          "values": ["ACCEPT"],
+          "cardinality_distribution": { "type": "constant", "value": 0 },
+          "_comment": "Response is accepted (RST gets through)"
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 1 }
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 40, "max": 60 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
         }
       ],
-      "delay": { "type": "exponential", "mean": 0.01 },
+      "delay": { "type": "constant", "value": 0 },
       "transitions": [
-        { "next": "port_scan_init", "probability": 0.95 },
-        { "next": "stop", "probability": 0.05 }
+        { "next": "port_scan_next_or_stop", "probability": 1.0 }
+      ]
+    },
+
+    {
+      "name": "port_scan_honeypot_response",
+      "_comment": "Honeypot - port appears open to trap attacker",
+      "emitter": "vpc_flow_log",
+      "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
+        {
+          "name": "var_action",
+          "type": "enum",
+          "values": ["ACCEPT"],
+          "cardinality_distribution": { "type": "constant", "value": 0 }
+        },
+        {
+          "name": "var_packets",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "constant", "value": 1 }
+        },
+        {
+          "name": "var_bytes",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 40, "max": 60 }
+        },
+        {
+          "name": "var_start",
+          "type": "clock"
+        },
+        {
+          "name": "var_end",
+          "type": "clock"
+        }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "port_scan_next_or_stop", "probability": 1.0 }
       ]
     },
 
@@ -663,6 +1356,16 @@
       "_comment": "DNS queries using UDP",
       "emitter": "vpc_flow_log",
       "variables": [
+        {
+          "name": "var_interface_id",
+          "type": "enum",
+          "values": [
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002", "eni-0a1b2c3d4e5f60003",
+            "eni-0a1b2c3d4e5f60004", "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+          ],
+          "cardinality_distribution": { "type": "exponential", "mean": 2 },
+          "_comment": "ENI selected per flow record (load balancing)"
+        },
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
