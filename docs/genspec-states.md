@@ -239,3 +239,13 @@ In this configuration:
 4. The worker stops after emission
 
 This pattern is particularly useful in complex state machines where you want to separate routing logic from data emission, such as modeling TCP connection lifecycles or multi-stage user journeys.
+
+## See Also
+
+- [Generator Specification](genspec.md) - Core concepts and configuration overview
+- [Common Patterns](patterns.md) - State machine patterns including:
+  - Variable Persistence Across States
+  - Start→Activity→Emit Pattern (for realistic flow duration)
+  - Multiple Records Per Connection
+  - TCP Connection Lifecycle Pattern
+- [Best Practices](best-practices.md) - Configuration guidelines and naming conventions

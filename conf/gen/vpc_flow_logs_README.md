@@ -279,6 +279,21 @@ To modify the configuration:
 - **Format Template**: `conf/form/vpc_flow_logs.txt`
 - **This README**: `conf/gen/vpc_flow_logs_README.md`
 
+## Implementation Patterns
+
+This configuration demonstrates several advanced patterns documented in the Event Generator documentation:
+
+- **Variable Persistence**: Common variables (`account_id`, `interface_id`, `action`) defined once in initial state, persist through all traffic patterns
+- **Start→Activity→Emit Pattern**: TCP connection lifecycle modeled with separate setup, activity (delay), and emit states for realistic flow duration
+- **Multiple Records Per Connection**: Long-running connections (SSH, database) use continue loops to emit multiple flow records for same 5-tuple
+- **TCP Lifecycle Pattern**: Models SYN (handshake), data transfer, and FIN phases with realistic packet/byte counts
+- **Optional Emitters**: Initial routing state has no emitter field, as it only routes to traffic patterns without emitting records
+
+For detailed explanations of these patterns, see:
+
+- [Common Patterns](../../docs/patterns.md)
+- [Best Practices](../../docs/best-practices.md)
+
 ## AWS Documentation
 
 For more information on VPC Flow Logs:

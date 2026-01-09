@@ -98,3 +98,10 @@ When run with the `-m 3`, 3 workers are spawned. Since `interarrival` is a `cons
 {"time":"2025-02-18T09:36:01.640","enum_dim":"A"}
 {"time":"2025-02-18T09:36:04.635","enum_dim":"A"}
 ```
+
+## See Also
+
+- [States Documentation](genspec-states.md) - Detailed state configuration guide
+- [Emitters Documentation](genspec-emitters.md) - Emitter configuration reference
+- [Common Patterns](patterns.md) - State machine patterns and techniques for building realistic configurations
+- [Best Practices](best-practices.md) - Configuration guidelines, naming conventions, and development workflow
