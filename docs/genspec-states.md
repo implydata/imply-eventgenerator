@@ -2,10 +2,11 @@
 
 When the worker reaches a state, the following happens:
 
-1. [Variable](#variables) values are set.
-2. If the state has an [emitter](./genspec-emitters.md), an event is emitted.
-3. The generator delays for a period of time.
-4. The next state is selected.
+1. [`variables_on_entry`](#variables_on_entry) values are set (if specified).
+2. The generator delays for a period of time.
+3. [`variables`](#variables) values are set (if specified).
+4. If the state has an [emitter](./genspec-emitters.md), an event is emitted.
+5. The next state is selected.
 
 The selection of the next state is probabilistic, meaning it's possible for the output events to be stochastic (ie, they have a random probability distribution).
 
@@ -17,13 +18,54 @@ List all possible states in the `states` object of the configuration file, with 
 | --- | --- | --- | --- |
 | `name` | A unique, friendly name for this state. | | Yes |
 | `emitter` | The [emitter](./genspec-emitters.md) to use. If omitted, no record is emitted. | The `name` of an emitter in the `emitter` list. | No |
-| [`variables`](#variables) | A list of [field generators](./fieldgen.md). | | No |
+| [`variables_on_entry`](#variables_on_entry) | A list of [field generators](./fieldgen.md) captured BEFORE the delay. | | No |
+| [`variables`](#variables) | A list of [field generators](./fieldgen.md) captured AFTER the delay. | | No |
 | `delay` | How long (in seconds) to remain in the state before transitioning, defined as a [`distribution`](./distributions.md). | | Yes |
 | [`transitions`](#transitions) | A list of all possible states that could be entered after this state. | | Yes |
 
+## variables_on_entry
+
+The optional `variables_on_entry` list contains [field generators](./fieldgen.md) that are captured **before** the state's delay occurs.
+
+This is essential for modeling events with duration (network flows, sessions, transactions). Use `variables_on_entry` to capture start times and connection setup attributes before the delay, ensuring they reflect the moment the state is entered rather than when the record is emitted.
+
+### Execution Order
+
+When a worker enters a state:
+
+1. `variables_on_entry` are captured (before delay)
+2. `delay` occurs (time advances)
+3. `variables` are captured (after delay)
+4. Record is emitted (if emitter is specified)
+
+### Example: Realistic Flow Duration
+
+```json
+{
+  "name": "web_traffic",
+  "emitter": "vpc_flow_log",
+  "variables_on_entry": [
+    {"name": "var_start", "type": "clock"}
+  ],
+  "delay": {"type": "uniform", "min": 5.0, "max": 30.0},
+  "variables": [
+    {"name": "var_end", "type": "clock"},
+    {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 50, "max": 500}}
+  ]
+}
+```
+
+**Result**: `var_start` is captured at state entry, then 5-30 seconds pass, then `var_end` is captured. The emitted record has `start < end` with realistic duration.
+
+**Without variables_on_entry** (anti-pattern): Both `var_start` and `var_end` would be captured at the same instant after the delay, resulting in zero-duration flows.
+
+For detailed patterns and examples, see [Flow Duration with variables_on_entry](./patterns.md#flow-duration-with-variables_on_entry).
+
 ## Variables
 
-The optional `variables` list contains [field generators](./fieldgen.md). When a worker enters this state, it generates fields that are then stored for later re-use.
+The optional `variables` list contains [field generators](./fieldgen.md) that are captured **after** the state's delay occurs.
+
+When a worker enters this state, it generates fields that are then stored for later re-use.
 
 Address the variable values in `emitters` by using a `variable`-type dimension, and using the `name` of the variable in the `variable` field.
 
@@ -245,7 +287,8 @@ This pattern is particularly useful in complex state machines where you want to 
 - [Generator Specification](genspec.md) - Core concepts and configuration overview
 - [Common Patterns](patterns.md) - State machine patterns including:
   - Variable Persistence Across States
-  - Start→Activity→Emit Pattern (for realistic flow duration)
+  - Flow Duration with variables_on_entry (for realistic flow duration)
+  - Common Variables in Initial State
   - Multiple Records Per Connection
   - TCP Connection Lifecycle Pattern
 - [Best Practices](best-practices.md) - Configuration guidelines and naming conventions

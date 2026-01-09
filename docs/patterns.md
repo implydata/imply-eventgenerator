@@ -5,7 +5,7 @@ This guide documents common patterns and techniques for building realistic state
 ## Table of Contents
 
 1. [Variable Persistence Across States](#variable-persistence-across-states)
-2. [Start→Activity→Emit Pattern (Flow Duration)](#startactivityemit-pattern-flow-duration)
+2. [Flow Duration with variables_on_entry](#flow-duration-with-variables_on_entry)
 3. [Common Variables in Initial State](#common-variables-in-initial-state)
 4. [Multiple Records Per Connection](#multiple-records-per-connection)
 5. [TCP Connection Lifecycle Pattern](#tcp-connection-lifecycle-pattern)
@@ -13,7 +13,7 @@ This guide documents common patterns and techniques for building realistic state
 
 ## Variable Persistence Across States
 
-### Overview
+### Key Concept
 
 **Key Insight:** Variables set in one state automatically persist to all subsequent states within the same worker thread. You only need to redefine variables that change.
 
@@ -23,7 +23,7 @@ This is one of the most important concepts for building efficient state machines
 - Build complex state machines without repetition
 - Create cleaner, more maintainable configurations
 
-### The Pattern
+### Basic Example
 
 ```json
 {
@@ -101,67 +101,50 @@ This is one of the most important concepts for building efficient state machines
 ✅ **Better Performance**: Fewer variable computations per state
 ✅ **Clearer Intent**: Shows which variables are connection-wide vs state-specific
 
-## Start→Activity→Emit Pattern (Flow Duration)
+## Flow Duration with variables_on_entry
 
-### Flow Overview
+### Problem and Solution
 
 **Problem:** When modeling events with duration (network flows, sessions, transactions), naively capturing both start and end times in the same state results in instantaneous events where `start == end`.
 
-**Solution:** Use a three-state pattern that separates setup, delay, and emission to create realistic time windows.
+**Solution:** Use the `variables_on_entry` field to capture start time BEFORE the delay, and capture end time in the regular `variables` field AFTER the delay.
 
 This is the **most important pattern for time-windowed data** like network flows, session logs, or transaction records.
 
-### Flow Pattern
+### Execution Pattern
 
-```text
-┌──────────────┐        ┌──────────────┐        ┌──────────────┐
-│ Setup State  │        │ Activity     │        │ Emit State   │
-│ (no emitter) │───────▶│ State        │───────▶│ (emitter)    │
-│              │        │ (no emitter) │        │              │
-│ - Capture    │        │ - Delay for  │        │ - Capture    │
-│   start time │        │   duration   │        │   end time   │
-│ - Setup vars │        │ - No emit    │        │ - Calculate  │
-│ - No emit    │        │              │        │   metrics    │
-│              │        │              │        │ - Emit record│
-└──────────────┘        └──────────────┘        └──────────────┘
-```
+When a worker enters a state, execution happens in this order:
 
-### Configuration Example
+1. **variables_on_entry** are captured (e.g., `var_start`)
+2. **delay** occurs (time advances)
+3. **variables** are captured (e.g., `var_end`)
+4. **emitter** outputs the record
+
+This ensures that `var_start` and `var_end` have different values, creating realistic duration.
+
+### Single-State Example
 
 ```json
 {
   "states": [
     {
-      "name": "flow_start",
-      "comment": "State 1: Capture start time and connection details (no emitter)",
-      "variables": [
+      "name": "web_traffic_syn",
+      "emitter": "vpc_flow_log",
+      "comment": "Single state with realistic flow duration",
+      "variables_on_entry": [
         {"name": "var_start", "type": "clock"},
         {"name": "var_srcaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "10.0.0.0/16"}},
         {"name": "var_dstaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "203.0.113.0/24"}},
         {"name": "var_srcport", "type": "int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}},
         {"name": "var_dstport", "type": "constant", "value": 443}
       ],
-      "delay": {"type": "constant", "value": 0},
-      "transitions": [{"next": "flow_activity", "probability": 1.0}]
-    },
-    {
-      "name": "flow_activity",
-      "comment": "State 2: Delay for the flow duration (no emitter, no variables)",
-      "variables": [],
-      "delay": {"type": "exponential", "mean": 5.0},
-      "transitions": [{"next": "flow_emit", "probability": 1.0}]
-    },
-    {
-      "name": "flow_emit",
-      "comment": "State 3: Capture end time, calculate metrics, emit record",
-      "emitter": "flow_record",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "variables": [
         {"name": "var_end", "type": "clock"},
-        {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 10, "max": 1000}},
-        {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 1000, "max": 1000000}}
+        {"name": "var_packets", "type": "constant", "value": 3},
+        {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 180, "max": 240}}
       ],
-      "delay": {"type": "constant", "value": 0},
-      "transitions": [{"next": "flow_start", "probability": 0.3}]
+      "transitions": [{"next": "web_traffic_data", "probability": 1.0}]
     }
   ]
 }
@@ -169,10 +152,11 @@ This is the **most important pattern for time-windowed data** like network flows
 
 ### Why This Works
 
-1. **State 1** (flow_start): Captures `var_start` using clock at time T₀
-2. **State 2** (flow_activity): Simulation advances time by delay (e.g., 5 seconds)
-3. **State 3** (flow_emit): Captures `var_end` using clock at time T₀ + 5 seconds
-4. **Result**: Emitted record has `start < end` with realistic duration
+1. Worker enters `web_traffic_syn` state
+2. `variables_on_entry` captured: `var_start = T₀`, plus connection 5-tuple (src/dst addr/port)
+3. Delay occurs: Time advances by 1.0-2.0 seconds
+4. `variables` captured: `var_end = T₀ + 1.5 seconds` (example), plus packets/bytes
+5. Record emitted with `start < end` and realistic duration of 1.5 seconds
 
 ### Without This Pattern (Anti-Pattern)
 
@@ -183,12 +167,23 @@ This is the **most important pattern for time-windowed data** like network flows
   "variables": [
     {"name": "var_start", "type": "clock"},
     {"name": "var_end", "type": "clock"}
-    // Both sampled at same instant! start == end (unrealistic)
+    // Both sampled AFTER delay at same instant! start == end (unrealistic)
   ]
 }
 ```
 
-**Problem**: Both `var_start` and `var_end` are sampled at the same instant, resulting in zero-duration flows.
+**Problem**: Both `var_start` and `var_end` are sampled at the same instant (after the delay), resulting in zero-duration flows.
+
+### Old Pattern (Obsolete)
+
+Before `variables_on_entry` was added, the only way to achieve realistic duration was a 3-state pattern:
+
+```text
+Setup State → Activity State → Emit State
+(capture start)  (delay only)    (capture end, emit)
+```
+
+This required 3 states per flow type. With `variables_on_entry`, you can achieve the same result in a single state, making configurations 60%+ smaller and much easier to maintain.
 
 ### Use Cases
 
@@ -198,43 +193,65 @@ This is the **most important pattern for time-windowed data** like network flows
 - **Call detail records** (phone calls, video conferences)
 - **Any event with a meaningful duration**
 
-### Variations
+### VPC Flow Logs Example
 
-#### Multiple Activity States
-
-For complex lifecycles (e.g., TCP handshake, data transfer, teardown):
+From the VPC Flow Logs configuration:
 
 ```json
 {
-  "states": [
-    {"name": "tcp_setup", "variables": [{"name": "var_start", "type": "clock"}], "transitions": [{"next": "tcp_syn_delay", "probability": 1.0}]},
-    {"name": "tcp_syn_delay", "delay": {"type": "exponential", "mean": 0.1}, "transitions": [{"next": "tcp_syn_emit", "probability": 1.0}]},
-    {"name": "tcp_syn_emit", "emitter": "tcp_flow", "variables": [{"name": "var_end", "type": "clock"}, {"name": "var_packets", "type": "constant", "value": 3}]},
-
-    {"name": "tcp_data_delay", "delay": {"type": "exponential", "mean": 5.0}, "transitions": [{"next": "tcp_data_emit", "probability": 1.0}]},
-    {"name": "tcp_data_emit", "emitter": "tcp_flow", "variables": [{"name": "var_end", "type": "clock"}, {"name": "var_packets", "distribution": {"type": "uniform", "min": 50, "max": 500}}]}
+  "name": "web_traffic_data",
+  "emitter": "vpc_flow_log",
+  "variables_on_entry": [
+    {"name": "var_start", "type": "clock"}
+  ],
+  "delay": {"type": "uniform", "min": 5.0, "max": 30.0},
+  "variables": [
+    {"name": "var_end", "type": "clock"},
+    {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
+    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}}
+  ],
+  "transitions": [
+    {"next": "web_traffic_fin", "probability": 0.5},
+    {"next": "web_traffic_continue", "probability": 0.5}
   ]
 }
 ```
 
-### Flow Benefits
+**Result**: Flow records with realistic duration of 5-30 seconds, capturing actual data transfer time.
+
+### Key Benefits
 
 ✅ **Realistic Time Windows**: Events have proper duration (start < end)
+✅ **Single State**: No need for 3-state Setup→Activity→Emit pattern
+✅ **Smaller Configs**: 60%+ reduction in configuration size
+✅ **Easier Maintenance**: Fewer states to manage
 ✅ **Accurate Metrics**: Can model throughput, packets/bytes over time
 ✅ **Protocol Accuracy**: Models real-world connection lifecycles
 ✅ **Testable**: Easy to verify duration ranges in generated data
 
----
+### When to Use variables_on_entry
+
+Use `variables_on_entry` whenever you need to:
+
+- Capture start time before a delay
+- Set up connection attributes (IP addresses, ports) that are used throughout the flow
+- Initialize any variable that should reflect the state entry time rather than emission time
+
+Use regular `variables` for:
+
+- Capturing end time after a delay
+- Computing metrics that depend on the delay (packets, bytes transferred)
+- Any variable that should reflect the emission time
 
 ## Common Variables in Initial State
 
-### Initial State Overview
+### Optimization Strategy
 
 **Optimization:** Move variables that are common across all execution paths to the initial routing state. This reduces configuration size and makes intent clearer.
 
 This pattern builds on [Variable Persistence](#variable-persistence-across-states) to optimize large state machines with multiple traffic patterns.
 
-### Initial State Pattern
+### Before and After Comparison
 
 #### Before Optimization
 
@@ -308,7 +325,7 @@ This pattern builds on [Variable Persistence](#variable-persistence-across-state
 
 **Benefit**: Eliminated 4 lines of duplicate variable definitions.
 
-### Real-World Example: VPC Flow Logs
+### VPC Flow Logs: Common Variables
 
 The VPC Flow Logs configuration has multiple traffic patterns (web, API, database, DNS, SSH, rejected traffic, port scans). Variables common to **all** flows were moved to the initial state:
 
@@ -326,9 +343,12 @@ The VPC Flow Logs configuration has multiple traffic patterns (web, API, databas
       "name": "var_interface_id",
       "type": "enum",
       "values": [
-        "eni-1a2b3c4d", "eni-5e6f7g8h", "eni-9i0j1k2l", "eni-3m4n5o6p",
-        "eni-7q8r9s0t", "eni-1u2v3w4x", "eni-5y6z7a8b", "eni-9c0d1e2f"
-      ]
+        "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002",
+        "eni-0a1b2c3d4e5f60003", "eni-0a1b2c3d4e5f60004",
+        "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
+      ],
+      "cardinality_distribution": {"type": "exponential", "mean": 2},
+      "_comment": "ENI selected once per connection - all flow records use same interface"
     },
     {
       "name": "var_action",
@@ -338,16 +358,71 @@ The VPC Flow Logs configuration has multiple traffic patterns (web, API, databas
     }
   ],
   "transitions": [
-    {"next": "web_traffic_connection_setup", "probability": 0.35},
-    {"next": "api_traffic_connection_setup", "probability": 0.25},
-    {"next": "database_traffic_connection_setup", "probability": 0.15},
-    {"next": "dns_query_setup", "probability": 0.10},
-    {"next": "ssh_traffic_connection_setup", "probability": 0.05},
-    {"next": "rejected_traffic_setup", "probability": 0.05},
-    {"next": "port_scan_setup", "probability": 0.05}
+    {"next": "web_traffic_syn", "probability": 0.35},
+    {"next": "database_traffic_syn", "probability": 0.25},
+    {"next": "ssh_traffic_syn", "probability": 0.15},
+    {"next": "internal_api_syn", "probability": 0.10},
+    {"next": "port_scan", "probability": 0.10},
+    {"next": "dns_traffic", "probability": 0.05}
   ]
 }
 ```
+
+### Connection-Level vs Flow-Level Variables
+
+A critical design decision is whether a variable should be:
+
+- **Connection-level** (set once in initial state, persists across all flow records)
+- **Flow-level** (set in each state, can vary between flow records)
+
+#### ENI Example: Connection-Level is Correct
+
+In AWS VPC Flow Logs, the Elastic Network Interface (ENI) is the network observer. A single connection (defined by its 5-tuple: src/dst IP, src/dst port, protocol) is always observed by the **same ENI** across all its flow records.
+
+**Correct** (ENI in initial state):
+
+```json
+{
+  "name": "initial",
+  "variables": [
+    {"name": "var_interface_id", "type": "enum", "values": ["eni-001", "eni-002"]}
+  ]
+}
+```
+
+**Result**: All flow records for the same connection have the same ENI (100% consistency).
+
+**Incorrect** (ENI in each traffic state):
+
+```json
+{
+  "name": "web_traffic_syn",
+  "variables": [
+    {"name": "var_interface_id", "type": "enum", "values": ["eni-001", "eni-002"]},
+    {"name": "var_start", "type": "clock"}
+  ]
+}
+```
+
+**Problem**: Each flow record randomly selects a new ENI. A connection with 3 flow records (SYN, DATA, FIN) could show different ENIs for each record, which is impossible in real AWS infrastructure.
+
+#### When to Use Connection-Level Variables
+
+Place variables in the initial state when they represent:
+
+- **Infrastructure attributes**: Network interfaces, VPCs, subnets, availability zones
+- **Connection identity**: Source/destination IPs and ports (for multi-record connections)
+- **Session attributes**: User IDs, session IDs, customer IDs
+- **Account/tenant context**: AWS account IDs, organization IDs
+- **Any attribute that should remain constant across all records for the same connection**
+
+#### When to Use Flow-Level Variables
+
+Set variables in individual states when they represent:
+
+- **Time-varying metrics**: Packet counts, byte counts that change per flow record
+- **Temporal boundaries**: Start/end times that differ for each aggregation window
+- **State-specific attributes**: TCP flags, connection state that changes over lifecycle
 
 ### How to Identify Common Variables
 
@@ -368,11 +443,9 @@ Ask yourself:
 
 Only move variables that are **truly common** across all paths. If a variable differs in distribution or values between patterns, keep it pattern-specific.
 
----
-
 ## Multiple Records Per Connection
 
-### Multi-record Overview
+### Overview
 
 Real-world connections often generate multiple observation records over time. Examples:
 
@@ -382,7 +455,7 @@ Real-world connections often generate multiple observation records over time. Ex
 
 **Pattern:** Use a continue/loop state to emit multiple records for the same connection.
 
-### Multi-record Pattern
+### State Flow Diagram
 
 ```text
 ┌──────────────┐        ┌──────────────┐        ┌──────────────┐
@@ -397,54 +470,40 @@ Real-world connections often generate multiple observation records over time. Ex
        └──────────────────────────────────────────────────────────┘
 ```
 
-### Multi-record Configuration Example
+### Configuration Example
 
 ```json
 {
   "states": [
     {
       "name": "connection_setup",
-      "comment": "Initial connection setup",
+      "comment": "Initial connection setup - sets connection 5-tuple once",
       "variables": [
         {"name": "var_srcaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "10.0.0.0/16"}},
         {"name": "var_dstaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "203.0.113.0/24"}},
         {"name": "var_srcport", "type": "int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}},
         {"name": "var_dstport", "type": "constant", "value": 443}
       ],
-      "transitions": [{"next": "flow_activity", "probability": 1.0}]
-    },
-    {
-      "name": "flow_activity",
-      "delay": {"type": "exponential", "mean": 60.0},
+      "delay": {"type": "constant", "value": 0},
       "transitions": [{"next": "emit_flow_record", "probability": 1.0}]
     },
     {
       "name": "emit_flow_record",
       "emitter": "flow_log",
+      "comment": "Emit flow record with realistic duration using variables_on_entry",
+      "variables_on_entry": [
+        {"name": "var_start", "type": "clock"}
+      ],
+      "delay": {"type": "exponential", "mean": 60.0},
       "variables": [
-        {"name": "var_start", "type": "clock"},
         {"name": "var_end", "type": "clock"},
         {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 100, "max": 10000}},
         {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 10000, "max": 1000000}}
       ],
       "transitions": [
-        {"next": "close_flow", "probability": 0.7},
-        {"next": "continue_flow", "probability": 0.3}
+        {"next": "stop", "probability": 0.7},
+        {"next": "emit_flow_record", "probability": 0.3}
       ]
-    },
-    {
-      "name": "continue_flow",
-      "comment": "Continue same connection - emit another record after delay",
-      "variables": [],
-      "delay": {"type": "constant", "value": 0},
-      "transitions": [{"next": "flow_activity", "probability": 1.0}]
-    },
-    {
-      "name": "close_flow",
-      "comment": "Connection closed",
-      "variables": [],
-      "delay": {"type": "constant", "value": 0},
-      "transitions": []
     }
   ]
 }
@@ -452,39 +511,43 @@ Real-world connections often generate multiple observation records over time. Ex
 
 ### How Multi-record Works
 
-1. **First Emission**: Connection emits first flow record after initial activity
-2. **Decision Point**: 30% chance to continue, 70% chance to close
-3. **Continue Path**: Loops back to activity state (delay) → emit another record
-4. **Same Connection**: Source/destination IPs and ports persist across all records
-5. **Result**: Same 5-tuple appears in multiple flow records with different time windows
+1. **Connection Setup**: Sets the 5-tuple (src/dst addr/port) once at the start
+2. **First Emission**: Emits first flow record with realistic duration using `variables_on_entry`
+3. **Decision Point**: 30% chance to loop back, 70% chance to stop
+4. **Loop**: If continuing, loops back to same emit state with new delay and new time window
+5. **Same Connection**: Source/destination IPs and ports persist across all records
+6. **Result**: Same 5-tuple appears in multiple flow records with different time windows
 
 ### Real-World Multi-record Example: VPC Flow Logs
 
+From the actual VPC Flow Logs configuration, the data transfer state shows how multiple flow records are generated for the same connection:
+
 ```json
 {
-  "name": "web_traffic_data_emit",
+  "name": "web_traffic_data",
   "emitter": "vpc_flow_log",
-  "variables": [
-    {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
-    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}},
-    {"name": "var_end", "type": "clock"}
-  ],
-  "delay": {"type": "constant", "value": 0},
-  "transitions": [
-    {"next": "web_traffic_fin_setup", "probability": 0.5},
-    {"next": "web_traffic_continue", "probability": 0.5}
-  ]
-},
-{
-  "name": "web_traffic_continue",
-  "comment": "Continue connection - emit another data record",
-  "variables": [
+  "variables_on_entry": [
     {"name": "var_start", "type": "clock"}
   ],
-  "delay": {"type": "constant", "value": 0},
-  "transitions": [{"next": "web_traffic_data_activity", "probability": 1.0}]
+  "delay": {"type": "uniform", "min": 5.0, "max": 30.0},
+  "variables": [
+    {"name": "var_end", "type": "clock"},
+    {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
+    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}}
+  ],
+  "transitions": [
+    {"next": "web_traffic_fin", "probability": 0.5},
+    {"next": "web_traffic_data", "probability": 0.5}
+  ]
 }
 ```
+
+**Key points:**
+
+- 50% chance to move to FIN (connection teardown)
+- 50% chance to loop back to `web_traffic_data` for another data transfer record
+- Each loop generates a new flow record with a fresh 5-30 second window
+- The connection 5-tuple (src/dst IPs and ports) persists across all records
 
 ### Multi-record Variations
 
@@ -558,8 +621,6 @@ Make long-running connections less likely:
 ✅ **Aggregation Testing**: Perfect for testing time-series aggregations
 ✅ **Cardinality Control**: More records without more unique connections
 
----
-
 ## TCP Connection Lifecycle Pattern
 
 ### TCP Lifecycle Overview
@@ -598,6 +659,8 @@ Connection
 ```
 
 ### TCP Lifecycle Configuration Example
+
+> **Note:** This example uses the older 3-state pattern (setup → activity → emit) for illustrative purposes to show the full TCP state machine structure. For production use, consider converting each phase to use `variables_on_entry` for a more compact configuration. See the [Real-World Example](#real-world-example-vpc-flow-logs-with-tcp-lifecycle) below for the modern approach.
 
 ```json
 {
@@ -726,52 +789,67 @@ Connection
 
 ### Real-World Example: VPC Flow Logs with TCP Lifecycle
 
-From the VPC Flow Logs configuration:
+From the VPC Flow Logs configuration using the **modern `variables_on_entry` approach**:
 
 ```json
 {
-  "name": "web_traffic_syn_emit",
+  "name": "web_traffic_syn",
   "emitter": "vpc_flow_log",
+  "variables_on_entry": [
+    {"name": "var_start", "type": "clock"}
+  ],
+  "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
   "variables": [
+    {"name": "var_end", "type": "clock"},
     {"name": "var_packets", "type": "constant", "value": 3},
-    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 180, "max": 240}},
-    {"name": "var_end", "type": "clock"}
+    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 180, "max": 240}}
   ],
   "transitions": [
-    {"next": "web_traffic_data_setup", "probability": 1.0}
+    {"next": "web_traffic_data", "probability": 1.0}
   ]
 },
 {
-  "name": "web_traffic_data_emit",
+  "name": "web_traffic_data",
   "emitter": "vpc_flow_log",
+  "variables_on_entry": [
+    {"name": "var_start", "type": "clock"}
+  ],
+  "delay": {"type": "uniform", "min": 5.0, "max": 30.0},
   "variables": [
+    {"name": "var_end", "type": "clock"},
     {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
-    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}},
-    {"name": "var_end", "type": "clock"}
+    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}}
   ],
   "transitions": [
-    {"next": "web_traffic_fin_setup", "probability": 0.5},
-    {"next": "web_traffic_continue", "probability": 0.5}
+    {"next": "web_traffic_fin", "probability": 0.5},
+    {"next": "web_traffic_data", "probability": 0.5}
   ]
 },
 {
-  "name": "web_traffic_fin_emit",
+  "name": "web_traffic_fin",
   "emitter": "vpc_flow_log",
-  "variables": [
-    {"name": "var_packets", "type": "constant", "value": 2},
-    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 120, "max": 180}},
-    {"name": "var_end", "type": "clock"}
+  "variables_on_entry": [
+    {"name": "var_start", "type": "clock"}
   ],
-  "transitions": []
+  "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+  "variables": [
+    {"name": "var_end", "type": "clock"},
+    {"name": "var_packets", "type": "constant", "value": 2},
+    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 120, "max": 180}}
+  ],
+  "transitions": [
+    {"next": "stop", "probability": 1.0}
+  ]
 }
 ```
 
 **Result**:
 
 - Same connection (5-tuple) appears in 2-4+ flow records
-- First record: 3 packets, ~200 bytes (SYN)
-- Middle records: 50-500 packets, 5KB-500KB (Data)
-- Last record: 2 packets, ~150 bytes (FIN)
+- First record: 3 packets, ~200 bytes, 1-2 second duration (SYN)
+- Middle records: 50-500 packets, 5KB-500KB, 5-30 second duration (Data)
+- Last record: 2 packets, ~150 bytes, 1-2 second duration (FIN)
+- **Each state uses `variables_on_entry` for realistic flow duration** (single state per phase instead of 3 states)
 
 ### VPC Flow Log Use Cases
 
@@ -786,8 +864,6 @@ From the VPC Flow Logs configuration:
 ✅ **Security Testing**: Data suitable for IDS/IPS testing
 ✅ **Performance Analysis**: Realistic traffic patterns for load testing
 ✅ **Temporal Patterns**: Captures connection lifecycle timing
-
----
 
 ## Testing with Synthetic Clock
 
@@ -911,33 +987,30 @@ python3 generator.py -c vpc_flow_logs.json -n 10000 "2024-01-01T00:00:00"
 python3 generator.py -c vpc_flow_logs.json -n 10000 -s "2024-01-01T00:00:00"
 ```
 
----
-
 ## Summary
 
 These six patterns represent essential techniques for building realistic, efficient state machine configurations:
 
 1. **Variable Persistence**: Variables persist across states - only redefine what changes
-2. **Start→Activity→Emit**: Three-state pattern for realistic flow duration
-3. **Common Variables**: Move shared variables to initial state for efficiency
-4. **Multiple Records**: Use continue loops for long-running connections
+2. **Flow Duration with variables_on_entry**: Use `variables_on_entry` for start time, `variables` for end time
+3. **Common Variables in Initial State**: Move shared variables to initial state for efficiency and realism
+4. **Multiple Records Per Connection**: Use continue loops for long-running connections
 5. **TCP Lifecycle**: Model protocol phases with realistic packet/byte characteristics
 6. **Synthetic Clock**: Use `-s` flag for instant development feedback
 
 **Key Takeaways:**
 
 - Understand variable persistence to avoid duplication
-- Use Start→Activity→Emit for any time-windowed data
-- Optimize large configs by moving common variables up
+- Use `variables_on_entry` for any time-windowed data (replaces old 3-state pattern)
+- Optimize large configs by moving common variables to initial state
+- Use connection-level variables (in initial state) for attributes that must remain constant across flow records
 - Model realistic connection lifecycles with multiple records and protocol phases
 - Always develop with synthetic clock, only use real-time for production
 
 For more information, see:
 
 - [Generator Specification](genspec.md) - Core concepts and field reference
-- [States Documentation](genspec-states.md) - Detailed state configuration guide
+- [States Documentation](genspec-states.md) - Detailed state configuration guide including variables_on_entry
 - [Best Practices](best-practices.md) - Configuration guidelines and conventions
-
----
 
 *These patterns were discovered during the development of production-quality VPC Flow Logs synthetic data generation. They represent battle-tested approaches for creating realistic, performant state machine configurations.*
