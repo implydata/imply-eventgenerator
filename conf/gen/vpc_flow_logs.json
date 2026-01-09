@@ -29,11 +29,6 @@
 
   "emitters": [
     {
-      "name": "routing_emitter",
-      "_comment": "Dummy emitter for initial routing state - not used in output",
-      "dimensions": []
-    },
-    {
       "name": "vpc_flow_log",
       "dimensions": [
         {
@@ -118,7 +113,6 @@
     {
       "name": "initial",
       "_comment": "Entry point - routes to specific traffic patterns (no output emitted)",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_account_id",
@@ -147,7 +141,6 @@
     {
       "name": "web_traffic_connection_setup",
       "_comment": "Web traffic - Connection setup: Capture all connection variables (5-tuple, account, action), emit nothing",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_srcaddr",
@@ -240,7 +233,6 @@
     {
       "name": "web_traffic_activity",
       "_comment": "Web traffic - Activity: No new variables (all persist from start), delay for flow duration, emit nothing",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_start",
@@ -298,7 +290,6 @@
     {
       "name": "web_traffic_continue",
       "_comment": "Web traffic - Continue: Capture new var_start from clock (becomes next window start), loop back to activity",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_start",
@@ -401,7 +392,6 @@
     {
       "name": "database_traffic_connection_setup",
       "_comment": "Database traffic - Connection setup: Capture all connection variables, emit nothing",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_srcaddr",
@@ -493,7 +483,6 @@
     {
       "name": "database_traffic_activity",
       "_comment": "Database traffic - Activity: Delay for query execution time, emit nothing",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_start",
@@ -549,7 +538,6 @@
     {
       "name": "database_traffic_continue",
       "_comment": "Database traffic - Continue: Capture new var_start, loop back to activity for next query",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_start",
@@ -651,7 +639,6 @@
     {
       "name": "ssh_traffic_connection_setup",
       "_comment": "SSH traffic - Connection setup: Capture all connection variables, emit nothing",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_srcaddr",
@@ -742,7 +729,6 @@
     {
       "name": "ssh_traffic_activity",
       "_comment": "SSH traffic - Activity: Delay for SSH session duration, emit nothing",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_start",
@@ -798,7 +784,6 @@
     {
       "name": "ssh_traffic_continue",
       "_comment": "SSH traffic - Continue: Capture new var_start, loop back to activity for next session window",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_start",
@@ -900,7 +885,6 @@
     {
       "name": "internal_api_connection_setup",
       "_comment": "Internal API traffic - Connection setup: Capture all connection variables, emit nothing",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_srcaddr",
@@ -990,7 +974,6 @@
     {
       "name": "internal_api_activity",
       "_comment": "Internal API traffic - Activity: Delay for API call duration, emit nothing",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_start",
@@ -1046,7 +1029,6 @@
     {
       "name": "internal_api_continue",
       "_comment": "Internal API traffic - Continue: Capture new var_start, loop back to activity for next API call",
-      "emitter": "routing_emitter",
       "variables": [
         {
           "name": "var_start",
@@ -1232,7 +1214,6 @@
     {
       "name": "port_scan_response_route",
       "_comment": "Decide how firewall/service responds to scan",
-      "emitter": "routing_emitter",
       "variables": [],
       "delay": { "type": "exponential", "mean": 0.01 },
       "transitions": [
@@ -1245,7 +1226,6 @@
     {
       "name": "port_scan_next_or_stop",
       "_comment": "Continue scanning or stop",
-      "emitter": "routing_emitter",
       "variables": [],
       "delay": { "type": "constant", "value": 0 },
       "transitions": [
