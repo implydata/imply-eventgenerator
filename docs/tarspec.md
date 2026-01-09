@@ -1,9 +1,9 @@
-## Generation targets
+# Generation targets
 
 Targets are the output locations for your data generation jobs.
 
 | Field | Description | Possible values | Required? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | [`type`](#target-types) | The type of target. | [`stdout`](#stdout) [`file`](#file) [`kafka`](#kafka) [`confluent`](#confluent) | Yes |
 | Options | Additional fields that configure the target for the data, depending on the `type` selected. | | Dependent on `type`. |
 
@@ -11,39 +11,38 @@ From the command line, use the `-o` flag to set what target configuration file t
 
 When using the API, wrap the target configuration inside an object called `target`.
 
-### Target types
+## Target types
 
 Each target type has fields that specify the behavior required.
 
-#### `stdout`
+### `stdout`
 
 Print events to standard out.
 
-```
+```json
 {
   "type": "stdout"
 }
 ```
 
-#### `file`
+### `file`
 
 Write events to the specified file.
 
-```
+```json
 {
   "type": "file",
   "path": "<filename goes here>"
 }
 ```
 
-Where:
-- <i>path</i> is the path and file name
+Where __path__ is the path and file name
 
-#### `kafka`
+### `kafka`
 
 Write events to an Apache Kafka topic.
 
-```
+```json
 {
   "type": "kafka",
   "endpoint": "<ip address and optional port>",
@@ -55,17 +54,18 @@ Write events to an Apache Kafka topic.
 ```
 
 Where:
-- <i>endpoint</i> is the IP address and optional port number (e.g., "127.0.0.1:9092") - if the port is omitted, 9092 is used
-- <i>topic</i> is the topic name as a string
-- <i>topic_key</i> (optional) is the list of generated fields used to build the key for each message
-- <i>security_protocol</i> (optional) a protocol specifier ("PLAINTEXT" (default if omitted), "SSL", "SASL_PLAINTEXT", "SASL_SSL")
-- <i>compression_type</i> (optional) a compression specifier ("gzip", "snappy", "lz4") - if omitted, no compression is used
 
-#### `confluent`
+- __endpoint__ is the IP address and optional port number (e.g., "127.0.0.1:9092") - if the port is omitted, 9092 is used
+- __topic__ is the topic name as a string
+- __topic_key__ (optional) is the list of generated fields used to build the key for each message
+- __security_protocol__ (optional) a protocol specifier ("PLAINTEXT" (default if omitted), "SSL", "SASL_PLAINTEXT", "SASL_SSL")
+- __compression_type__ (optional) a compression specifier ("gzip", "snappy", "lz4") - if omitted, no compression is used
+
+### `confluent`
 
 Write events to a Confluent Cloud topic.
 
-```
+```json
 {
   "type": "confluent",
   "servers": "<bootstrap servers>",
@@ -77,9 +77,9 @@ Write events to a Confluent Cloud topic.
 ```
 
 Where:
-- <i>servers</i> is the confluent servers (e.g., "pkc-lzvrd.us-west4.gcp.confluent.cloud:9092")
-- <i>topic</i> is the topic name as a string
-- <i>topic_key</i> (optional) is the list of generated fields used to build the key for each message
-- <i>username</i> cluster API key
-- <i>password</i> cluster API secret
 
+- __servers__ is the confluent servers (e.g., "pkc-lzvrd.us-west4.gcp.confluent.cloud:9092")
+- __topic__ is the topic name as a string
+- __topic_key__ (optional) is the list of generated fields used to build the key for each message
+- __username__ cluster API key
+- __password__ cluster API secret

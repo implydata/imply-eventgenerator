@@ -1,11 +1,11 @@
-## Generator specifications
+# Generator specifications
 
 Control the behavior of the data generator using a JSON configuration object known as the "Generator Specification". See the `config_file` folder for [examples](../config_file/examples).
 
 Workers traverse a number of [`states`](./genspec-states.md) and generate events as they go using [`emitters`](./genspec-emitters.md). States may optionally omit an emitter to create non-emitting states useful for routing, delays, or variable setup. Workers are created periodically, according to the [`interarrival`](./genspec-interarrival.md) time.
 
 | Object | Description | Options | Required? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | [`states`](./genspec-states.md) | A list of states that will be used to generate events. | See [`states`](./genspec-states.md) | Yes |
 | [`emitters`](./genspec-emitters.md) | A list of emitters. | See [`emitters`](./genspec-emitters.md) | Yes |
 | [`target`](./tarspec.md) | A target specification. | See [`targets`](./tarspec.md) | No |

@@ -31,11 +31,13 @@ The configuration models a realistic VPC network with the following subnets:
 ### Network Interfaces
 
 The configuration includes 8 Elastic Network Interfaces (ENIs) distributed across different instances:
+
 - `eni-0a1b2c3d4e5f60001` through `eni-0a1b2c3d4e5f60008`
 
 ### AWS Accounts
 
 Simulates a multi-account setup with three account IDs:
+
 - `123456789012`
 - `123456789013`
 - `123456789014`
@@ -43,6 +45,7 @@ Simulates a multi-account setup with three account IDs:
 ## Traffic Pattern Details
 
 ### 1. Web Traffic
+
 **States**: `web_traffic_init` → `web_traffic_data`
 
 - **Protocol**: TCP (6)
@@ -55,6 +58,7 @@ Simulates a multi-account setup with three account IDs:
 - **Behavior**: 25% chance of multiple requests on same connection
 
 ### 2. Database Traffic
+
 **States**: `database_traffic_init` → `database_query` (can loop)
 
 - **Protocol**: TCP (6)
@@ -71,6 +75,7 @@ Simulates a multi-account setup with three account IDs:
 - **Behavior**: 60% chance of multiple queries on same connection
 
 ### 3. SSH Admin Sessions
+
 **States**: `ssh_traffic_init` → `ssh_session` (can loop)
 
 - **Protocol**: TCP (6)
@@ -84,6 +89,7 @@ Simulates a multi-account setup with three account IDs:
 - **Behavior**: 40% chance of session continuing (long-lived connections)
 
 ### 4. Internal API Calls
+
 **States**: `internal_api_init` → `internal_api_call` (can loop)
 
 - **Protocol**: TCP (6)
@@ -96,6 +102,7 @@ Simulates a multi-account setup with three account IDs:
 - **Behavior**: 20% chance of chained API calls
 
 ### 5. Port Scanning Attacks
+
 **State**: `port_scan_init` (loops rapidly)
 
 - **Protocol**: TCP (6)
@@ -107,6 +114,7 @@ Simulates a multi-account setup with three account IDs:
 - **Behavior**: Rapid scanning with exponential mean of 0.01 seconds between probes
 
 ### 6. DNS Traffic
+
 **State**: `dns_traffic_init` (can loop)
 
 - **Protocol**: UDP (17)
@@ -139,7 +147,7 @@ Each traffic pattern uses a two-state model:
 The generated logs conform to AWS VPC Flow Logs version 2 format:
 
 | Field | Description | Example |
-|-------|-------------|---------|
+| ------- | ------------- | --------- |
 | `version` | Flow log version | 2 |
 | `account_id` | AWS account ID | 123456789012 |
 | `interface_id` | ENI ID | eni-0a1b2c3d4e5f60001 |
@@ -218,12 +226,14 @@ This generator is ideal for:
 The generated data supports testing various security detection scenarios:
 
 ### Port Scan Detection
+
 - Multiple connection attempts from same source IP
 - Connections to sequential or random ports
 - High percentage of REJECT actions
 - Single packet connections (SYN probes)
 
-### Example Query:
+### Example Query
+
 ```sql
 SELECT srcaddr, COUNT(DISTINCT dstport) as ports_scanned,
        SUM(CASE WHEN action='REJECT' THEN 1 ELSE 0 END) as rejections
@@ -234,11 +244,13 @@ HAVING ports_scanned > 10
 ```
 
 ### Unusual Database Access
+
 - Database connections from unexpected sources
 - Database traffic at unusual times
 - Excessive query volume
 
 ### Data Exfiltration
+
 - Unusually large byte transfers
 - Connections to external IPs from database/app servers
 
@@ -270,5 +282,6 @@ To modify the configuration:
 ## AWS Documentation
 
 For more information on VPC Flow Logs:
+
 - [AWS VPC Flow Logs Documentation](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html)
 - [Flow Log Record Format](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html#flow-log-records)

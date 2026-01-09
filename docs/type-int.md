@@ -1,16 +1,16 @@
-## Synthetic integers
+# Synthetic integers
 
 When a [field generator](./fieldgen.md) type is `int`, a random integer is created.
 
 | Field | Description | Possible values | Required? | Default |
-|---|---|---|---|---|
-| `type` | The data type for the dimension. | `int` | Yes ||
-| `name` | The unique name for the dimension. | String | Yes ||
-| `cardinality` | Indicates the number of unique values for this dimension. Use zero for unconstrained cardinality. | Integer | Yes ||
-| `cardinality_distribution` | Skews the cardinality selection of the generated values. | A [distribution](./distributions.md) object. | Yes, if `cardinality` not 0.||
+| --- | --- | --- | --- | --- |
+| `type` | The data type for the dimension. | `int` | Yes | |
+| `name` | The unique name for the dimension. | String | Yes | |
+| `cardinality` | Indicates the number of unique values for this dimension. Use zero for unconstrained cardinality. | Integer | Yes | |
+| `cardinality_distribution` | Skews the cardinality selection of the generated values. | A [distribution](./distributions.md) object. | Yes, if `cardinality` not 0. | |
 | `percent_missing` | The stochastic frequency for omitting this dimension from records (inclusive). | Integer between 0 and 100. | No. | 0 |
 | `percent_nulls` | The stochastic frequency (inclusive) for generating null values. | Integer between 0 and 100. | No. | 0 |
-| `distribution` | Specifies the distribution of the numbers generated, with each rounded to the nearest integer value. | A [distribution](./distributions.md) object. | Yes. ||
+| `distribution` | Specifies the distribution of the numbers generated, with each rounded to the nearest integer value. | A [distribution](./distributions.md) object. | Yes. | |
 
 In this example, there is just one state (`state_1`) and therefore one state listed in `transitions`, causing the data generator to always return to `state_1`.
 
@@ -20,7 +20,7 @@ The emitter for `state_1` is `example_event_1`, which emits the following dimens
 * `whiteboard_pen_delta` - the change in the number of whiteboard pens each person owns - is an `int` selected using a `normal` `distribution` with a `mean` of 0 and standard deviation (`stddev`) of 4.
 * `cups_of_coffee_consumed` is an int generated using an `exponential` `distribution`, meaning that - on average - 25 cups of coffee are consumed, but the distribution is exponential.
 
-```
+```json
 {
   "states": [
     {
@@ -72,7 +72,7 @@ python3 src/generator.py -f example.json -n 10 -m 1
 
 This is an example of the output:
 
-```
+```json
 {"time":"2042-09-23T11:03:03.402","user":"Elena","whiteboard_pen_delta":0,"cups_of_coffee_consumed":7}
 {"time":"2042-09-23T11:03:10.723","user":"Keisha","whiteboard_pen_delta":0,"cups_of_coffee_consumed":5}
 {"time":"2042-09-23T11:03:17.208","user":"Tenzing","whiteboard_pen_delta":0,"cups_of_coffee_consumed":74}

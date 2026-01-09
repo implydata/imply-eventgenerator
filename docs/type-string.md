@@ -1,17 +1,17 @@
-## Synthetic strings
+# Synthetic strings
 
 When a [field generator](./fieldgen.md) type is  `string`, a random string is created.
 
 | Field | Description | Possible values | Required? | Default |
-|---|---|---|---|---|
-| `type` | The data type for the dimension. | `string` | Yes ||
-| `name` | The unique name for the dimension. | String | Yes ||
-| `cardinality` | Indicates the number of unique values for this dimension. Use zero for unconstrained cardinality. | Integer | Yes ||
-| `cardinality_distribution` | Skews the cardinality selection of the generated values. | A [distribution](./distributions.md) object. | Yes, if `cardinality` not 0.||
+| --- | --- | --- | --- | --- |
+| `type` | The data type for the dimension. | `string` | Yes | |
+| `name` | The unique name for the dimension. | String | Yes | |
+| `cardinality` | Indicates the number of unique values for this dimension. Use zero for unconstrained cardinality. | Integer | Yes | |
+| `cardinality_distribution` | Skews the cardinality selection of the generated values. | A [distribution](./distributions.md) object. | Yes, if `cardinality` not 0. | |
 | `percent_missing` | The stochastic frequency for omitting this dimension from records (inclusive). | Integer between 0 and 100. | No. | 0 |
 | `percent_nulls` | The stochastic frequency (inclusive) for generating null values. | Integer between 0 and 100. | No. | 0 |
 | `chars` | A list of characters to use to generate strings. | String | No | All printable characters. |
-| `length_distribution` | A distribution function that specifies the length of the string values. | A [distribution](./distributions.md) object. | Yes. ||
+| `length_distribution` | A distribution function that specifies the length of the string values. | A [distribution](./distributions.md) object. | Yes. | |
 
 In this example, there are three states: `state_1`, `state_2`, and `state_3`. All three states have the same probabilities: 20% of reaching `state_1`, 50% of reaching `state_2`, and 30% of reaching `state_3`. Each state has its own emitter.
 
@@ -24,7 +24,7 @@ The emitter for `state_2` is `example_event_2`. Only the definition of `silly_na
 
 The emitter for `state_3` is `example_event_3`, and here only upper-case characters are used.
 
-```
+```json
 {
   "states": [
     {
@@ -134,7 +134,7 @@ python3 src/generator.py -f example.json -n 10 -m 1
 
 This is an example of the output:
 
-```
+```json
 {"time":"1998-04-13T00:00","account_id":"78683","silly_name":"
  *cseAFm"}t-RM
 {"time":"1998-04-13T00:00:00.100","account_id":"25423","silly_name":"UTJSIDNJWIIQYZD"}
