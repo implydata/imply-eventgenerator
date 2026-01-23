@@ -1,10 +1,14 @@
-## Field generators
+# Field generators
 
 Field generators are JSON objects that appear in emitter [`dimensions`](./genspec-emitters.md) and state [`variables`](./genspec-states.md).
 
 Whenever a worker encounters a field generator, whether via an emitter dimension list or a state variable, it generates a key (`name`) and a value.
 
-The value that is generated depends on the field generator `type`. Available field generator types are:
+The value that is generated depends on the field generator `type`.
+
+## Field generator types
+
+Available field generator types are:
 
 * [`clock`](#clock) generates a datetime using the simulated clock.
 * [`timestamp`](./type-timestamp.md) generates a datetime between a range.
@@ -17,9 +21,7 @@ The value that is generated depends on the field generator `type`. Available fie
 * [`object`](#object)
 * [`list`](#list)
 
-For information, including examples, see the individual pages for each field generator type.
-
-#### `clock`
+### `clock`
 
 Use the `clock`-type field generator to mimic an event timestamp.
 
@@ -36,20 +38,20 @@ python3 src/generator.py -f example.json -n 10 -m 1
 
 Clock dimensions have the following structure:
 
-```
+```json
 {
   "type": "clock",
   "name": "<dimension name>"
 }
 ```
 
-#### `enum`
+### `enum`
 
 Enum field generators specify the set of all possible values, as well as a distribution for selecting from the set.
 
 Enums have the following format:
 
-```
+```json
 {
   "type": "enum",
   "name": "<dimension name>",
@@ -62,22 +64,22 @@ Enums have the following format:
 
 Where:
 
-- <i>name</i> is the name of the dimension
-- <i>values</i> is a list of the values
-- <i>cardinality_distribution</i> informs the cardinality selection of the generated values
-- <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
-- <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
+* __name__ is the name of the dimension
+* __values__ is a list of the values
+* __cardinality_distribution__ informs the cardinality selection of the generated values
+* __percent_missing__ a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
+* __percent_nulls__ a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 
-#### `object`
+### `object`
 
 Object field generators create nested data.
 
-- <i>name</i> is the name of the object
-- <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
-- <i>cardinality_distribution</i> skews the cardinality selection of the generated objects (optional - omit for unconstrained cardinality)
-- <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
-- <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
-- <i>dimensions</i> is a list of nested dimensions
+* __name__ is the name of the object
+* __cardinality__ indicates the number of unique values for this dimension (zero for unconstrained cardinality)
+* __cardinality_distribution__ skews the cardinality selection of the generated objects (optional - omit for unconstrained cardinality)
+* __percent_missing__ a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
+* __percent_nulls__ a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
+* __dimensions__ is a list of nested dimensions
 
 ```json
 {
@@ -203,24 +205,24 @@ Object field generators create nested data.
 }
 ```
 
-#### `list`
+### `list`
 
 list field generators create lists of dimesions.
 
-- <i>name</i> is the name of the object
-- <i>length_distribution</i> describes the length of the resulting list as a distribution
-- <i>selection_distribution</i> informs the generator which elements to select for the list from the elements list
-- <i>elements</i> is a list of possible dimensions the generator may use in the generated list
-- <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
-- <i>cardinality_distribution</i> skews the cardinality selection of the generated lists (optional - omit for unconstrained cardinality)
-- <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
-- <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
+* __name__ is the name of the object
+* __length_distribution__ describes the length of the resulting list as a distribution
+* __selection_distribution__ informs the generator which elements to select for the list from the elements list
+* __elements__ is a list of possible dimensions the generator may use in the generated list
+* __cardinality__ indicates the number of unique values for this dimension (zero for unconstrained cardinality)
+* __cardinality_distribution__ skews the cardinality selection of the generated lists (optional - omit for unconstrained cardinality)
+* __percent_missing__ a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
+* __percent_nulls__ a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 
-The data generator creates a list that is the length of a sample from the <i>length_distribution</i>.
+The data generator creates a list that is the length of a sample from the __length_distribution__.
 
-The types of the elements of the list are selected from the <i>elements</i> list by using an index into the elements list that is determined by sampling from the <i>selection_distribution</i>.
+The types of the elements of the list are selected from the __elements__ list by using an index into the elements list that is determined by sampling from the __selection_distribution__.
 
-The other field values (e.g., <i>cardinality</i>, <i>percent_nulls</i>, etc.) operate like the other types, but in this case apply to the entire list.
+The other field values (e.g., __cardinality__, __percent_nulls__, etc.) operate like the other types, but in this case apply to the entire list.
 
 ```json
 {

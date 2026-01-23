@@ -18,9 +18,9 @@ python generator.py \
 ```
 
 | Argument | Description |
-|---|---|
-| [`-c`](#generator-specification) | The name of the file in the `config_file` folder containing the [generator specification](#generator-specification).|
-| [`-t`](#target-specification) | The name of the file that contains the [target definition](#target.md). This over-rides any `target` specified in the generator specification. If neither is provided, stdout will be used. |
+| --- | --- |
+| [`-c`](#generator-specification) | The name of the file in the `config_file` folder containing the [generator specification](#generator-specification). |
+| [`-t`](#target-specification) | The name of the file that contains the [target definition](docs/tarspec.md). This over-rides any `target` specified in the generator specification. If neither is provided, stdout will be used. |
 | [`-f`](#record-format) | A file that contains a pattern that can be used to format the output records. If not specified, JSON is used. |
 | [`-s`](#simulated-clock) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
@@ -56,6 +56,7 @@ It uses a single worker to generate 10 records, and it outputs the results to th
 For more examples and test cases, see [`test.sh`](./test.sh).
 
 For additional configurations, see the following directories:
+
 * `./conf/gen`: Type of the generated data, such as Apache logs
 * `./conf/tar`: Format for target output, such as `file` or `stdout`
 * `./conf/form`: Format of the generated data, such as TSV
@@ -96,13 +97,13 @@ This allows for formats other than JSON to be generated, such as CSV or TSV.
 
 When the key relates to a dimension containing a datetime-type, like `clock` or `timestamp`, you can apply an strftime pattern by using a `|` symbol.  For example, the following will apply an "access_combined"-style date and time format to the `time` dimension:
 
-```
+```text
 [{{time|%d/%b/%Y:%H:%M:%S %z}}]
 ```
 
 This becomes:
 
-```
+```text
 [23/Sep/2023:14:30:00 +0000]
 ```
 

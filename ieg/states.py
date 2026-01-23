@@ -25,7 +25,7 @@ class Transition:
 class State:
     # Represents a state in the state machine.
     # Defines dimensions, delay, transitions, and variables for the state.
-    def __init__(self, name, dimensions, delay, transitions, variables):
+    def __init__(self, name, dimensions, delay, transitions, variables, variables_on_entry=None):
         self.name = name
         self.dimensions = dimensions
         self.delay = delay
@@ -33,6 +33,7 @@ class State:
         self.transistion_states = [t.next_state for t in transitions]
         self.transistion_probabilities = [t.probability for t in transitions]
         self.variables = variables
+        self.variables_on_entry = variables_on_entry if variables_on_entry is not None else []
 
     def __str__(self):
         return 'State(name='+self.name+', dimensions='+str([str(d) for d in self.dimensions])+', delay='+str(self.delay)+', transistion_states='+str(self.transistion_states)+', transistion_probabilities='+str(self.transistion_probabilities)+'variables='+str([str(v) for v in self.variables])+')'

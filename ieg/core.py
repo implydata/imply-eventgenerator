@@ -289,15 +289,24 @@ class DataDriver:
         self.states = {}
         for state in state_desc:
             name = state['name']
-            emitter_name = state['emitter']
+            # Make emitter optional - handle both missing field and explicit null
+            emitter_name = state.get('emitter')  # Returns None if not present
+            if emitter_name is not None:
+                dimensions = self.emitters[emitter_name]
+            else:
+                dimensions = None  # No emitter = no record emission
             if 'variables' not in state.keys():
                 variables = []
             else:
                 variables = get_variables(state['variables'], self.global_clock)
-            dimensions = self.emitters[emitter_name]
+            # Parse variables_on_entry (captured before delay)
+            if 'variables_on_entry' not in state.keys():
+                variables_on_entry = []
+            else:
+                variables_on_entry = get_variables(state['variables_on_entry'], self.global_clock)
             delay = parse_distribution(state['delay'])
             transitions = Transition.parse_transitions(state['transitions'])
-            this_state = State(name, dimensions, delay, transitions, variables)
+            this_state = State(name, dimensions, delay, transitions, variables, variables_on_entry)
             self.states[name] = this_state
             if self.initial_state is None:
                 self.initial_state = this_state
@@ -390,17 +399,23 @@ class DataDriver:
         while True:
             if current_state is None:
                 raise RuntimeError("Unexpected error: current state of the state machine is None.")
-            self.set_variable_values(variables, current_state.variables)
-            record = self.create_record(current_state.dimensions, variables)
-            formatted_record = self.render_record(record)  # Format the record here
-            self.target_printer.print(formatted_record)  # Pass the formatted record to the target printer
-            self.sim_control.inc_rec_count()
-            if self.sim_control.is_done():
-                break
+            # Process variables_on_entry BEFORE delay
+            self.set_variable_values(variables, current_state.variables_on_entry)
+            # Process delay
             delta = float(current_state.delay.get_sample())
             #self.status_msg=f"Thread sleeping {delta} seconds. Sim Clock: {self.global_clock.now()}"
             self.global_clock.sleep(delta)
             self.status_msg=f"Running, Sim Clock: {self.global_clock.now()}"
+            # Process regular variables AFTER delay
+            self.set_variable_values(variables, current_state.variables)
+            # Only emit record if state has dimensions (emitter was specified)
+            if current_state.dimensions is not None:
+                record = self.create_record(current_state.dimensions, variables)
+                formatted_record = self.render_record(record)  # Format the record here
+                self.target_printer.print(formatted_record)  # Pass the formatted record to the target printer
+                self.sim_control.inc_rec_count()
+            if self.sim_control.is_done():
+                break
             if self.sim_control.is_done():
                 break
             next_state_name = current_state.get_next_state_name()

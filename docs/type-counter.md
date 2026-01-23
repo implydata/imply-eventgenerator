@@ -1,13 +1,13 @@
-## Synthetic counters
+# Synthetic counters
 
 When a [field generator](./fieldgen.md) type is `counter`, an integer is created that increments with every generation.
 
 Counters are not incremented when missing or null.
 
 | Field | Description | Possible values | Required? | Default |
-|---|---|---|---|---|
-| `type` | The data type for the dimension. | `float` | Yes ||
-| `name` | The unique name for the dimension. | String | Yes ||
+| --- | --- | --- | --- | --- |
+| `type` | The data type for the dimension. | `float` | Yes | |
+| `name` | The unique name for the dimension. | String | Yes | |
 | `percent_missing` | The stochastic frequency for omitting this dimension from records (inclusive). | Integer between 0 and 100. | No. | 0 |
 | `percent_nulls` | The stochastic frequency (inclusive) for generating null values. | Integer between 0 and 100. | No. | 0 |
 | `start` | The starting value for the counter. | Integer | No. | 0 |
@@ -98,4 +98,4 @@ This is an example of the output using one worker.
 {"time":"2025-02-18T10:04:13.888","default_counter1":"6","start_counter1":"106","increment_counter1":"60000","both_counter1":"550"}
 {"time":"2025-02-18T10:04:13.990","default_counter1":"7","start_counter1":"107","increment_counter1":"70000","both_counter1":"600"}
 {"time":"2025-02-18T10:04:14.095","default_counter1":"8","start_counter1":"108","increment_counter1":"80000","both_counter1":"650"}
-````
+```

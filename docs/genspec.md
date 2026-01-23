@@ -1,11 +1,11 @@
-## Generator specifications
+# Generator specifications
 
 Control the behavior of the data generator using a JSON configuration object known as the "Generator Specification". See the `config_file` folder for [examples](../config_file/examples).
 
-Workers traverse a number of [`states`](./genspec-states.md) and generate events as they go using [`emitters`](./genspec-emitters.md). Workers are created periodically, according to the [`interarrival`](./genspec-interarrival.md) time.
+Workers traverse a number of [`states`](./genspec-states.md) and generate events as they go using [`emitters`](./genspec-emitters.md). States may optionally omit an emitter to create non-emitting states useful for routing, delays, or variable setup. Workers are created periodically, according to the [`interarrival`](./genspec-interarrival.md) time.
 
 | Object | Description | Options | Required? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | [`states`](./genspec-states.md) | A list of states that will be used to generate events. | See [`states`](./genspec-states.md) | Yes |
 | [`emitters`](./genspec-emitters.md) | A list of emitters. | See [`emitters`](./genspec-emitters.md) | Yes |
 | [`target`](./tarspec.md) | A target specification. | See [`targets`](./tarspec.md) | No |
@@ -98,3 +98,10 @@ When run with the `-m 3`, 3 workers are spawned. Since `interarrival` is a `cons
 {"time":"2025-02-18T09:36:01.640","enum_dim":"A"}
 {"time":"2025-02-18T09:36:04.635","enum_dim":"A"}
 ```
+
+## See Also
+
+- [States Documentation](genspec-states.md) - Detailed state configuration guide
+- [Emitters Documentation](genspec-emitters.md) - Emitter configuration reference
+- [Common Patterns](patterns.md) - State machine patterns and techniques for building realistic configurations
+- [Best Practices](best-practices.md) - Configuration guidelines, naming conventions, and development workflow
