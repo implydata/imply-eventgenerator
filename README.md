@@ -19,7 +19,7 @@ pip install -r requirements.txt
 Run the following example to test the generator script:
 
 ```sh
-python3 generator.py -c conf/gen/apache_access_combined.json -m 1 -n 10 -t conf/tar/stdout.json
+python generator.py -c conf/gen/apache_access_combined.json -m 1 -n 10 -t conf/tar/stdout.json
 ```
 
 This command generates logs in the format of [Apache access combined logs](https://httpd.apache.org/docs/2.4/logs.html).
@@ -34,7 +34,7 @@ For additional configurations, see the following directories:
 
 ## Command-line reference
 
-Run the `generator.py` script from the command line to create synthetic data in JSON format.
+Run the `generator.py` script from the command line with Python.
 
 ```bash
 python generator.py \
