@@ -32,7 +32,7 @@ For additional configurations, see the following directories:
 * `./conf/tar`: [Target specifications](#target-specification), such as `file` or `stdout`
 * `./conf/form`: [Record formats](#record-format), such as TSV
 
-## Run from the command line
+## Command-line reference
 
 Run the `generator.py` script from the command line to create synthetic data in JSON format.
 
