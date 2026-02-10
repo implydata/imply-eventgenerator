@@ -1,5 +1,15 @@
 # AWS VPC Flow Logs Generator
 
+## Quick Start
+
+```bash
+# JSON output
+python3 generator.py -c conf/gen/vpc_flow_logs.json -m 10 -n 100 -t conf/tar/stdout.json
+
+# AWS VPC Flow Log format (space-separated)
+python3 generator.py -c conf/gen/vpc_flow_logs.json -f conf/form/vpc_flow_logs.txt -m 10 -n 100 -t conf/tar/stdout.json
+```
+
 ## Overview
 
 This configuration generates realistic AWS VPC Flow Log records that simulate various network traffic patterns commonly seen in production VPC environments. The generator models connection lifecycles with proper state machines, realistic IP distributions, and appropriate packet/byte counts.

@@ -1,5 +1,15 @@
 # Apache Access Combined Log Generator
 
+## Quick Start
+
+```bash
+# JSON output
+python generator.py -c conf/gen/apache_access_combined.json -m 5 -n 100 -t conf/tar/stdout.json
+
+# TSV output
+python generator.py -c conf/gen/apache_access_combined.json -f conf/form/tsv_apache_access_combined.txt -m 5 -n 100 -t conf/tar/stdout.json
+```
+
 ## Overview
 
 This configuration generates realistic [Apache access combined log](https://httpd.apache.org/docs/2.4/logs.html) records that simulate user sessions on a lighting e-commerce website. The generator models typical browsing behavior including product discovery, category browsing, cart management, and checkout, along with a small proportion of malicious traffic from automated attack tools.

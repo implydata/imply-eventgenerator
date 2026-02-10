@@ -1,5 +1,15 @@
 # Clickstream Generator
 
+## Quick Start
+
+```bash
+# JSON output
+python generator.py -c conf/gen/clickstream.json -m 5 -n 100 -t conf/tar/stdout.json
+
+# TSV output
+python generator.py -c conf/gen/clickstream.json -f conf/form/clickstream_tsv.txt -m 5 -n 100 -t conf/tar/stdout.json
+```
+
 ## Overview
 
 This configuration generates realistic e-commerce clickstream events that simulate user sessions on a novelty gift shop. Each worker models a single user session, from login through product search and browsing to purchase or cart abandonment.

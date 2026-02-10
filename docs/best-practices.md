@@ -232,6 +232,10 @@ For each generator configuration, create a companion README named `<config>_READ
 ```text
 # <Config Name> Generator
 
+## Quick Start
+One-liner commands to get output immediately — one for JSON
+(gen only) and one with a format file (gen + form), if available.
+
 ## Overview
 What real-world scenario this config simulates.
 

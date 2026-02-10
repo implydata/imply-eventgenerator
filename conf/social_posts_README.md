@@ -1,5 +1,12 @@
 # Social Posts Generator
 
+## Quick Start
+
+```bash
+# JSON output
+python generator.py -c conf/gen/social_posts.json -m 5 -n 100 -t conf/tar/stdout.json
+```
+
 ## Overview
 
 This configuration generates synthetic social media post data, simulating a feed of user-generated content with engagement metrics. It uses a simple single-state design, making it a good starting point for understanding the generator or for quickly producing tabular data.
