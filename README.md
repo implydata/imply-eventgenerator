@@ -34,7 +34,7 @@ For additional configurations, see the following directories:
 
 ## Command-line reference
 
-Run the `generator.py` script from the command line to create synthetic data in JSON format.
+Run the `generator.py` script from the command line with Python.
 
 ```bash
 python generator.py \
