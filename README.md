@@ -31,15 +31,11 @@ python generator.py \
 
 The data generator requires Python 3.
 
-```bash
-apt-get install python3
-apt-get update
-apt-get install -y python3-pip
-```
-
-Install dependencies using the `requirements.txt` file:
+Create and activate a local virtual environment, then install dependencies:
 
 ```bash
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
