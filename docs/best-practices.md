@@ -53,22 +53,6 @@ jq '.bytes' test.json | awk '{sum+=$1; count++} END {print sum/count}'
 jq -r '[.start, .end, (.end - .start)] | @csv' test.json | head -20
 ```
 
-### Version Control
-
-**Commit both generator and format files together:**
-
-```bash
-git add conf/gen/myconfig.json
-git add conf/form/myconfig.txt
-git commit -m "Add synthetic data config for MyService logs"
-```
-
-**Include README files for complex configurations:**
-
-```bash
-git add conf/gen/myconfig_README.md
-```
-
 ## Naming Conventions
 
 ### Variables
@@ -243,31 +227,30 @@ Add comments to explain non-obvious logic:
 
 ### README Files
 
-For complex configurations, create a README:
+For each generator configuration, create a companion README named `<config>_README.md` in the `conf/` directory. This allows the README to cover the generator spec, format files, and target files together. Use the following standard structure:
 
-**Example: `conf/gen/vpc_flow_logs_README.md`**
-
-```markdown
-# VPC Flow Logs Synthetic Data Generator
+```text
+# <Config Name> Generator
 
 ## Overview
-Generates realistic AWS VPC Flow Log records with multiple traffic patterns.
+What real-world scenario this config simulates.
 
-## Traffic Patterns
-- Web traffic (35%): HTTPS to port 443
-- API traffic (25%): REST APIs to port 8080
-- Database traffic (15%): PostgreSQL to port 5432
-...
+## Output fields
+Table of dimensions and what they represent.
 
-## Key Features
-- TCP connection lifecycle (SYN, data, FIN/RST)
-- Realistic packet/byte ratios
-- Multi-ENI load balancing
-...
+## State machine
+The flow of states and transitions, ideally with a simple
+text diagram showing the path a worker takes.
 
-## Usage
-```bash
-python3 generator.py -c vpc_flow_logs.json -n 10000 -s "2024-01-01T00:00:00"
+## Usage examples
+Copy-paste commands to run the config with common options.
+
+## Use cases
+What this data is good for (testing, demos, analytics, etc.).
+
+## Additional information
+Any domain-specific content such as query examples, detection
+scenarios, or detailed architecture notes.
 ```
 
 ## When to Use Optional Emitters
