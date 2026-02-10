@@ -2,31 +2,6 @@
 
 A highly customizable event data generator, created by the team at Imply.
 
-## Run from the command line
-
-Run the `generator.py` script from the command line to create synthetic data in JSON format.
-
-```bash
-python generator.py \
-        -c <generator specification file> \
-        -t <target specification file> \
-        -f <pattern specification file> \
-        -s <start timestamp> \
-        -m <generator workers limit> \
-        -n <record limit> \
-        -r <duration limit in ISO8610 format>
-```
-
-| Argument | Description |
-| --- | --- |
-| [`-c`](#generator-specification) | The name of the file in the `config_file` folder containing the [generator specification](#generator-specification). |
-| [`-t`](#target-specification) | The name of the file that contains the [target definition](docs/tarspec.md). This over-rides any `target` specified in the generator specification. If neither is provided, stdout will be used. |
-| [`-f`](#record-format) | A file that contains a pattern that can be used to format the output records. If not specified, JSON is used. |
-| [`-s`](#simulated-clock) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
-| [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
-| [`-n`](#generation-limit) | The number of records to generate. Must not be used in combination with `-r`. |
-| [`-r`](#generation-limit) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
-
 ## Prerequisites
 
 The data generator requires Python 3.
@@ -57,6 +32,33 @@ For additional configurations, see the following directories:
 * `./conf/tar`: [Target specifications](#target-specification), such as `file` or `stdout`
 * `./conf/form`: [Record formats](#record-format), such as TSV
 
+## Run from the command line
+
+Run the `generator.py` script from the command line to create synthetic data in JSON format.
+
+```bash
+python generator.py \
+        -c <generator specification file> \
+        -t <target specification file> \
+        -f <pattern specification file> \
+        -s <start timestamp> \
+        -m <generator workers limit> \
+        -n <record limit> \
+        -r <duration limit in ISO8610 format>
+```
+
+| Argument | Description |
+| --- | --- |
+| [`-c`](#generator-specification) | The name of the file in the `config_file` folder containing the [generator specification](#generator-specification). |
+| [`-t`](#target-specification) | The name of the file that contains the [target definition](docs/tarspec.md). This over-rides any `target` specified in the generator specification. If neither is provided, stdout will be used. |
+| [`-f`](#record-format) | A file that contains a pattern that can be used to format the output records. If not specified, JSON is used. |
+| [`-s`](#simulated-clock) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
+| [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
+| [`-n`](#generation-limit) | The number of records to generate. Must not be used in combination with `-r`. |
+| [`-r`](#generation-limit) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
+
+You can also run the generator as an HTTP service. See the [server API reference](docs/server.md) for details.
+
 ## Generator specification
 
 The [generator specification](docs/genspec.md) is a JSON document that sets how the data generator will execute. When the `-f` option is used, the generation specification will be read from a file, otherwise the generator specification will be read from `stdin`.
@@ -75,15 +77,19 @@ A generator specification follows this structure:
 The sections of the JSON document concern what each data generator worker will do.
 
 * A list of [`states`](docs/genspec-states.md) that a worker can transition through.
-* A list of [`emitters`](docs/genspec-emitters.md), listing the dimensions that will be output by a worker and what data they will contain.
+* A list of [`emitters`](docs/genspec-emitters.md), listing the dimensions that will be output by a worker and what data they will contain. Each dimension uses a [field generator](docs/fieldgen.md) to produce values, controlled by [distributions](docs/distributions.md).
 * A [`target`](docs/tarspec.md) definition (optional), stating where records should be written. When not provided inside a generator specification, a separate JSON file can be specified using the `-o` argument. This allows for the same generator to be used with different targets.
 * The `interarrival` time, controlling how often a new worker is spawned. The default maximum number of workers is 100, unless the `-m` argument is used.
+
+For full details, see the [generator specification reference](docs/genspec.md). See also [common patterns](docs/patterns.md) and [best practices](docs/best-practices.md) for building configurations.
 
 ## Target specification
 
 Set the output of the data generator by setting the `target` object.
 
-Use the _-o_ option to designate a target definition file name. The [target](docs/target.md) defines where the generated messages are sent.
+Use the _-o_ option to designate a target definition file name.
+
+For full details, see the [target specification reference](docs/tarspec.md).
 
 ## Record format
 
