@@ -53,9 +53,9 @@ For more examples and test cases, see [`test.sh`](./test.sh).
 
 For additional configurations, see the following directories:
 
-* `./conf/gen`: Type of the generated data, such as Apache logs
-* `./conf/tar`: Format for target output, such as `file` or `stdout`
-* `./conf/form`: Format of the generated data, such as TSV
+* `./conf/gen`: [Generator specifications](#generator-specification), such as Apache logs
+* `./conf/tar`: [Target specifications](#target-specification), such as `file` or `stdout`
+* `./conf/form`: [Record formats](#record-format), such as TSV
 
 ## Generator specification
 
