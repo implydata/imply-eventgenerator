@@ -30,7 +30,7 @@ For additional configurations, see the following directories:
 
 * `./conf/gen`: [Generator specifications](#generator-specification), such as Apache logs
 * `./conf/tar`: [Target specifications](#target-specification), such as `file` or `stdout`
-* `./conf/form`: [Record formats](#record-format), such as TSV
+* `./conf/form`: [Record formats](#output-format), such as TSV
 
 ## Command-line reference
 
@@ -51,15 +51,15 @@ python generator.py \
 | --- | --- |
 | [`-c`](#generator-specification) | The name of the file in the `config_file` folder containing the [generator specification](#generator-specification). |
 | [`-t`](#target-specification) | The name of the file that contains the [target definition](docs/tarspec.md). This over-rides any `target` specified in the generator specification. If neither is provided, stdout will be used. |
-| [`-f`](#record-format) | A file that contains a pattern that can be used to format the output records. If not specified, JSON is used. |
-| [`-s`](#simulated-clock) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
+| [`-f`](#output-format) | A file that contains a pattern that can be used to format the output records. If not specified, JSON is used. |
+| [`-s`](#simulated-time) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
-| [`-n`](#generation-limit) | The number of records to generate. Must not be used in combination with `-r`. |
-| [`-r`](#generation-limit) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
+| [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
+| [`-r`](#generation-limits) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
 
 You can also run the generator as an HTTP service. See the [server API reference](docs/server.md) for details.
 
-## Generator specification
+### Generator specification
 
 The [generator specification](docs/genspec.md) is a JSON document that sets how the data generator will execute. When the `-f` option is used, the generation specification will be read from a file, otherwise the generator specification will be read from `stdin`.
 
@@ -83,7 +83,7 @@ The sections of the JSON document concern what each data generator worker will d
 
 For full details, see the [generator specification reference](docs/genspec.md). See also [common patterns](docs/patterns.md) and [best practices](docs/best-practices.md) for building configurations.
 
-## Target specification
+### Target specification
 
 Set the output of the data generator by setting the `target` object.
 
@@ -91,7 +91,7 @@ Use the _-o_ option to designate a target definition file name.
 
 For full details, see the [target specification reference](docs/tarspec.md).
 
-## Record format
+### Output format
 
 A text file with key names in braces (`{{` and `}}`) where emitter dimensions will be inserted.
 
@@ -109,11 +109,11 @@ This becomes:
 [23/Sep/2023:14:30:00 +0000]
 ```
 
-## Generation limit
+### Generation limits
 
 Use either `-n` or `-r` to limit how long generation executes for. If neither option is present, the script will run indefinitely.
 
-### Limit generation to a length of time
+#### Limit generation to a length of time
 
 Time durations may be specified in ISO8601 format.
 
@@ -135,7 +135,7 @@ Or, specify 1 hour as follows:
 python generator.py -f generator_spec.json -o target_spec.json -r PT1H
 ```
 
-### Limit generation to a number of records
+#### Limit generation to a number of records
 
 Use `-n` to limit generation to a number of records.
 
@@ -143,7 +143,7 @@ Use `-n` to limit generation to a number of records.
 python generator.py -f generator_spec.json -o target_spec.json -n 1000
 ```
 
-## Simulated clock
+### Simulated time
 
 Specify a start time in ISO format to instruct the driver to use simulated time instead of the system clock time (the default).
 
