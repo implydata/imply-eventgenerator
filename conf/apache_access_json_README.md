@@ -53,7 +53,7 @@ The HEC format wraps each event in a [Splunk HEC envelope](https://docs.splunk.c
 | --- | --- |
 | `source` | `my_host/httpd/access_json.log` |
 | `sourcetype` | `apache:access:json` |
-| `index` | `%IEG_INDEX%` (set via environment variable) |
+| `index` | `%TARGET_INDEX%` (set via environment variable) |
 | `host` | Server IP from generated data |
 | `time` | Epoch seconds (unquoted number) |
 
