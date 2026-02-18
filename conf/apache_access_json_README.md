@@ -127,6 +127,17 @@ python generator.py \
   --seed 42
 ```
 
+Generate deterministic data (same seed = same output):
+
+```bash
+python generator.py \
+  -c conf/gen/apache_access_json.json \
+  -f conf/form/apache_access_json.txt \
+  -s "2026-02-12T00:00:00" \
+  -r P1D \
+  --seed 42
+```
+
 Generate without a format file (default JSON with ISO timestamps):
 
 ```bash

@@ -61,6 +61,13 @@ def main(argv=None):
         action='store_true',
         default=False,
         help='Enable debug logging (written to stderr)'
+    )    
+    parser.add_argument(    
+        '--seed',
+        dest='seed',
+        type=int,
+        default=None,
+        help='Random seed for deterministic data generation. Use with -s (simulated time) for fully reproducible output.'
     )
     
     parser.add_argument(
@@ -76,6 +83,7 @@ def main(argv=None):
     # Configure logging level based on --debug flag
     if args.debug:
         logging.getLogger('ieg').setLevel(logging.DEBUG)
+    
     # Seed random number generators for deterministic output
     if args.seed is not None:
         random.seed(args.seed)
