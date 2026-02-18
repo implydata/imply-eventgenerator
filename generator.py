@@ -29,7 +29,7 @@ def main(argv=None):
         stream=sys.stderr
     )
     logger.setLevel(logging.INFO)
-    logger.info("Starting synthetic event data generator")
+    
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Generates synthetic event data.')
     parser.add_argument('-c', dest='config_file', required=True, help='Generator configuration file')
