@@ -2,9 +2,11 @@ import argparse
 import json
 import logging
 import os
+import random
 import sys
 from datetime import datetime
 import dateutil.parser
+import numpy as np
 from ieg.core import DataDriver
 
 logger = logging.getLogger('ieg')
@@ -60,12 +62,24 @@ def main(argv=None):
         default=False,
         help='Enable debug logging (written to stderr)'
     )
+    
+    parser.add_argument(
+      '--seed',
+        dest='seed',
+        type=int,
+        default=None,
+        help='Random seed for deterministic data generation. Use with -s (simulated time) for fully reproducible output.'
+    )
 
     args = parser.parse_args(argv)
 
     # Configure logging level based on --debug flag
     if args.debug:
         logging.getLogger('ieg').setLevel(logging.DEBUG)
+    # Seed random number generators for deterministic output
+    if args.seed is not None:
+        random.seed(args.seed)
+        np.random.seed(args.seed)
 
     # Determine start_time and time_type
     if args.start_time:
@@ -128,6 +142,7 @@ def main(argv=None):
             max_entities=max_entities,
             record_format=record_format
         )
+        print("Starting synthetic event data generator at ", datetime.now().isoformat())
         driver.simulate()
 
     except FileNotFoundError as e:

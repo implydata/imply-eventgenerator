@@ -93,6 +93,17 @@ python3 generator.py \
   -t conf/tar/file.json
 ```
 
+Generate deterministic data (same seed = same output):
+
+```bash
+python3 generator.py \
+  -c conf/gen/vpc_flow_logs.json \
+  -f conf/form/vpc_flow_logs.txt \
+  -s "2026-02-12T00:00:00" \
+  -r P1D \
+  --seed 42
+```
+
 Stream to Kafka:
 
 ```bash

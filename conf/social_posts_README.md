@@ -46,6 +46,16 @@ Generate a batch of historical data:
 ```bash
 python generator.py -c conf/gen/social_posts.json -m 10 -n 10000 -s "2024-01-01T00:00:00"```
 
+Generate deterministic data (same seed = same output):
+
+```bash
+python generator.py \
+  -c conf/gen/social_posts.json \
+  -s "2026-02-12T00:00:00" \
+  -r P1D \
+  --seed 42
+```
+
 ## Use cases
 
 - **Getting started**: Simple config to understand the generator basics

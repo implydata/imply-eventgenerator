@@ -196,6 +196,9 @@ class DataDriver:
 
         if self.record_format:
             self.record_format = render_env_variables(record_format)
+            unresolved = re.findall(r"%(\w+)%", self.record_format)
+            if unresolved:
+                raise ValueError(f"Record format file contains unresolved environment variables: {', '.join(unresolved)}")
 
         #
         # Set up the global clock

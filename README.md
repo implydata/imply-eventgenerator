@@ -47,6 +47,7 @@ python generator.py \
         -n <record limit> \
         -r <duration limit in ISO8610 format> \
         --debug
+        --seed <integer>
 ```
 
 | Argument | Description |
@@ -59,6 +60,7 @@ python generator.py \
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
 | [`-r`](#generation-limits) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
 | `--debug` | Enable debug logging. Outputs detailed thread scheduling and event queue information to stderr. |
+| [`--seed`](docs/deterministic.md) | An integer seed for deterministic data generation. Use with `-s` for fully reproducible output. |
 
 You can also run the generator as an HTTP service. See the [server API reference](docs/server.md) for details.
 
@@ -96,21 +98,9 @@ For full details, see the [target specification reference](docs/tarspec.md).
 
 ### Output format
 
-A text file with key names in braces (`{{` and `}}`) where emitter dimensions will be inserted.
+A text file with key names in braces (`{{` and `}}`) where emitter dimensions will be inserted. This allows for formats other than JSON to be generated, such as CSV or TSV. Format files also support datetime formatting and environment variable substitution.
 
-This allows for formats other than JSON to be generated, such as CSV or TSV.
-
-When the key relates to a dimension containing a datetime-type, like `clock` or `timestamp`, you can apply an strftime pattern by using a `|` symbol.  For example, the following will apply an "access_combined"-style date and time format to the `time` dimension:
-
-```text
-[{{time|%d/%b/%Y:%H:%M:%S %z}}]
-```
-
-This becomes:
-
-```text
-[23/Sep/2023:14:30:00 +0000]
-```
+For full details, see the [output format reference](docs/format.md).
 
 ### Generation limits
 
