@@ -1,8 +1,10 @@
 # IEG classes and functions.
 
 import json
+import logging
 import re
 import os
+import sys
 
 from ieg.distributions import *
 from ieg.targets import *
@@ -19,6 +21,8 @@ from datetime import datetime, timedelta
 import json
 import threading
 import time
+
+logger = logging.getLogger('ieg')
 
 # Update TEMPLATE_REGEX to capture optional strftime format
 TEMPLATE_REGEX = re.compile(r"{{\s*([^|}]+)(?:\|([^}]+))?\s*}}")
@@ -54,11 +58,11 @@ class FutureEvent:
     def __str__(self):
         return 'FutureEvent('+self.name+', '+str(self.t)+')'
     def pause(self):
-        #print(self.name+" pausing")
+        logger.debug("%s pausing", self.name)
         self.event.clear()
         self.event.wait()
     def resume(self):
-        #print(self.name+" resuming")
+        logger.debug("%s resuming", self.name)
         self.event.set()
 
 class Clock:
@@ -112,7 +116,7 @@ class Clock:
     def release_all(self):
         if self.time_type != 'REAL':
             self.lock.acquire()
-            #print('release_all - active_threads = '+str(self.active_threads))
+            logger.debug("release_all - active_threads = %d", self.active_threads)
             for e in self.future_events:
                 e.resume()
             self.lock.release()
@@ -120,11 +124,11 @@ class Clock:
     def add_event(self, future_t):
         this_event = FutureEvent(future_t)
         self.future_events.add(this_event)
-        #print('add_event (after) '+threading.current_thread().name+' - '+str(self))
+        logger.debug("add_event (after) %s - %s", threading.current_thread().name, self)
         return this_event
 
     def remove_event(self):
-        #print('remove_event (before) '+threading.current_thread().name+' - '+str(self))
+        logger.debug("remove_event (before) %s - %s", threading.current_thread().name, self)
         next_event = self.future_events[0]
         self.future_events.remove(next_event)
         return next_event
@@ -152,20 +156,20 @@ class Clock:
             return
         if self.time_type != 'REAL': # Simulated time
             self.lock.acquire()
-            #print(threading.current_thread().name+" begin sleep "+str(self.sim_time)+" + "+str(delta))
+            logger.debug("%s begin sleep %s + %s", threading.current_thread().name, self.sim_time, delta)
             this_event = self.add_event(self.sim_time + timedelta(seconds=delta))
-            #print(threading.current_thread().name+" active threads "+str(self.active_threads))
+            logger.debug("%s active threads %d", threading.current_thread().name, self.active_threads)
             if self.active_threads == 1:
                 next_event = self.remove_event()
                 if str(this_event) != str(next_event):
                     self.resume(next_event)
-                    #print(threading.current_thread().name+" start pause if")
+                    logger.debug("%s start pause if", threading.current_thread().name)
                     self.pause(this_event)
-                    #print(threading.current_thread().name+" end pause if")
+                    logger.debug("%s end pause if", threading.current_thread().name)
             else:
-                #print(threading.current_thread().name+" start pause else")
+                logger.debug("%s start pause else", threading.current_thread().name)
                 self.pause(this_event)
-                #print(threading.current_thread().name+" end pause else")
+                logger.debug("%s end pause else", threading.current_thread().name)
             self.sim_time = this_event.get_time()
             self.lock.release()
             # if new time is past current time and the simulation is SIM_REAL, switch to REAL and continue in real-time
@@ -205,8 +209,15 @@ class DataDriver:
         #
 
         self.target = target
-        if target['type'].lower() == 'stdout':
-            self.target_printer = TargetStdout()
+        if target is None:
+            # Default: write to stdout
+            stdout_lock = threading.Lock()
+            class _StdoutPrinter:
+                def print(self, record):
+                    with stdout_lock:
+                        sys.stdout.write(str(record) + '\n')
+                        sys.stdout.flush()
+            self.target_printer = _StdoutPrinter()
         elif target['type'].lower() == 'file':
             path = target['path']
             if path is None:
@@ -392,7 +403,7 @@ class DataDriver:
     def worker_thread(self):
         # Processes the state machine using worker threads.
         # Generates records and sends them to the output target.
-        #print('Thread '+threading.current_thread().name+' starting...')
+        logger.debug("Thread %s starting...", threading.current_thread().name)
         self.global_clock.activate_thread()
         current_state = self.initial_state
         variables = {}
@@ -423,7 +434,7 @@ class DataDriver:
                 break
             current_state = self.states.get(next_state_name)
 
-        #print('Thread '+threading.current_thread().name+' done!')
+        logger.debug("Thread %s done!", threading.current_thread().name)
         self.global_clock.end_thread()
         self.sim_control.remove_entity()
 
