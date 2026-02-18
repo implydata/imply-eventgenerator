@@ -81,12 +81,11 @@ Both states use the `click` emitter, which contains:
       ]
     }
   ],
-  "target": { "type": "stdout"},
   "interarrival": { "type": "constant", "value": 0.2 }
 }
 ```
 
-Since the JSON above contains an inline `target`, you can save the JSON above as `example.json` in the `config_file` folder and run it with the following command.
+Save the JSON above as `example.json` in the `config_file` folder and run it with the following command.
 
 ```bash
 python3 src/generator.py -f example.json -n 15 -m 2 -s "2009-05-21:08:00:10"

@@ -19,17 +19,18 @@ pip install -r requirements.txt
 Run the following example to test the generator script:
 
 ```sh
-python generator.py -c conf/gen/apache_access_combined.json -m 1 -n 10 -t conf/tar/stdout.json
+python generator.py -c conf/gen/apache_access_combined.json -m 1 -n 10
 ```
 
 This command generates logs in the format of [Apache access combined logs](https://httpd.apache.org/docs/2.4/logs.html).
-It uses a single worker to generate 10 records, and it outputs the results to the standard output stream, such as the terminal window.
+It uses a single worker to generate 10 records, and it outputs the results to the standard output stream, such as the terminal window. Status messages are written to stderr, so stdout contains only data and can be piped directly.
+
 For more examples and test cases, see [`test.sh`](./test.sh).
 
 For additional configurations, see the following directories:
 
 * `./conf/gen`: [Generator specifications](#generator-specification), such as Apache logs
-* `./conf/tar`: [Target specifications](#target-specification), such as `file` or `stdout`
+* `./conf/tar`: [Target specifications](#target-specification), such as Kafka or file
 * `./conf/form`: [Record formats](#output-format), such as TSV
 
 ## Command-line reference
@@ -44,7 +45,8 @@ python generator.py \
         -s <start timestamp> \
         -m <generator workers limit> \
         -n <record limit> \
-        -r <duration limit in ISO8610 format>
+        -r <duration limit in ISO8610 format> \
+        --debug
 ```
 
 | Argument | Description |
@@ -56,6 +58,7 @@ python generator.py \
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
 | [`-r`](#generation-limits) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
+| `--debug` | Enable debug logging. Outputs detailed thread scheduling and event queue information to stderr. |
 
 You can also run the generator as an HTTP service. See the [server API reference](docs/server.md) for details.
 
@@ -150,11 +153,10 @@ Specify a start time in ISO format to instruct the driver to use simulated time 
 In the following example, the constraint is the number of records.
 
 ```bash
-python3 generator.py -f conf/gen/example.json -o conf/tar/stdout.json -n 20 -s "2001-12-20T13:13"
+python3 generator.py -c conf/gen/example.json -n 20 -s "2001-12-20T13:13"
 ```
 
 * `example.json` generator specification is used.
-* The `target` in `stdout.json` determines where the JSON records will be output.
 * `-n` requires that only 20 rows are output.
 * The synthetic `time` clock will start on 20th December 2001 at 13:13pm.
 
@@ -171,7 +173,7 @@ This results in:
 In the next example, the constraint is duration. This will cause the generator to create as many JSON records as would fit into a given duration (see `-t` below).
 
 ```bash
-python3 generator.py -f conf/gen/example.json -o conf/tar/stdout.json -t 1h -s "2027-03-12"
+python3 generator.py -c conf/gen/example.json -r PT1H -s "2027-03-12"
 ```
 
 * The `-s` flag sets a synthetic clock start of 12th March 2027.

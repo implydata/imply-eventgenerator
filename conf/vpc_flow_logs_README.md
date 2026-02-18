@@ -4,10 +4,10 @@
 
 ```bash
 # JSON output
-python3 generator.py -c conf/gen/vpc_flow_logs.json -m 10 -n 100 -t conf/tar/stdout.json
+python3 generator.py -c conf/gen/vpc_flow_logs.json -m 10 -n 100
 
 # AWS VPC Flow Log format (space-separated)
-python3 generator.py -c conf/gen/vpc_flow_logs.json -f conf/form/vpc_flow_logs.txt -m 10 -n 100 -t conf/tar/stdout.json
+python3 generator.py -c conf/gen/vpc_flow_logs.json -f conf/form/vpc_flow_logs.txt -m 10 -n 100
 ```
 
 ## Overview
@@ -68,8 +68,7 @@ Generate JSON output:
 python3 generator.py \
   -c conf/gen/vpc_flow_logs.json \
   -m 10 \
-  -n 1000 \
-  -t conf/tar/stdout.json
+  -n 1000
 ```
 
 Generate in AWS VPC Flow Log format (space-separated):
@@ -79,8 +78,7 @@ python3 generator.py \
   -c conf/gen/vpc_flow_logs.json \
   -f conf/form/vpc_flow_logs.txt \
   -m 10 \
-  -n 1000 \
-  -t conf/tar/stdout.json
+  -n 1000
 ```
 
 Generate historical data:

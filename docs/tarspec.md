@@ -1,29 +1,19 @@
 # Generation targets
 
-Targets are the output locations for your data generation jobs.
+Targets are the output locations for your data generation jobs. By default, records are written to stdout. Use a target configuration to redirect output to a file, Kafka, or Confluent Cloud.
 
 | Field | Description | Possible values | Required? |
 | --- | --- | --- | --- |
-| [`type`](#target-types) | The type of target. | [`stdout`](#stdout) [`file`](#file) [`kafka`](#kafka) [`confluent`](#confluent) | Yes |
+| [`type`](#target-types) | The type of target. | [`file`](#file) [`kafka`](#kafka) [`confluent`](#confluent) | Yes |
 | Options | Additional fields that configure the target for the data, depending on the `type` selected. | | Dependent on `type`. |
 
-From the command line, use the `-o` flag to set what target configuration file to use.
+From the command line, use the `-t` flag to set what target configuration file to use. If no target is specified, records are written to stdout.
 
 When using the API, wrap the target configuration inside an object called `target`.
 
 ## Target types
 
 Each target type has fields that specify the behavior required.
-
-### `stdout`
-
-Print events to standard out.
-
-```json
-{
-  "type": "stdout"
-}
-```
 
 ### `file`
 

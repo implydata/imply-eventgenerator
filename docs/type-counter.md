@@ -69,7 +69,6 @@ The second emitter, `example_event_2`, mirrors the same configuration, using dif
       ]
     }
   ],
-  "target": { "type": "stdout" },
   "interarrival": { "type": "constant", "value": 1 }
 }
 ```

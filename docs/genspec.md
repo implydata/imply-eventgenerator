@@ -11,7 +11,7 @@ Workers traverse a number of [`states`](./genspec-states.md) and generate events
 | [`target`](./tarspec.md) | A target specification. | See [`targets`](./tarspec.md) | No |
 | `interarrival` | The period of time that elapses before the next worker is started. | A [distribution](./distributions.md) object. | Yes |
 
-In this example, there is just one state: `state_1`. When each worker reaches that state, it uses the `example_record_1` emitter to produce an event with one field called `enum_dim`, where the possible values of that field are selected using a uniform distribution from a list of characters. `target` provides an inline [target specification](./tarspec.md), causing the output to be sent to `stdout`.
+In this example, there is just one state: `state_1`. When each worker reaches that state, it uses the `example_record_1` emitter to produce an event with one field called `enum_dim`, where the possible values of that field are selected using a uniform distribution from a list of characters. Since no `target` is specified, the output is sent to stdout.
 
 There is then a `delay` of 5 seconds before a worker picks the next state from a list of possible `transitions`. In this specification, because the `next` state is the same as the current state, the worker repeatedly enters this state until the generator itself stops.
 
@@ -56,7 +56,6 @@ The `interarrival` distribution is a `constant`, causing new workers to be spawn
       ]
     }
   ],
-  "target": { "type" : "stdout"},
   "interarrival": { "type": "constant", "value": 1 }
 }
 ```
