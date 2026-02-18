@@ -18,7 +18,6 @@ def validate_concurrency(value):
         raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 1000.")
 
 def main(argv=None):
-    print("Starting synthetic event data generator at ", datetime.now().isoformat())
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Generates synthetic event data.')
     parser.add_argument('-c', dest='config_file', required=True, help='Generator configuration file')
@@ -108,6 +107,7 @@ def main(argv=None):
             max_entities=max_entities,
             record_format=record_format
         )
+        print("Starting synthetic event data generator at ", datetime.now().isoformat())
         driver.simulate()
 
     except FileNotFoundError as e:
