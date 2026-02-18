@@ -1,9 +1,11 @@
 import argparse
 import json
 import os
+import random
 import sys
 from datetime import datetime
 import dateutil.parser
+import numpy as np
 from ieg.core import DataDriver
 
 DEFAULT_CONCURRENCY = 100
@@ -44,7 +46,20 @@ def main(argv=None):
         help='Max entities concurrently generating events (1-1000)'
     )
 
+    parser.add_argument(
+        '--seed',
+        dest='seed',
+        type=int,
+        default=None,
+        help='Random seed for deterministic data generation. Use with -s (simulated time) for fully reproducible output.'
+    )
+
     args = parser.parse_args(argv)
+
+    # Seed random number generators for deterministic output
+    if args.seed is not None:
+        random.seed(args.seed)
+        np.random.seed(args.seed)
 
     # Determine start_time and time_type
     if args.start_time:

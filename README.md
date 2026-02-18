@@ -44,7 +44,8 @@ python generator.py \
         -s <start timestamp> \
         -m <generator workers limit> \
         -n <record limit> \
-        -r <duration limit in ISO8610 format>
+        -r <duration limit in ISO8610 format> \
+        --seed <integer>
 ```
 
 | Argument | Description |
@@ -56,6 +57,7 @@ python generator.py \
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
 | [`-r`](#generation-limits) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
+| [`--seed`](docs/deterministic.md) | An integer seed for deterministic data generation. Use with `-s` for fully reproducible output. |
 
 You can also run the generator as an HTTP service. See the [server API reference](docs/server.md) for details.
 

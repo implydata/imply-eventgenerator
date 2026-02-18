@@ -69,6 +69,16 @@ Generate in Splunk HEC format:
 python generator.py -c conf/gen/apache_access_combined.json -f conf/form/hec_apache_access_combined.txt -m 10 -n 1000 -t conf/tar/stdout.json
 ```
 
+Generate deterministic data (same seed = same output):
+
+```bash
+python generator.py \
+  -c conf/gen/apache_access_combined.json \
+  -s "2026-02-12T00:00:00" \
+  -r P1D \
+  --seed 42
+```
+
 ## Use cases
 
 - **Web analytics testing**: Realistic clickstream data with browsing funnels and conversion paths

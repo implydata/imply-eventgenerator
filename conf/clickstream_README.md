@@ -60,6 +60,16 @@ Generate a batch of historical data:
 python generator.py -c conf/gen/clickstream.json -m 20 -n 10000 -s "2024-01-01T00:00:00" -t conf/tar/stdout.json
 ```
 
+Generate deterministic data (same seed = same output):
+
+```bash
+python generator.py \
+  -c conf/gen/clickstream.json \
+  -s "2026-02-12T00:00:00" \
+  -r P1D \
+  --seed 42
+```
+
 ## Use cases
 
 - **Funnel analysis**: Track conversion rates through search → product → cart → purchase
