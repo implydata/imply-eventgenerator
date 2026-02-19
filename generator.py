@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import os
 import random
 import sys
@@ -7,6 +8,8 @@ from datetime import datetime
 import dateutil.parser
 import numpy as np
 from ieg.core import DataDriver
+
+logger = logging.getLogger('ieg')
 
 DEFAULT_CONCURRENCY = 100
 
@@ -20,6 +23,13 @@ def validate_concurrency(value):
         raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 1000.")
 
 def main(argv=None):
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s [%(levelname)s] %(name)s - %(message)s',
+        stream=sys.stderr
+    )
+    logger.setLevel(logging.INFO)
+    logger.info("Starting synthetic event data generator")
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Generates synthetic event data.')
     parser.add_argument('-c', dest='config_file', required=True, help='Generator configuration file')
@@ -47,7 +57,14 @@ def main(argv=None):
     )
 
     parser.add_argument(
-        '--seed',
+        '--debug',
+        action='store_true',
+        default=False,
+        help='Enable debug logging (written to stderr)'
+    )
+    
+    parser.add_argument(
+      '--seed',
         dest='seed',
         type=int,
         default=None,
@@ -56,6 +73,9 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
+    # Configure logging level based on --debug flag
+    if args.debug:
+        logging.getLogger('ieg').setLevel(logging.DEBUG)
     # Seed random number generators for deterministic output
     if args.seed is not None:
         random.seed(args.seed)
@@ -94,7 +114,7 @@ def main(argv=None):
         elif 'target' in config.keys():
             target = config['target']
         else:
-            target = {"type": "stdout"}
+            target = None
 
         # Load record format file
         if args.record_format_file:
@@ -122,19 +142,20 @@ def main(argv=None):
             max_entities=max_entities,
             record_format=record_format
         )
-        print("Starting synthetic event data generator at ", datetime.now().isoformat())
+        logger.info("Starting synthetic event data generator at %s", datetime.now().isoformat())
         driver.simulate()
 
     except FileNotFoundError as e:
-        print(f"File error: {e}", file=sys.stderr)
+        logger.error("File error: %s", e)
         sys.exit(1)
+
     except ValueError as e:
-        print(f"Value error: {e}", file=sys.stderr)
+        logger.error("Value error: %s", e)
         sys.exit(1)
     except Exception as e:
-        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        logger.error("An unexpected error occurred: %s", e)
         sys.exit(1)
-    print("Synthetic event data generation completed at ", datetime.now().isoformat())
+    logger.info("Synthetic event data generation completed")
 
 if __name__ == "__main__":
     main()

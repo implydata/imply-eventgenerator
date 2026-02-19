@@ -4,11 +4,9 @@
 
 ```bash
 # JSON output (raw apache:access:json events)
-python generator.py -c conf/gen/apache_access_json.json -f conf/form/apache_access_json.txt -m 5 -n 100 -t conf/tar/stdout.json
-
+python generator.py -c conf/gen/apache_access_json.json -f conf/form/apache_access_json.txt -m 5 -n 100
 # Splunk HEC format
-python generator.py -c conf/gen/apache_access_json.json -f conf/form/hec_apache_access_json.txt -m 5 -n 100 -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/apache_access_json.json -f conf/form/hec_apache_access_json.txt -m 5 -n 100```
 
 ## Overview
 
@@ -80,8 +78,7 @@ initial → hacker (0.1% of sessions)
 Generate a full day of data starting from yesterday at midnight:
 
 ```bash
-python generator.py -c conf/gen/apache_access_json.json -f conf/form/apache_access_json.txt -s 2025-01-15T00:00:00 -r PT24H -m 10 -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/apache_access_json.json -f conf/form/apache_access_json.txt -s 2025-01-15T00:00:00 -r PT24H -m 10```
 
 Use a bash script to automatically generate yesterday's data:
 
@@ -98,20 +95,17 @@ python generator.py \
   -s "$YESTERDAY" \
   -r PT24H \
   -m 10 \
-  -t conf/tar/stdout.json
-```
+ ```
 
 Generate 10 records as raw JSON:
 
 ```bash
-python generator.py -c conf/gen/apache_access_json.json -f conf/form/apache_access_json.txt -m 1 -n 10 -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/apache_access_json.json -f conf/form/apache_access_json.txt -m 1 -n 10```
 
 Generate in Splunk HEC format for ingestion into Splunk or Lumi:
 
 ```bash
-python generator.py -c conf/gen/apache_access_json.json -f conf/form/hec_apache_access_json.txt -m 10 -n 1000 -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/apache_access_json.json -f conf/form/hec_apache_access_json.txt -m 10 -n 1000```
 
 Generate deterministic data (same seed = same output):
 
@@ -127,8 +121,7 @@ python generator.py \
 Generate without a format file (default JSON with ISO timestamps):
 
 ```bash
-python generator.py -c conf/gen/apache_access_json.json -m 1 -n 10 -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/apache_access_json.json -m 1 -n 10```
 
 ## Comparison with `apache_access_combined`
 

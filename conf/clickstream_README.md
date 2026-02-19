@@ -4,11 +4,9 @@
 
 ```bash
 # JSON output
-python generator.py -c conf/gen/clickstream.json -m 5 -n 100 -t conf/tar/stdout.json
-
+python generator.py -c conf/gen/clickstream.json -m 5 -n 100
 # TSV output
-python generator.py -c conf/gen/clickstream.json -f conf/form/clickstream_tsv.txt -m 5 -n 100 -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/clickstream.json -f conf/form/clickstream_tsv.txt -m 5 -n 100```
 
 ## Overview
 
@@ -51,14 +49,12 @@ login → home → search ⇄ product → product_detail → addcart → viewcar
 Generate 100 records as JSON:
 
 ```bash
-python generator.py -c conf/gen/clickstream.json -m 5 -n 100 -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/clickstream.json -m 5 -n 100```
 
 Generate a batch of historical data:
 
 ```bash
-python generator.py -c conf/gen/clickstream.json -m 20 -n 10000 -s "2024-01-01T00:00:00" -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/clickstream.json -m 20 -n 10000 -s "2024-01-01T00:00:00"```
 
 Generate deterministic data (same seed = same output):
 

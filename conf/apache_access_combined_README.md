@@ -4,11 +4,9 @@
 
 ```bash
 # JSON output
-python generator.py -c conf/gen/apache_access_combined.json -m 5 -n 100 -t conf/tar/stdout.json
-
+python generator.py -c conf/gen/apache_access_combined.json -m 5 -n 100 
 # TSV output
-python generator.py -c conf/gen/apache_access_combined.json -f conf/form/tsv_apache_access_combined.txt -m 5 -n 100 -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/apache_access_combined.json -f conf/form/tsv_apache_access_combined.txt -m 5 -n 100 ```
 
 ## Overview
 
@@ -54,20 +52,17 @@ initial → hacker (0.1% of sessions)
 Generate 10 records as JSON:
 
 ```bash
-python generator.py -c conf/gen/apache_access_combined.json -m 1 -n 10 -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/apache_access_combined.json -m 1 -n 10 ```
 
 Generate in Apache combined log format:
 
 ```bash
-python generator.py -c conf/gen/apache_access_combined.json -f conf/form/tsv_apache_access_combined.txt -m 10 -n 1000 -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/apache_access_combined.json -f conf/form/tsv_apache_access_combined.txt -m 10 -n 1000 ```
 
 Generate in Splunk HEC format:
 
 ```bash
-python generator.py -c conf/gen/apache_access_combined.json -f conf/form/hec_apache_access_combined.txt -m 10 -n 1000 -t conf/tar/stdout.json
-```
+python generator.py -c conf/gen/apache_access_combined.json -f conf/form/hec_apache_access_combined.txt -m 10 -n 1000 ```
 
 Generate deterministic data (same seed = same output):
 

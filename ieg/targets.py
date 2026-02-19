@@ -1,23 +1,7 @@
-import sys
 import json
 import threading
 from kafka import KafkaProducer
 from confluent_kafka import Producer
-
-class TargetStdout:
-    """
-    Outputs generated records to the standard output (console).
-    Thread-safe implementation to ensure proper handling of concurrent writes.
-    """
-    lock = threading.Lock()
-
-    def print(self, record):
-        with self.lock:
-            print(str(record))
-            sys.stdout.flush()
-
-    def __str__(self):
-        return '#TargetStdout()'
 
 class TargetFile:
     """
