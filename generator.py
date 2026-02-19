@@ -142,12 +142,13 @@ def main(argv=None):
             max_entities=max_entities,
             record_format=record_format
         )
-        print("Starting synthetic event data generator at ", datetime.now().isoformat())
+        logger.info("Starting synthetic event data generator at %s", datetime.now().isoformat())
         driver.simulate()
 
     except FileNotFoundError as e:
         logger.error("File error: %s", e)
         sys.exit(1)
+
     except ValueError as e:
         logger.error("Value error: %s", e)
         sys.exit(1)
