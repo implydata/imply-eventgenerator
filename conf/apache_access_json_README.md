@@ -5,8 +5,13 @@
 ```bash
 # JSON output (raw apache:access:json events)
 python generator.py -c conf/gen/apache_access_json.json -f conf/form/apache_access_json.txt -m 5 -n 100
+```
+
 # Splunk HEC format
-python generator.py -c conf/gen/apache_access_json.json -f conf/form/hec_apache_access_json.txt -m 5 -n 100```
+
+```bash
+python generator.py -c conf/gen/apache_access_json.json -f conf/form/hec_apache_access_json.txt -m 5 -n 100
+```
 
 ## Overview
 
