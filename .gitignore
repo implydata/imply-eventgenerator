@@ -176,3 +176,7 @@ cython_debug/
 
 # General
 tmp/
+
+# Experimental stuff
+scratch/
+
