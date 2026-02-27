@@ -18,6 +18,7 @@ Specify the cardinality type in the `type` field.
 * [`uniform`](#uniform) creates a flat distribution.
 * [`exponential`](#exponential) for an exponential distribution.
 * [`normal`](#normal) for a normal ("bell curve") distribution.
+* [`gmm_temporal`](#gmm_temporal) for time-of-day and day-of-week modulated rates using a Gaussian Mixture Model.
 
 ### `constant`
 
@@ -62,6 +63,63 @@ When used in certain situations, for example, `interarrival`, negative values ge
 | `type` | The data type for the dimension. | `normal` | Yes | |
 | `mean` | The resulting average value of the distribution. | Integer | Yes | |
 | `stddev` | The standard deviation of the distribution. | Integer | Yes | |
+
+### `gmm_temporal`
+
+A Gaussian Mixture Model temporal distribution that modulates an exponential interarrival time based on time of day and day of week. Use this to simulate realistic traffic patterns such as peak business hours, evening browsing, and quieter weekends.
+
+Each day profile is an array of Gaussian components. The `utc_hour` field is the mean (μ) and `sigma` is the standard deviation (σ) of each Gaussian component.
+
+| Field | Description | Possible values | Required? | Default |
+| --- | --- | --- | --- | --- |
+| `type` | The distribution type. | `gmm_temporal` | Yes | |
+| `mean` | The base average interarrival time in seconds. | Number | Yes | |
+| `days` | Day-of-week profiles, keyed by ISO weekday number (1=Monday, 7=Sunday). | Object | Yes | |
+
+Each day profile is an array of component objects:
+
+| Field | Description | Possible values | Required? | Default |
+| --- | --- | --- | --- | --- |
+| `utc_hour` | The peak hour in UTC (μ). Fractional hours are supported. | 0.0–24.0 | Yes | |
+| `sigma` | The width of the peak in hours (σ). | Number > 0 | Yes | |
+| `weight` | The amplitude of this peak. | Number > 0 | Yes | |
+
+**Day-of-week lookup**: You only need to define days where the profile changes. The generator looks up the current ISO weekday number and walks backwards (with wraparound) to find the nearest defined day. For example, if you define `"1"` and `"6"`, then Monday through Friday use the `"1"` profile, and Saturday and Sunday use the `"6"` profile.
+
+**Example**: An e-commerce traffic pattern with a midday peak and an evening bump on weekdays, and a shifted, broader pattern on weekends:
+
+```json
+{
+  "type": "gmm_temporal",
+  "mean": 0.5,
+  "days": {
+    "1": [
+      {"utc_hour": 12, "sigma": 3.0, "weight": 1.8},
+      {"utc_hour": 20.5, "sigma": 1.5, "weight": 0.7}
+    ],
+    "6": [
+      {"utc_hour": 14, "sigma": 3.5, "weight": 1.4},
+      {"utc_hour": 21, "sigma": 2.0, "weight": 1.0}
+    ]
+  }
+}
+```
+
+For the same pattern every day, define a single day key:
+
+```json
+{
+  "type": "gmm_temporal",
+  "mean": 0.5,
+  "days": {
+    "1": [
+      {"utc_hour": 12, "sigma": 3.0, "weight": 1.8}
+    ]
+  }
+}
+```
+
+> **Note**: `gmm_temporal` can be used for `interarrival` and state `delay` distributions. It is not currently supported for dimension value or cardinality distributions.
 
 ## Cardinality
 
