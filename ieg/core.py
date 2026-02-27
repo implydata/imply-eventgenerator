@@ -1,26 +1,20 @@
-# IEG classes and functions.
+"""IEG classes and functions."""
 
 import json
 import logging
-import re
 import os
+import re
 import sys
-
-from ieg.distributions import *
-from ieg.targets import *
-from ieg.dimensions import *
-from ieg.states import *
-
-# Additional modules.
+import threading
+import time
+from datetime import datetime, timedelta
 
 from sortedcontainers import SortedList
 
-# Standard modules.
-
-from datetime import datetime, timedelta
-import json
-import threading
-import time
+from ieg.dimensions import DimensionTimestampClock, DimensionVariable, get_dimensions, get_variables
+from ieg.distributions import parse_distribution
+from ieg.states import Controller, State, Transition
+from ieg.targets import TargetConfluent, TargetFile, TargetKafka
 
 logger = logging.getLogger('ieg')
 
@@ -40,35 +34,43 @@ def render_env_variables(config):
         return config
 
 class FutureEvent:
-    # Represents a future event in the simulation clock.
-    # Each event has a timestamp and can be paused or resumed.
-    # Used by the Clock class to manage simulated time.
+    """A future event in the simulation clock, used to manage simulated time ordering."""
+
     def __init__(self, t):
         self.t = t
         self.name = threading.current_thread().name
         self.event = threading.Event()
     def get_time(self):
+        """Return the scheduled time of this event."""
         return self.t
+
     def get_name(self):
+        """Return the thread name that created this event."""
         return self.name
+
     def __lt__(self, other):
         return self.t < other.t
+
     def __eq__(self, other):
         return self.t == other.t
+
     def __str__(self):
         return 'FutureEvent('+self.name+', '+str(self.t)+')'
+
     def pause(self):
+        """Block the current thread until this event is resumed."""
         logger.debug("%s pausing", self.name)
         self.event.clear()
         self.event.wait()
+
     def resume(self):
+        """Unblock the thread waiting on this event."""
         logger.debug("%s resuming", self.name)
         self.event.set()
 
 class Clock:
-    # Simulates time for the data generation process.
-    # Supports both real-time and simulated time modes.
-    # Manages future events and thread synchronization.
+    """Manages time for the data generation process, supporting real-time and simulated modes."""
+
     future_events = SortedList()
     active_threads = 0
     lock = threading.Lock()
@@ -86,26 +88,31 @@ class Clock:
         s += ')'
         return s
 
-    def get_duration(self) :
+    def get_duration(self):
+        """Return elapsed seconds since the clock started."""
         time_delta = self.now() - self.start_time
         return time_delta.total_seconds()
 
     def get_start_time(self):
+        """Return the start time of this clock."""
         return self.start_time
 
     def activate_thread(self):
+        """Register a thread as active for simulated time coordination."""
         if self.time_type != 'REAL':
             self.lock.acquire()
             self.active_threads += 1
             self.lock.release()
 
     def deactivate_thread(self):
+        """Unregister a thread from simulated time coordination."""
         if self.time_type != 'REAL':
             self.lock.acquire()
             self.active_threads -= 1
             self.lock.release()
 
     def end_thread(self):
+        """Unregister a thread and resume the next pending event if any."""
         if self.time_type != 'REAL':
             self.lock.acquire()
             self.active_threads -= 1
@@ -114,6 +121,7 @@ class Clock:
             self.lock.release()
 
     def release_all(self):
+        """Resume all pending future events."""
         if self.time_type != 'REAL':
             self.lock.acquire()
             logger.debug("release_all - active_threads = %d", self.active_threads)
@@ -122,18 +130,21 @@ class Clock:
             self.lock.release()
 
     def add_event(self, future_t):
+        """Schedule a new future event at the given time and return it."""
         this_event = FutureEvent(future_t)
         self.future_events.add(this_event)
         logger.debug("add_event (after) %s - %s", threading.current_thread().name, self)
         return this_event
 
     def remove_event(self):
+        """Remove and return the earliest future event."""
         logger.debug("remove_event (before) %s - %s", threading.current_thread().name, self)
         next_event = self.future_events[0]
         self.future_events.remove(next_event)
         return next_event
 
     def pause(self, event):
+        """Pause the current thread on the given event, releasing the lock while waiting."""
         self.active_threads -= 1
         self.lock.release()
         event.pause()
@@ -141,9 +152,11 @@ class Clock:
         self.active_threads += 1
 
     def resume(self, event):
+        """Resume a paused event."""
         event.resume()
 
     def now(self) -> datetime:
+        """Return the current time (simulated or real depending on mode)."""
         if self.time_type != 'REAL':
             t = self.sim_time
         else:
@@ -151,7 +164,7 @@ class Clock:
         return t
 
     def sleep(self, delta):
-        # Cannot travel to the past, so don't move the time if delta is negative
+        """Sleep for delta seconds. In simulated mode, advances sim time instead of waiting."""
         if delta < 0:
             return
         if self.time_type != 'REAL': # Simulated time
@@ -180,8 +193,7 @@ class Clock:
             time.sleep(delta)
 
 class DataDriver:
-    # Main driver class for generating data.
-    # Handles configuration, state machine, and output targets.
+    """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
     def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format):
         self.name = name
@@ -196,9 +208,10 @@ class DataDriver:
 
         if self.record_format:
             self.record_format = render_env_variables(record_format)
-            unresolved = re.findall(r"%(\w+)%", self.record_format)
-            if unresolved:
-                raise ValueError(f"Record format file contains unresolved environment variables: {', '.join(unresolved)}")
+            if isinstance(self.record_format, str):
+                unresolved = re.findall(r"%(\w+)%", self.record_format)
+                if unresolved:
+                    raise ValueError(f"Record format file contains unresolved environment variables: {', '.join(unresolved)}")
 
         #
         # Set up the global clock
@@ -367,6 +380,7 @@ class DataDriver:
         return TEMPLATE_REGEX.sub(replace_placeholder, template)
 
     def apply_pattern(self, pattern, record):
+        """Recursively apply template rendering to a pattern structure."""
         if isinstance(pattern, dict):
             return {k: self.apply_pattern(v, record) for k, v in pattern.items()}
         elif isinstance(pattern, str):
@@ -375,6 +389,7 @@ class DataDriver:
             return pattern
 
     def render_record(self, record):
+        """Format a record as JSON or using the configured record format template."""
         if not self.record_format:
             # If no record format is provided, return the record as a JSON string.
             for key, value in record.items():
@@ -390,6 +405,7 @@ class DataDriver:
         return formatted_record
 
     def create_record(self, dimensions, variables):
+        """Build a record dict from dimensions and variable values."""
         record = {}
         for element in dimensions:
             if isinstance(element, DimensionVariable):
@@ -400,12 +416,12 @@ class DataDriver:
         return record
 
     def set_variable_values(self, variables, dimensions):
+        """Sample stochastic values from dimensions and store them in the variables dict."""
         for d in dimensions:
             variables[d.name] = d.get_stochastic_value()
 
     def worker_thread(self):
-        # Processes the state machine using worker threads.
-        # Generates records and sends them to the output target.
+        """Process the state machine, generating records and sending them to the output target."""
         logger.debug("Thread %s starting...", threading.current_thread().name)
         self.global_clock.activate_thread()
         current_state = self.initial_state
@@ -442,12 +458,12 @@ class DataDriver:
         self.sim_control.remove_entity()
 
     def spawning_thread(self):
-        # Spawns worker threads to generate records concurrently.
+        """Spawn worker threads at the configured interarrival rate."""
         self.global_clock.activate_thread()
 
         # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
         while not self.sim_control.is_done():
-            if (self.sim_control.get_entity_count() < self.max_entities):
+            if self.sim_control.get_entity_count() < self.max_entities:
                 thread_name = 'W'+str(self.sim_control.get_entity_count())
                 self.sim_control.add_entity()
                 t = threading.Thread(target=self.worker_thread, name=thread_name, daemon=True)
@@ -461,10 +477,11 @@ class DataDriver:
         self.global_clock.end_thread()
 
     def get_new_time_for_record(self):
-            return self.global_clock.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+        """Return the current clock time formatted as a string."""
+        return self.global_clock.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
     def simulate(self):
-        # Starts the simulation based on the configuration.
+        """Start the simulation, spawning workers and running until completion."""
         self.status_msg = f'Starting {self.type} job.'
         thread_name = 'Spawning'
         thrd = threading.Thread(target=self.spawning_thread, args=(), name=thread_name, daemon=True)
@@ -472,11 +489,11 @@ class DataDriver:
         thrd.join()
 
     def terminate(self):
-        # Terminates the simulation.
+        """Terminate the simulation."""
         self.sim_control.terminate()
 
     def report(self):
-        # Generates a report of the simulation status and statistics.
+        """Return a dict of simulation status and statistics."""
         return {  'name': self.name,
                   'config_file': self.config['config_file'],
                   'target': self.target,
