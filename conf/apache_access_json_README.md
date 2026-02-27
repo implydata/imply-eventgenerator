@@ -7,15 +7,16 @@
 python generator.py -c conf/gen/apache_access_json.json -f conf/form/apache_access_json.txt -m 5 -n 100
 ```
 
-# Splunk HEC format
-
 ```bash
+# Splunk HEC format
 python generator.py -c conf/gen/apache_access_json.json -f conf/form/hec_apache_access_json.txt -m 5 -n 100
 ```
 
 ## Overview
 
 This configuration generates realistic Apache access log records in the Splunk [`apache:access:json`](https://docs.splunk.com/Documentation/AddOns/released/ApacheWebServer/Configure) format. It simulates user sessions on a lighting e-commerce website with typical browsing behavior including product discovery, category browsing, cart management, and checkout, along with a small proportion of malicious traffic from automated attack tools.
+
+The interarrival rate uses a [`gmm_temporal`](../docs/distributions.md#gmm_temporal) distribution to model realistic daily traffic patterns — higher rates during business hours, lower overnight, with distinct profiles for Monday, Tuesday–Thursday, Friday, and weekends.
 
 The field names and structure match the JSON log format defined by the [Splunk Add-on for Apache Web Server](https://docs.splunk.com/Documentation/AddOns/released/ApacheWebServer/Sourcetypes), which uses the enhanced `LogFormat` configuration in `httpd.conf`.
 
