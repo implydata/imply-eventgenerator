@@ -4,12 +4,25 @@
     "mean": 0.5,
     "days": {
       "1": [
+        {"utc_hour": 10, "sigma": 2.0, "weight": 1.0},
+        {"utc_hour": 14, "sigma": 2.5, "weight": 1.5},
+        {"utc_hour": 20, "sigma": 1.5, "weight": 0.6}
+      ],
+      "2": [
         {"utc_hour": 12, "sigma": 3.0, "weight": 1.8},
         {"utc_hour": 20.5, "sigma": 1.5, "weight": 0.7}
+      ],
+      "5": [
+        {"utc_hour": 11, "sigma": 2.5, "weight": 1.6},
+        {"utc_hour": 18, "sigma": 2.0, "weight": 1.2}
       ],
       "6": [
         {"utc_hour": 14, "sigma": 3.5, "weight": 1.4},
         {"utc_hour": 21, "sigma": 2.0, "weight": 1.0}
+      ],
+      "7": [
+        {"utc_hour": 13, "sigma": 3.0, "weight": 1.2},
+        {"utc_hour": 19, "sigma": 2.0, "weight": 0.8}
       ]
     }
   },
