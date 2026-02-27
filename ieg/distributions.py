@@ -9,10 +9,11 @@ and generating samples from them.
 import math
 import numpy as np
 import dateutil.parser
-from datetime import datetime
 
 class DistConstant:
-    # Represents a constant value distribution.
+    """
+    Represents a constant value distribution.
+    """
     def __init__(self, value):
         self.value = value
     def __str__(self):
@@ -21,7 +22,9 @@ class DistConstant:
         return self.value
 
 class DistUniform:
-    # Represents a uniform distribution between a minimum and maximum value.
+    """
+    Represents a uniform distribution between a minimum and maximum value.
+    """
     def __init__(self, min_value, max_value):
         self.min_value = min_value
         self.max_value = max_value
@@ -31,7 +34,9 @@ class DistUniform:
         return np.random.uniform(self.min_value, self.max_value+1)
 
 class DistExponential:
-    # Represents an exponential distribution with a given mean.
+    """
+    Represents an exponential distribution with a given mean.
+    """
     def __init__(self, mean):
         self.mean = mean
     def __str__(self):
@@ -40,7 +45,9 @@ class DistExponential:
         return np.random.exponential(scale=self.mean)
 
 class DistNormal:
-    # Represents a normal (Gaussian) distribution with a given mean and standard deviation.
+    """
+    Represents a normal (Gaussian) distribution with a given mean and standard deviation.
+    """
     def __init__(self, mean, stddev):
         self.mean = mean
         self.stddev = stddev
@@ -50,10 +57,12 @@ class DistNormal:
         return np.random.normal(self.mean, self.stddev)
 
 class DistGMMTemporal:
-    # Gaussian Mixture Model temporal distribution.
-    # Modulates an exponential interarrival time by time of day and day of week.
-    # Each day profile is an array of Gaussian components (utc_hour=μ, sigma=σ, weight).
-    # Days are keyed by ISO weekday (1=Mon, 7=Sun) with nearest-prior wraparound lookup.
+    """
+    Gaussian Mixture Model temporal distribution.
+    Modulates an exponential interarrival time by time of day and day of week.
+    Each day profile is an array of Gaussian components (utc_hour=μ, sigma=σ, weight).
+    Days are keyed by ISO weekday (1=Mon, 7=Sun) with nearest-prior wraparound lookup.
+    """
     def __init__(self, mean, days, clock):
         self.mean = mean
         self.days = days  # dict: str(day_number) -> list of {utc_hour, sigma, weight}
