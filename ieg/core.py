@@ -286,7 +286,7 @@ class DataDriver:
 
         # Set up the interarrival rate
         rate = self.config['interarrival']
-        self.rate_delay = parse_distribution(rate)
+        self.rate_delay = parse_distribution(rate, clock=self.global_clock)
 
         # Set up emitters list
         self.emitters = {}
@@ -318,7 +318,7 @@ class DataDriver:
                 variables_on_entry = []
             else:
                 variables_on_entry = get_variables(state['variables_on_entry'], self.global_clock)
-            delay = parse_distribution(state['delay'])
+            delay = parse_distribution(state['delay'], clock=self.global_clock)
             transitions = Transition.parse_transitions(state['transitions'])
             this_state = State(name, dimensions, delay, transitions, variables, variables_on_entry)
             self.states[name] = this_state
