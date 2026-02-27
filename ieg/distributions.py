@@ -19,6 +19,7 @@ class DistConstant:
     def __str__(self):
         return 'DistConstant(value='+str(self.value)+')'
     def get_sample(self):
+        """Return the constant value."""
         return self.value
 
 class DistUniform:
@@ -31,6 +32,7 @@ class DistUniform:
     def __str__(self):
         return 'DistUniform(min_value='+str(self.min_value)+', max_value='+str(self.max_value)+')'
     def get_sample(self):
+        """Return a uniformly distributed random value between min and max."""
         return np.random.uniform(self.min_value, self.max_value+1)
 
 class DistExponential:
@@ -42,6 +44,7 @@ class DistExponential:
     def __str__(self):
         return 'DistExponential(mean='+str(self.mean)+')'
     def get_sample(self):
+        """Return an exponentially distributed random value with the configured mean."""
         return np.random.exponential(scale=self.mean)
 
 class DistNormal:
@@ -54,6 +57,7 @@ class DistNormal:
     def __str__(self):
         return 'DistNormal(mean='+str(self.mean)+', stddev='+str(self.stddev)+')'
     def get_sample(self):
+        """Return a normally distributed random value with the configured mean and stddev."""
         return np.random.normal(self.mean, self.stddev)
 
 class DistGMMTemporal:
@@ -98,6 +102,10 @@ class DistGMMTemporal:
         return total
 
     def get_sample(self):
+        """
+        Return a time-modulated exponential sample based
+        on current clock time and day of week.
+        """
         now = self.clock.now()
         day = now.isoweekday()
         hour = now.hour + now.minute / 60.0 + now.second / 3600.0
