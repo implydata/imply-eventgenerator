@@ -1,0 +1,4 @@
+{
+    "type": "file",
+    "path": "/var/log/apache2/lighting.luminalogic.com-access.log"
+}
