@@ -62,6 +62,7 @@ def main(argv=None):
         default=False,
         help='Enable debug logging (written to stderr)'
     )    
+
     parser.add_argument(    
         '--seed',
         dest='seed',
@@ -70,14 +71,6 @@ def main(argv=None):
         help='Random seed for deterministic data generation. Use with -s (simulated time) for fully reproducible output.'
     )
     
-    parser.add_argument(
-      '--seed',
-        dest='seed',
-        type=int,
-        default=None,
-        help='Random seed for deterministic data generation. Use with -s (simulated time) for fully reproducible output.'
-    )
-
     args = parser.parse_args(argv)
 
     # Configure logging level based on --debug flag
