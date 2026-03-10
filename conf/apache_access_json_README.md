@@ -1,24 +1,23 @@
 # Apache Access JSON Log Generator
 
-## Quick Start
-
-```bash
-# JSON output (raw apache:access:json events)
-python generator.py -c conf/gen/apache_access_json.json -f conf/form/apache_access_json.txt -m 5 -n 100
-```
-
-```bash
-# Splunk HEC format
-python generator.py -c conf/gen/apache_access_json.json -f conf/form/hec_apache_access_json.txt -m 5 -n 100
-```
+> **Deprecation notice:** `conf/gen/apache_access_json.json` has been renamed to `conf/gen/apache_access_json_lighting.json`. The original file will be removed in a future release. Please update your scripts and pipelines to use the new name.
 
 ## Overview
 
-This configuration generates realistic Apache access log records in the Splunk [`apache:access:json`](https://docs.splunk.com/Documentation/AddOns/released/ApacheWebServer/Configure) format. It simulates user sessions on a lighting e-commerce website with typical browsing behavior including product discovery, category browsing, cart management, and checkout, along with a small proportion of malicious traffic from automated attack tools.
+These configurations generate realistic Apache access log records in the Splunk [`apache:access:json`](https://docs.splunk.com/Documentation/AddOns/released/ApacheWebServer/Configure) format. Each variant simulates user sessions on an e-commerce website with typical browsing behavior including product discovery, category browsing, cart management, and checkout, along with a small proportion of malicious traffic from automated attack tools.
 
 The interarrival rate uses a [`gmm_temporal`](../docs/distributions.md#gmm_temporal) distribution to model realistic daily traffic patterns — higher rates during business hours, lower overnight, with distinct profiles for Monday, Tuesday–Thursday, Friday, and weekends. Use a higher `-m` value (e.g., `-m 50`) for the full effect — low concurrency caps the number of active visitors, compressing the volume differences between peak and off-peak periods.
 
 The field names and structure match the JSON log format defined by the [Splunk Add-on for Apache Web Server](https://docs.splunk.com/Documentation/AddOns/released/ApacheWebServer/Sourcetypes), which uses the enhanced `LogFormat` configuration in `httpd.conf`.
+
+## Variants
+
+All variants share the same state machine, output fields, and format files — only the product catalog and server IPs differ.
+
+| Variant | Config file | Docs |
+| --- | --- | --- |
+| Lighting store | `conf/gen/apache_access_json_lighting.json` | [README](apache_access_json_lighting_README.md) |
+| Furniture store | `conf/gen/apache_access_json_furniture.json` | [README](apache_access_json_furniture_README.md) |
 
 ## Output fields
 
@@ -55,11 +54,18 @@ The HEC format wraps each event in a [Splunk HEC envelope](https://docs.splunk.c
 
 | Field | Value |
 | --- | --- |
-| `source` | `my_host/httpd/access_json.log` |
+| `source` | `%TARGET_SOURCE%` (set via environment variable) |
 | `sourcetype` | `apache:access:json` |
 | `index` | `%TARGET_INDEX%` (set via environment variable) |
 | `host` | Server IP from generated data |
 | `time` | Epoch seconds (unquoted number) |
+
+Set the environment variables when running the generator:
+
+```bash
+TARGET_SOURCE="my_host/httpd/access_json.log" TARGET_INDEX="main" \
+  python generator.py -c conf/gen/apache_access_json_lighting.json -f conf/form/hec_apache_access_json.txt -m 10 -n 1000
+```
 
 ## State machine
 
@@ -75,16 +81,18 @@ initial → hacker (0.1% of sessions)
            ↻ rapid requests to admin/sensitive paths
 ```
 
-**Normal traffic (99.9%)**: Users arrive, browse product categories (indoor, outdoor, smart, LED, vintage lighting), optionally add items to cart and check out. Category browsing uses exponential distribution to create realistic product popularity curves.
+**Normal traffic (99.9%)**: Users arrive, browse product categories, optionally add items to cart and check out. Category browsing uses exponential distribution to create realistic product popularity curves.
 
 **Malicious traffic (0.1%)**: Automated scans that rapidly probe admin paths, config files, and common vulnerabilities, generating `403`, `404`, and `500` status codes. Attack payloads appear in `uri_query` (e.g., SQL injection, debug parameters).
 
 ## Usage examples
 
+The examples below use the lighting variant; substitute the config file path for other variants.
+
 Generate a full day of data starting from yesterday at midnight:
 
 ```bash
-python generator.py -c conf/gen/apache_access_json.json -f conf/form/apache_access_json.txt -s 2025-01-15T00:00:00 -r PT24H -m 10
+python generator.py -c conf/gen/apache_access_json_lighting.json -f conf/form/apache_access_json.txt -s 2025-01-15T00:00:00 -r PT24H -m 10
 ```
 
 Use a bash script to automatically generate yesterday's data:
@@ -97,7 +105,7 @@ YESTERDAY=$(date -u -v-1d +"%Y-%m-%dT00:00:00")  # macOS
 # YESTERDAY=$(date -u -d "yesterday" +"%Y-%m-%dT00:00:00")  # Linux
 
 python generator.py \
-  -c conf/gen/apache_access_json.json \
+  -c conf/gen/apache_access_json_lighting.json \
   -f conf/form/apache_access_json.txt \
   -s "$YESTERDAY" \
   -r PT24H \
@@ -107,20 +115,21 @@ python generator.py \
 Generate 10 records as raw JSON:
 
 ```bash
-python generator.py -c conf/gen/apache_access_json.json -f conf/form/apache_access_json.txt -m 1 -n 10
+python generator.py -c conf/gen/apache_access_json_lighting.json -f conf/form/apache_access_json.txt -m 1 -n 10
 ```
 
 Generate in Splunk HEC format for ingestion into Splunk or Lumi:
 
 ```bash
-python generator.py -c conf/gen/apache_access_json.json -f conf/form/hec_apache_access_json.txt -m 10 -n 1000
+TARGET_SOURCE="my_host/httpd/access_json.log" TARGET_INDEX="main" \
+  python generator.py -c conf/gen/apache_access_json_lighting.json -f conf/form/hec_apache_access_json.txt -m 10 -n 1000
 ```
 
 Generate deterministic data (same seed = same output):
 
 ```bash
 python generator.py \
-  -c conf/gen/apache_access_json.json \
+  -c conf/gen/apache_access_json_lighting.json \
   -f conf/form/apache_access_json.txt \
   -s "2026-02-12T00:00:00" \
   -r P1D \
@@ -130,12 +139,12 @@ python generator.py \
 Generate without a format file (default JSON with ISO timestamps):
 
 ```bash
-python generator.py -c conf/gen/apache_access_json.json -m 1 -n 10
+python generator.py -c conf/gen/apache_access_json_lighting.json -m 1 -n 10
 ```
 
 ## Comparison with `apache_access_combined`
 
-This generator produces the same e-commerce browsing scenario as the `apache_access_combined` generator but with field names and structure matching Splunk's `apache:access:json` sourcetype.
+These generators produce the same e-commerce browsing scenario as the `apache_access_combined` generator but with field names and structure matching Splunk's `apache:access:json` sourcetype.
 
 | | `apache_access_combined` | `apache_access_json` |
 | --- | --- | --- |
