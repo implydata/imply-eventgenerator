@@ -8,11 +8,11 @@ These configurations generate realistic Apache access log records in the Splunk 
 
 The interarrival rate uses a [`gmm_temporal`](../docs/distributions.md#gmm_temporal) distribution to model realistic daily traffic patterns — higher rates during business hours, lower overnight, with distinct profiles for Monday, Tuesday–Thursday, Friday, and weekends. Use a higher `-m` value (e.g., `-m 50`) for the full effect — low concurrency caps the number of active visitors, compressing the volume differences between peak and off-peak periods.
 
-The field names and structure match the JSON log format defined by the [Splunk Add-on for Apache Web Server](https://docs.splunk.com/Documentation/AddOns/released/ApacheWebServer/Sourcetypes), which uses the enhanced `LogFormat` configuration in `httpd.conf`.
+The field names and structure are derived from an analysis of the [Splunk Add-on for Apache Web Server](https://docs.splunk.com/Documentation/AddOns/released/ApacheWebServer/Sourcetypes) (`Splunk_TA_apache`). The TA's `props.conf` and `transforms.conf` for the `apache:access:json` sourcetype expect specific raw field names (e.g., `client`, `server`, `bytes_in`, `uri_path`, `response_time_microseconds`) and apply EVAL expressions and field aliases to map them to the Splunk CIM. The event generator uses these raw field names so that the TA works correctly without modification — field renaming and CIM mapping should be left to the TA, not done at the source.
 
 ## Variants
 
-All variants share the same state machine, output fields, and format files — only the product catalog and server IPs differ.
+All variants follow the same state machine structure, output fields, and format files — only the product catalog, URIs, and server IPs differ.
 
 | Variant | Config file | Docs |
 | --- | --- | --- |
@@ -141,21 +141,6 @@ Generate without a format file (default JSON with ISO timestamps):
 ```bash
 python generator.py -c conf/gen/apache_access_json_lighting.json -m 1 -n 10
 ```
-
-## Comparison with `apache_access_combined`
-
-These generators produce the same e-commerce browsing scenario as the `apache_access_combined` generator but with field names and structure matching Splunk's `apache:access:json` sourcetype.
-
-| | `apache_access_combined` | `apache_access_json` |
-| --- | --- | --- |
-| Sourcetype | `apache:access_combined` | `apache:access:json` |
-| Event format | Raw log line string | Structured JSON object |
-| HTTP version | Included (`request_protocol`) | Not included (not in Splunk JSON spec) |
-| Request body size | Not included | `bytes_in` |
-| Response time | Not included | `response_time_microseconds` |
-| Content type | Not included | `http_content_type` |
-| Destination port | Not included | `dest_port` |
-| Query string | Embedded in URL path | Separate `uri_query` field |
 
 ## Use cases
 
