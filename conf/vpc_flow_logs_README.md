@@ -127,7 +127,7 @@ The realistic maximum for `-m` (concurrent workers) for this configuration is **
 
 `-m` directly controls concurrent workers, but because connections are so short-lived, the system cannot maintain more than ~25 simultaneous sessions regardless of the cap. Each worker models a single network connection that completes in seconds (web ~10s, database ~8s, internal API ~9s, SSH ~35s, port scan ~39s, DNS ~2s) — by the time a new worker arrives, previous ones have already finished. Setting `-m` above 25 has no practical effect; use the interarrival `mean` in the config to adjust volume instead.
 
-For time-of-day variation, use `--schedule schedule/ecommerce.json`. See the [schedule README](../schedule/README.md) for how schedules interact with `-m` and the ceiling.
+For time-of-day variation, use `--schedule conf/schedule/ecommerce.json`. See the [schedule documentation](../docs/schedule.md) for how schedules interact with `-m` and the ceiling.
 
 ## Use cases
 

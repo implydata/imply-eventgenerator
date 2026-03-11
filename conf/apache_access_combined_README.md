@@ -85,7 +85,7 @@ python generator.py \
 
 `-m` directly controls concurrent workers, but because sessions are so short (1–3 second state delays throughout the browsing journey), the system cannot maintain more than ~21 simultaneous sessions regardless of the cap. Setting `-m` above 21 has no practical effect. For higher-volume web log generation with realistic page-dwell times, use the [`apache_access_json_lighting`](apache_access_json_lighting_README.md) or [`apache_access_json_furniture`](apache_access_json_furniture_README.md) variants instead.
 
-For time-of-day variation, use `--schedule schedule/ecommerce.json`. See the [schedule README](../schedule/README.md) for how schedules interact with `-m` and the ceiling.
+For time-of-day variation, use `--schedule conf/schedule/ecommerce.json`. See the [schedule documentation](../docs/schedule.md) for how schedules interact with `-m` and the ceiling.
 
 ## Use cases
 

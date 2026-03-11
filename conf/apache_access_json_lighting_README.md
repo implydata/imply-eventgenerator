@@ -41,4 +41,4 @@ TARGET_SOURCE="my_host/httpd/access_json.log" TARGET_INDEX="main" \
 
 `-m` directly controls peak concurrent visitors — `-m 200` means up to 200 simultaneous sessions. The ceiling (~1,365) is simply the maximum the config can sustain: above it, sessions complete faster than new ones arrive to fill the pool, so extra `-m` headroom goes unused. For most use cases, set `-m` to the peak visitor count you want to simulate.
 
-For time-of-day variation, use `--schedule schedule/ecommerce.json`. See the [schedule README](../schedule/README.md) for how schedules interact with `-m` and the ceiling.
+For time-of-day variation, use `--schedule conf/schedule/ecommerce.json`. See the [schedule documentation](../docs/schedule.md) for how schedules interact with `-m` and the ceiling.

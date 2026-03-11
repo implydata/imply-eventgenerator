@@ -77,7 +77,7 @@ python generator.py \
 
 `-m` directly controls peak concurrent users — `-m 500` means up to 500 simultaneous sessions. Sessions are long because the only exit is `purchase → stop` (50% chance), which requires working through the full shopping funnel, so the cap bites immediately and directly determines throughput. The ceiling (~18,000) is simply the maximum the config can sustain; setting `-m` above it has no additional effect, and most use cases will want `-m` well below this figure.
 
-For time-of-day variation, use `--schedule schedule/ecommerce.json`. See the [schedule README](../schedule/README.md) for how schedules interact with `-m` and the ceiling.
+For time-of-day variation, use `--schedule conf/schedule/ecommerce.json`. See the [schedule documentation](../docs/schedule.md) for how schedules interact with `-m` and the ceiling.
 
 ## Use cases
 
