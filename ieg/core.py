@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from sortedcontainers import SortedList
 
 from ieg.dimensions import DimensionTimestampClock, DimensionVariable, get_dimensions, get_variables
-from ieg.distributions import parse_distribution
+from ieg.distributions import parse_distribution, parse_schedule
 from ieg.states import Controller, State, Transition
 from ieg.targets import TargetConfluent, TargetFile, TargetKafka
 
@@ -195,7 +195,7 @@ class Clock:
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
-    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format):
+    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None):
         self.name = name
         self.config = config
         self.runtime = runtime
@@ -219,6 +219,7 @@ class DataDriver:
 
         self.global_clock = Clock(time_type, start_time)
         self.sim_control = Controller(total_recs, runtime, self.global_clock)
+        self.schedule = parse_schedule(schedule_config, self.global_clock) if schedule_config else None
 
         #
         # Set up the output target
@@ -463,7 +464,9 @@ class DataDriver:
 
         # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
         while not self.sim_control.is_done():
-            if self.sim_control.get_entity_count() < self.max_entities:
+            multiplier = self.schedule.get_multiplier() if self.schedule else 1.0
+            effective_max = max(1, int(self.max_entities * multiplier))
+            if self.sim_control.get_entity_count() < effective_max:
                 thread_name = 'W'+str(self.sim_control.get_entity_count())
                 self.sim_control.add_entity()
                 t = threading.Thread(target=self.worker_thread, name=thread_name, daemon=True)

@@ -123,9 +123,11 @@ The realistic maximum for `-m` (concurrent workers) for this configuration is **
 | Average session duration (W) | ~13 seconds (weighted across all traffic types) |
 | Interarrival mean | 0.5s (exponential) |
 | Base arrival rate (λ = 1 / mean) | 2 workers/sec |
-| Peak steady-state concurrency (L = λW) | ~25 |
+| Maximum useful `-m` (L = λW) | ~25 |
 
-Sessions are short because each worker models a single network connection, which completes quickly. The average is weighted across traffic types: web (~10s), database (~8s), internal API (~9s), SSH (~35s), port scan (~39s), DNS (~2s). Setting `-m` above 25 will have no effect on volume.
+`-m` directly controls concurrent workers, but because connections are so short-lived, the system cannot maintain more than ~25 simultaneous sessions regardless of the cap. Each worker models a single network connection that completes in seconds (web ~10s, database ~8s, internal API ~9s, SSH ~35s, port scan ~39s, DNS ~2s) — by the time a new worker arrives, previous ones have already finished. Setting `-m` above 25 has no practical effect; use the interarrival `mean` in the config to adjust volume instead.
+
+For time-of-day variation, use `--schedule schedule/ecommerce.json`. See the [schedule README](../schedule/README.md) for how schedules interact with `-m` and the ceiling.
 
 ## Use cases
 
