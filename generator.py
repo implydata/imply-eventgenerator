@@ -16,8 +16,8 @@ DEFAULT_CONCURRENCY = 100
 def validate_concurrency(value):
     try:
         ivalue = int(value)
-        if ivalue < 1 or ivalue > 1000:
-            raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 1000.")
+        if ivalue < 1 or ivalue > 100000:
+            raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 100000.")
         return ivalue
     except ValueError:
         raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 1000.")
@@ -54,6 +54,13 @@ def main(argv=None):
         nargs='?',
         default=DEFAULT_CONCURRENCY,
         help='Max entities concurrently generating events (1-1000)'
+    )
+
+    parser.add_argument(
+        '--schedule',
+        dest='schedule_file',
+        default=None,
+        help='Schedule file (JSON) for modulating max_entities over time. Defaults to full capacity if not specified.'
     )
 
     parser.add_argument(
@@ -116,6 +123,15 @@ def main(argv=None):
         else:
             target = None
 
+        # Load schedule file
+        schedule_config = None
+        if args.schedule_file:
+            with open(args.schedule_file, 'r') as f:
+                try:
+                    schedule_config = json.load(f)
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Error parsing schedule file '{args.schedule_file}': {e}")
+
         # Load record format file
         if args.record_format_file:
             if os.path.exists(args.record_format_file):
@@ -140,7 +156,8 @@ def main(argv=None):
             time_type=time_type,
             start_time=start_time,
             max_entities=max_entities,
-            record_format=record_format
+            record_format=record_format,
+            schedule_config=schedule_config
         )
         logger.info("Starting synthetic event data generator at %s", datetime.now().isoformat())
         driver.simulate()
