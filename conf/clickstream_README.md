@@ -66,6 +66,19 @@ python generator.py \
   --seed 42
 ```
 
+## Concurrency (`-m`)
+
+The realistic maximum for `-m` (concurrent workers) for this configuration is **18,000**.
+
+| Little's Law component | Value |
+| --- | --- |
+| Average session duration (W) | ~1,800 seconds (~30 minutes) |
+| Interarrival mean | 0.1s (exponential) |
+| Base arrival rate (λ = 1 / mean) | 10 workers/sec |
+| Peak steady-state concurrency (L = λW) | ~18,000 |
+
+Sessions are long because the only exit is `purchase → stop` (50% chance), which requires working through the full shopping funnel. Setting `-m` well below 18,000 is the primary way to control volume.
+
 ## Use cases
 
 - **Funnel analysis**: Track conversion rates through search → product → cart → purchase

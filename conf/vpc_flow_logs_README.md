@@ -114,6 +114,19 @@ python3 generator.py \
   -t conf/tar/kafka.json
 ```
 
+## Concurrency (`-m`)
+
+The realistic maximum for `-m` (concurrent workers) for this configuration is **25**.
+
+| Little's Law component | Value |
+| --- | --- |
+| Average session duration (W) | ~13 seconds (weighted across all traffic types) |
+| Interarrival mean | 0.5s (exponential) |
+| Base arrival rate (λ = 1 / mean) | 2 workers/sec |
+| Peak steady-state concurrency (L = λW) | ~25 |
+
+Sessions are short because each worker models a single network connection, which completes quickly. The average is weighted across traffic types: web (~10s), database (~8s), internal API (~9s), SSH (~35s), port scan (~39s), DNS (~2s). Setting `-m` above 25 will have no effect on volume.
+
 ## Use cases
 
 - **Testing SIEM/Security Analytics**: Detect port scanning, unusual traffic patterns
