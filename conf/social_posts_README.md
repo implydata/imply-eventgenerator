@@ -56,6 +56,12 @@ python generator.py \
   --seed 42
 ```
 
+## Concurrency (`-m`)
+
+This config uses an infinite loop (`state_1 → state_1`, probability 1.0), so sessions never end. Little's Law does not apply in the conventional sense — W is infinite.
+
+In practice, `-m` directly and linearly controls output volume: each active worker emits 1 record per second, so throughput equals `-m` records/second. The maximum value for `-m` is **1,000** (the system limit).
+
 ## Use cases
 
 - **Getting started**: Simple config to understand the generator basics

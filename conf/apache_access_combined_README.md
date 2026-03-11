@@ -74,6 +74,19 @@ python generator.py \
   --seed 42
 ```
 
+## Concurrency (`-m`)
+
+The realistic maximum for `-m` (concurrent workers) for this configuration is **21**.
+
+| Little's Law component | Value |
+| --- | --- |
+| Average session duration (W) | ~21 seconds |
+| Interarrival mean | 1.0s (exponential) |
+| Base arrival rate (λ = 1 / mean) | 1 worker/sec |
+| Peak steady-state concurrency (L = λW) | ~21 |
+
+Sessions are short due to the 1–3 second state delays throughout the browsing journey. Setting `-m` above 21 will have no effect on volume. For higher-volume web log generation with realistic page-dwell times, use the [`apache_access_json_lighting`](apache_access_json_lighting_README.md) or [`apache_access_json_furniture`](apache_access_json_furniture_README.md) variants instead.
+
 ## Use cases
 
 - **Web analytics testing**: Realistic clickstream data with browsing funnels and conversion paths
