@@ -29,3 +29,16 @@ TARGET_SOURCE="my_host/httpd/access_json.log" TARGET_INDEX="main" \
 | Smart | 15% | Voice-controlled bulb, color-changing bulb, wifi LED strip |
 | LED | 15% | Ultra bright LED bulb, eco-friendly LED panel, LED desk lamp |
 | Vintage | 8% | Retro chandelier, antique wall lamp, industrial pendant light |
+
+### Concurrency (`-m`)
+
+The realistic maximum for `-m` (concurrent workers) for this configuration is **2,500**.
+
+| Little's Law component | Value |
+| --- | --- |
+| Average session duration (W) | ~819 seconds (~14 minutes) |
+| Interarrival mean | 0.6s |
+| Base arrival rate (λ = 1 / mean) | ~1.67 visitors/sec |
+| Peak GMM multiplier | 1.8× (Tuesday midday) |
+| Peak arrival rate (λ × multiplier) | ~3.0 visitors/sec |
+| Peak steady-state concurrency (L = λW) | ~2,460 |

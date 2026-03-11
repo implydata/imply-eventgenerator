@@ -29,3 +29,16 @@ TARGET_SOURCE="my_host/httpd/access_json.log" TARGET_INDEX="main" \
 | Dining room | 15% | Dining table, dining chair, sideboard, bar stool, china cabinet |
 | Office | 13% | Standing desk, task chair, filing cabinet, writing desk, bookshelf |
 | Outdoor | 10% | Patio dining set, lounge chair, garden bench, hammock, Adirondack chair |
+
+### Concurrency (`-m`)
+
+The realistic maximum for `-m` (concurrent workers) for this configuration is **750**.
+
+| Little's Law component | Value |
+| --- | --- |
+| Average session duration (W) | ~1,244 seconds (~21 minutes) |
+| Interarrival mean | 3.0s |
+| Base arrival rate (λ = 1 / mean) | ~0.33 visitors/sec |
+| Peak GMM multiplier | 1.8× (Tuesday midday) |
+| Peak arrival rate (λ × multiplier) | ~0.60 visitors/sec |
+| Peak steady-state concurrency (L = λW) | ~746 |
