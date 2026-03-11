@@ -115,6 +115,43 @@ class DistGMMTemporal:
             multiplier = 0.001
         return np.random.exponential(scale=self.mean / multiplier)
 
+class Schedule:
+    """
+    A capacity schedule that returns a multiplier (0–1) for the current time.
+    Used with --schedule to modulate max_entities over time.
+    Supports 'constant' (flat capacity) and 'gmm_temporal' (time-varying) distributions.
+    """
+    def __init__(self, dist_config, clock):
+        self.clock = clock
+        dist_type = dist_config['type'].lower()
+        if dist_type == 'constant':
+            self._constant = float(dist_config['value'])
+            self._gmm = None
+        elif dist_type == 'gmm_temporal':
+            days = dist_config.get('days')
+            if not days:
+                raise ValueError('Schedule gmm_temporal requires "days"')
+            self._gmm = DistGMMTemporal(1.0, days, clock)
+            self._constant = None
+        else:
+            raise ValueError(f'Schedule does not support distribution type "{dist_type}"')
+
+    def get_multiplier(self):
+        """Return the current capacity multiplier (0–1)."""
+        if self._gmm is None:
+            return self._constant
+        now = self.clock.now()
+        day = now.isoweekday()
+        hour = now.hour + now.minute / 60.0 + now.second / 3600.0
+        profile = self._gmm._get_profile(day)
+        return max(0.0, self._gmm._get_multiplier(hour, profile))
+
+
+def parse_schedule(desc, clock):
+    """Parse a schedule configuration and return a Schedule object."""
+    return Schedule(desc, clock)
+
+
 def parse_distribution(desc, clock=None):
     """
     Parse a distribution configuration and return a distribution object.

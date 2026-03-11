@@ -68,16 +68,16 @@ python generator.py \
 
 ## Concurrency (`-m`)
 
-The realistic maximum for `-m` (concurrent workers) for this configuration is **18,000**.
-
 | Little's Law component | Value |
 | --- | --- |
 | Average session duration (W) | ~1,800 seconds (~30 minutes) |
 | Interarrival mean | 0.1s (exponential) |
 | Base arrival rate (λ = 1 / mean) | 10 workers/sec |
-| Peak steady-state concurrency (L = λW) | ~18,000 |
+| Maximum useful `-m` (L = λW) | ~18,000 |
 
-Sessions are long because the only exit is `purchase → stop` (50% chance), which requires working through the full shopping funnel. Setting `-m` well below 18,000 is the primary way to control volume.
+`-m` directly controls peak concurrent users — `-m 500` means up to 500 simultaneous sessions. Sessions are long because the only exit is `purchase → stop` (50% chance), which requires working through the full shopping funnel, so the cap bites immediately and directly determines throughput. The ceiling (~18,000) is simply the maximum the config can sustain; setting `-m` above it has no additional effect, and most use cases will want `-m` well below this figure.
+
+For time-of-day variation, use `--schedule schedule/ecommerce.json`. See the [schedule README](../schedule/README.md) for how schedules interact with `-m` and the ceiling.
 
 ## Use cases
 
