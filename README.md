@@ -46,6 +46,7 @@ python generator.py \
         -m <generator workers limit> \
         -n <record limit> \
         -r <duration limit in ISO8610 format> \
+        --schedule <schedule file> \
         --debug
         --seed <integer>
 ```
@@ -59,6 +60,7 @@ python generator.py \
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
 | [`-r`](#generation-limits) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
+| [`--schedule`](schedule/README.md) | A JSON file that modulates the number of active workers over time, producing time-of-day traffic variation. See the [schedule README](schedule/README.md) for available schedules and how to write your own. |
 | `--debug` | Enable debug logging. Outputs detailed thread scheduling and event queue information to stderr. |
 | [`--seed`](docs/deterministic.md) | An integer seed for deterministic data generation. Use with `-s` for fully reproducible output. |
 
