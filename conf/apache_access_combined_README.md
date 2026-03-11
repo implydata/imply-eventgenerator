@@ -87,6 +87,8 @@ The realistic maximum for `-m` (concurrent workers) for this configuration is **
 
 Sessions are short due to the 1–3 second state delays throughout the browsing journey. Setting `-m` above 21 will have no effect on volume. For higher-volume web log generation with realistic page-dwell times, use the [`apache_access_json_lighting`](apache_access_json_lighting_README.md) or [`apache_access_json_furniture`](apache_access_json_furniture_README.md) variants instead.
 
+To add time-of-day variation, use `--schedule schedule/ecommerce.json`. Because the natural L (~21) is so low, even a modest `-m` will see the schedule reduce active workers at off-peak times.
+
 ## Use cases
 
 - **Web analytics testing**: Realistic clickstream data with browsing funnels and conversion paths

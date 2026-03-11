@@ -79,6 +79,8 @@ The realistic maximum for `-m` (concurrent workers) for this configuration is **
 
 Sessions are long because the only exit is `purchase → stop` (50% chance), which requires working through the full shopping funnel. Setting `-m` well below 18,000 is the primary way to control volume.
 
+To add time-of-day variation, use `--schedule schedule/ecommerce.json`. The schedule reduces active workers at off-peak times, producing realistic daily traffic patterns regardless of the `-m` value set.
+
 ## Use cases
 
 - **Funnel analysis**: Track conversion rates through search → product → cart → purchase

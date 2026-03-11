@@ -32,13 +32,11 @@ TARGET_SOURCE="my_host/httpd/access_json.log" TARGET_INDEX="main" \
 
 ### Concurrency (`-m`)
 
-The realistic maximum for `-m` (concurrent workers) for this configuration is **750**.
-
 | Little's Law component | Value |
 | --- | --- |
 | Average session duration (W) | ~1,244 seconds (~21 minutes) |
-| Interarrival mean | 3.0s |
+| Interarrival mean | 3.0s (exponential) |
 | Base arrival rate (λ = 1 / mean) | ~0.33 visitors/sec |
-| Peak GMM multiplier | 1.8× (Tuesday midday) |
-| Peak arrival rate (λ × multiplier) | ~0.60 visitors/sec |
-| Peak steady-state concurrency (L = λW) | ~746 |
+| Natural steady-state concurrency (L = λW) | ~415 |
+
+`-m` sets peak concurrent workers. For realistic temporal variation (busier on weekday afternoons, quiet overnight), use `--schedule schedule/ecommerce.json`. Setting `-m` at or above the natural L (~415) means the schedule drives active worker count freely. At lower `-m` values the cap still bites at peak, but the schedule will reduce active workers to a fraction of `-m` at off-peak times, preserving temporal variation.

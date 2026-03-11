@@ -127,6 +127,8 @@ The realistic maximum for `-m` (concurrent workers) for this configuration is **
 
 Sessions are short because each worker models a single network connection, which completes quickly. The average is weighted across traffic types: web (~10s), database (~8s), internal API (~9s), SSH (~35s), port scan (~39s), DNS (~2s). Setting `-m` above 25 will have no effect on volume.
 
+To add time-of-day variation, use `--schedule schedule/ecommerce.json`. The schedule reduces active workers at off-peak times, producing realistic daily traffic patterns regardless of the `-m` value set.
+
 ## Use cases
 
 - **Testing SIEM/Security Analytics**: Detect port scanning, unusual traffic patterns
