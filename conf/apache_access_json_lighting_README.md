@@ -37,6 +37,8 @@ TARGET_SOURCE="my_host/httpd/access_json.log" TARGET_INDEX="main" \
 | Average session duration (W) | ~819 seconds (~14 minutes) |
 | Interarrival mean | 0.6s (exponential) |
 | Base arrival rate (λ = 1 / mean) | ~1.67 visitors/sec |
-| Natural steady-state concurrency (L = λW) | ~1,365 |
+| Maximum useful `-m` (L = λW) | ~1,365 |
 
-`-m` sets peak concurrent workers. For realistic temporal variation (busier on weekday afternoons, quiet overnight), use `--schedule schedule/ecommerce.json`. Setting `-m` at or above the natural L (~1,365) means the schedule drives active worker count freely. At lower `-m` values the cap still bites at peak, but the schedule will reduce active workers to a fraction of `-m` at off-peak times, preserving temporal variation.
+`-m` directly controls peak concurrent visitors — `-m 200` means up to 200 simultaneous sessions. The ceiling (~1,365) is simply the maximum the config can sustain: above it, sessions complete faster than new ones arrive to fill the pool, so extra `-m` headroom goes unused. For most use cases, set `-m` to the peak visitor count you want to simulate.
+
+For time-of-day variation, use `--schedule schedule/ecommerce.json`. See the [schedule README](../schedule/README.md) for how schedules interact with `-m` and the ceiling.
