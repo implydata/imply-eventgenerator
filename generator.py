@@ -124,9 +124,7 @@ def main(argv=None):
             if not validate_config(config):
                 logger.critical("Config '%s' is invalid — see errors above.", args.config_file)
                 sys.exit(1)
-            else:
-                logger.info("Config '%s' is valid.", args.config_file)
-                sys.exit(0)
+            sys.exit(0)
 
         # Load target file or use target from config
         if args.target_file:
