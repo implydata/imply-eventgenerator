@@ -1,8 +1,11 @@
+import logging
 import random
 import string
 import re
 from datetime import datetime, timezone
 from ieg.distributions import parse_distribution, parse_timestamp_distribution, validate_distribution_desc
+
+logger = logging.getLogger('ieg')
 
 #
 # Classes for different types of emitter dimension
@@ -64,31 +67,40 @@ class DimensionBase:
     @staticmethod
     def validate_desc(desc, context):
         """Validate fields common to all DimensionBase subclasses (int, float, ipaddress)."""
-        errors = []
+        valid = True
         if 'name' not in desc:
-            errors.append(f"{context}: missing required field 'name'")
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
         if 'type' not in desc:
-            errors.append(f"{context}: missing required field 'type'")
+            logger.error("%s: missing required field 'type'", context)
+            valid = False
         if 'cardinality' not in desc:
-            errors.append(f"{context}: missing required field 'cardinality'")
+            logger.error("%s: missing required field 'cardinality'", context)
+            valid = False
         else:
             cardinality = desc['cardinality']
             try:
                 cardinality = int(cardinality)
                 if cardinality < 0:
-                    errors.append(f"{context}: 'cardinality' must be an integer >= 0, got {desc['cardinality']}")
+                    logger.error("%s: 'cardinality' must be an integer >= 0, got %s", context, desc['cardinality'])
+                    valid = False
                 elif cardinality > 0:
                     if 'cardinality_distribution' not in desc:
-                        errors.append(f"{context}: 'cardinality' > 0 requires 'cardinality_distribution'")
+                        logger.error("%s: 'cardinality' > 0 requires 'cardinality_distribution'", context)
+                        valid = False
                     else:
-                        errors += validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution")
+                        if not validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution"):
+                            valid = False
             except (TypeError, ValueError):
-                errors.append(f"{context}: 'cardinality' must be an integer, got {desc['cardinality']!r}")
+                logger.error("%s: 'cardinality' must be an integer, got %r", context, desc['cardinality'])
+                valid = False
         if 'distribution' not in desc:
-            errors.append(f"{context}: missing required field 'distribution'")
+            logger.error("%s: missing required field 'distribution'", context)
+            valid = False
         else:
-            errors += validate_distribution_desc(desc['distribution'], f"{context} distribution")
-        return errors
+            if not validate_distribution_desc(desc['distribution'], f"{context} distribution"):
+                valid = False
+        return valid
 
     def get_stochastic_value(self):
         """
@@ -167,15 +179,17 @@ class DimensionFloat(DimensionBase):
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = DimensionBase.validate_desc(desc, context)
+        valid = DimensionBase.validate_desc(desc, context)
         if 'precision' in desc:
             try:
                 p = int(desc['precision'])
                 if p < 0:
-                    errors.append(f"{context}: 'precision' must be an integer >= 0, got {desc['precision']}")
+                    logger.error("%s: 'precision' must be an integer >= 0, got %s", context, desc['precision'])
+                    valid = False
             except (TypeError, ValueError):
-                errors.append(f"{context}: 'precision' must be an integer, got {desc['precision']!r}")
-        return errors
+                logger.error("%s: 'precision' must be an integer, got %r", context, desc['precision'])
+                valid = False
+        return valid
 
     def get_stochastic_value(self):
         return float(self.value_distribution.get_sample())
@@ -233,20 +247,23 @@ class DimensionCounter:
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'name' not in desc:
-            errors.append(f"{context}: missing required field 'name'")
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
         if 'start' in desc:
             try:
                 float(desc['start'])
             except (TypeError, ValueError):
-                errors.append(f"{context}: 'start' must be numeric, got {desc['start']!r}")
+                logger.error("%s: 'start' must be numeric, got %r", context, desc['start'])
+                valid = False
         if 'increment' in desc:
             try:
                 float(desc['increment'])
             except (TypeError, ValueError):
-                errors.append(f"{context}: 'increment' must be numeric, got {desc['increment']!r}")
-        return errors
+                logger.error("%s: 'increment' must be numeric, got %r", context, desc['increment'])
+                valid = False
+        return valid
 
     def get_stochastic_value(self):
         v = self.value
@@ -265,7 +282,7 @@ class DimensionCounter:
 
 #
 # STRING dimensions
-# 
+#
 
 class DimensionString(DimensionBase):
     # Generates random strings based on a length distribution and character set.
@@ -282,28 +299,36 @@ class DimensionString(DimensionBase):
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'name' not in desc:
-            errors.append(f"{context}: missing required field 'name'")
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
         if 'cardinality' not in desc:
-            errors.append(f"{context}: missing required field 'cardinality'")
+            logger.error("%s: missing required field 'cardinality'", context)
+            valid = False
         else:
             try:
                 cardinality = int(desc['cardinality'])
                 if cardinality < 0:
-                    errors.append(f"{context}: 'cardinality' must be an integer >= 0, got {desc['cardinality']}")
+                    logger.error("%s: 'cardinality' must be an integer >= 0, got %s", context, desc['cardinality'])
+                    valid = False
                 elif cardinality > 0:
                     if 'cardinality_distribution' not in desc:
-                        errors.append(f"{context}: 'cardinality' > 0 requires 'cardinality_distribution'")
+                        logger.error("%s: 'cardinality' > 0 requires 'cardinality_distribution'", context)
+                        valid = False
                     else:
-                        errors += validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution")
+                        if not validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution"):
+                            valid = False
             except (TypeError, ValueError):
-                errors.append(f"{context}: 'cardinality' must be an integer, got {desc['cardinality']!r}")
+                logger.error("%s: 'cardinality' must be an integer, got %r", context, desc['cardinality'])
+                valid = False
         if 'length_distribution' not in desc:
-            errors.append(f"{context}: missing required field 'length_distribution'")
+            logger.error("%s: missing required field 'length_distribution'", context)
+            valid = False
         else:
-            errors += validate_distribution_desc(desc['length_distribution'], f"{context} length_distribution")
-        return errors
+            if not validate_distribution_desc(desc['length_distribution'], f"{context} length_distribution"):
+                valid = False
+        return valid
 
     def get_stochastic_value(self):
         length = int(self.length_distribution.get_sample())
@@ -325,9 +350,9 @@ class DimensionString(DimensionBase):
             s = '"'+self.name+'":"'+str(value)+'"'
         return s
 
-#  
+#
 # TIMESTAMP dimensions
-# 
+#
 
 class DimensionTimestampClock:
     def __init__(self, clock, desc):
@@ -336,10 +361,11 @@ class DimensionTimestampClock:
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'name' not in desc:
-            errors.append(f"{context}: missing required field 'name'")
-        return errors
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
+        return valid
 
     def get_stochastic_value(self):
         # Retrieve the current time from the Clock instance
@@ -383,16 +409,20 @@ class DimensionTimestamp(DimensionBase):
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'name' not in desc:
-            errors.append(f"{context}: missing required field 'name'")
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
         if 'cardinality' not in desc:
-            errors.append(f"{context}: missing required field 'cardinality'")
+            logger.error("%s: missing required field 'cardinality'", context)
+            valid = False
         if 'distribution' not in desc:
-            errors.append(f"{context}: missing required field 'distribution'")
+            logger.error("%s: missing required field 'distribution'", context)
+            valid = False
         else:
-            errors += validate_distribution_desc(desc['distribution'], f"{context} distribution")
-        return errors
+            if not validate_distribution_desc(desc['distribution'], f"{context} distribution"):
+                valid = False
+        return valid
 
     def get_stochastic_value(self):
         # Return a random timestamp as a datetime object
@@ -479,29 +509,29 @@ class DimensionEnum:
 
     @staticmethod
     def validate_desc(desc, context):
-        """Returns (errors, warnings)."""
-        errors = []
-        warnings = []
+        valid = True
         if 'name' not in desc:
-            errors.append(f"{context}: missing required field 'name'")
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
         values = desc.get('values')
         if not values or not isinstance(values, list):
-            errors.append(f"{context}: 'values' required and must be a non-empty list")
+            logger.error("%s: 'values' required and must be a non-empty list", context)
+            valid = False
         if 'cardinality_distribution' not in desc:
-            errors.append(f"{context}: missing required field 'cardinality_distribution'")
+            logger.error("%s: missing required field 'cardinality_distribution'", context)
+            valid = False
         else:
-            errors += validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution")
+            if not validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution"):
+                valid = False
             cd = desc['cardinality_distribution']
             if isinstance(cd, dict) and cd.get('type', '').lower() == 'uniform' and values and isinstance(values, list):
                 try:
                     if int(cd.get('max', 0)) > len(values) - 1:
-                        warnings.append(
-                            f"{context}: cardinality_distribution uniform 'max' ({cd['max']}) exceeds"
-                            f" last valid index ({len(values) - 1}) — distribution will be skewed"
-                        )
+                        logger.warning("%s: cardinality_distribution uniform 'max' (%s) exceeds last valid index (%d) — distribution will be skewed", context, cd['max'], len(values) - 1)
+                        # do NOT set valid = False — this is non-fatal
                 except (TypeError, ValueError):
                     pass
-        return errors, warnings
+        return valid
 
     def get_stochastic_value(self):
         index = int(self.cardinality_distribution.get_sample())
@@ -563,30 +593,38 @@ class DimensionObject():
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'name' not in desc:
-            errors.append(f"{context}: missing required field 'name'")
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
         if 'cardinality' not in desc:
-            errors.append(f"{context}: missing required field 'cardinality'")
+            logger.error("%s: missing required field 'cardinality'", context)
+            valid = False
         else:
             try:
                 cardinality = int(desc['cardinality'])
                 if cardinality < 0:
-                    errors.append(f"{context}: 'cardinality' must be an integer >= 0, got {desc['cardinality']}")
+                    logger.error("%s: 'cardinality' must be an integer >= 0, got %s", context, desc['cardinality'])
+                    valid = False
                 elif cardinality > 0:
                     if 'cardinality_distribution' not in desc:
-                        errors.append(f"{context}: 'cardinality' > 0 requires 'cardinality_distribution'")
+                        logger.error("%s: 'cardinality' > 0 requires 'cardinality_distribution'", context)
+                        valid = False
                     else:
-                        errors += validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution")
+                        if not validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution"):
+                            valid = False
             except (TypeError, ValueError):
-                errors.append(f"{context}: 'cardinality' must be an integer, got {desc['cardinality']!r}")
+                logger.error("%s: 'cardinality' must be an integer, got %r", context, desc['cardinality'])
+                valid = False
         dims = desc.get('dimensions')
         if not dims or not isinstance(dims, list):
-            errors.append(f"{context}: 'dimensions' required and must be a non-empty list")
+            logger.error("%s: 'dimensions' required and must be a non-empty list", context)
+            valid = False
         else:
             for nested in dims:
-                errors += validate_dimension_desc(nested, f"{context}, nested dimension '{nested.get('name', '?')}'")
-        return errors
+                if not validate_dimension_desc(nested, f"{context}, nested dimension '{nested.get('name', '?')}'"):
+                    valid = False
+        return valid
 
     def get_instance(self):
         s = '"'+self.name+'": {'
@@ -661,38 +699,50 @@ class DimensionList():
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'name' not in desc:
-            errors.append(f"{context}: missing required field 'name'")
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
         if 'cardinality' not in desc:
-            errors.append(f"{context}: missing required field 'cardinality'")
+            logger.error("%s: missing required field 'cardinality'", context)
+            valid = False
         else:
             try:
                 cardinality = int(desc['cardinality'])
                 if cardinality < 0:
-                    errors.append(f"{context}: 'cardinality' must be an integer >= 0, got {desc['cardinality']}")
+                    logger.error("%s: 'cardinality' must be an integer >= 0, got %s", context, desc['cardinality'])
+                    valid = False
                 elif cardinality > 0:
                     if 'cardinality_distribution' not in desc:
-                        errors.append(f"{context}: 'cardinality' > 0 requires 'cardinality_distribution'")
+                        logger.error("%s: 'cardinality' > 0 requires 'cardinality_distribution'", context)
+                        valid = False
                     else:
-                        errors += validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution")
+                        if not validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution"):
+                            valid = False
             except (TypeError, ValueError):
-                errors.append(f"{context}: 'cardinality' must be an integer, got {desc['cardinality']!r}")
+                logger.error("%s: 'cardinality' must be an integer, got %r", context, desc['cardinality'])
+                valid = False
         elems = desc.get('elements')
         if not elems or not isinstance(elems, list):
-            errors.append(f"{context}: 'elements' required and must be a non-empty list")
+            logger.error("%s: 'elements' required and must be a non-empty list", context)
+            valid = False
         else:
             for elem in elems:
-                errors += validate_dimension_desc(elem, f"{context}, element '{elem.get('name', '?')}'")
+                if not validate_dimension_desc(elem, f"{context}, element '{elem.get('name', '?')}'"):
+                    valid = False
         if 'length_distribution' not in desc:
-            errors.append(f"{context}: missing required field 'length_distribution'")
+            logger.error("%s: missing required field 'length_distribution'", context)
+            valid = False
         else:
-            errors += validate_distribution_desc(desc['length_distribution'], f"{context} length_distribution")
+            if not validate_distribution_desc(desc['length_distribution'], f"{context} length_distribution"):
+                valid = False
         if 'selection_distribution' not in desc:
-            errors.append(f"{context}: missing required field 'selection_distribution'")
+            logger.error("%s: missing required field 'selection_distribution'", context)
+            valid = False
         else:
-            errors += validate_distribution_desc(desc['selection_distribution'], f"{context} selection_distribution")
-        return errors
+            if not validate_distribution_desc(desc['selection_distribution'], f"{context} selection_distribution"):
+                valid = False
+        return valid
 
     def get_instance(self):
         s = '"'+self.name+'": ['
@@ -742,18 +792,20 @@ class DimensionVariable:
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'name' not in desc:
-            errors.append(f"{context}: missing required field 'name'")
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
         if 'variable' not in desc:
-            errors.append(f"{context}: missing required field 'variable'")
-        return errors
+            logger.error("%s: missing required field 'variable'", context)
+            valid = False
+        return valid
 
     def get_json_field_string(self, variables): # NOTE: because of timing, this method has a different signature than the other elements
         value = variables[self.variable_name]
         return '"'+self.name+'":"'+str(value)+'"'
 
-# 
+#
 # Configuration parsing functions
 #
 
@@ -807,44 +859,40 @@ KNOWN_DIMENSION_TYPES = (
 def validate_dimension_desc(desc, context):
     """
     Validate a dimension config dict without constructing any objects.
-    Returns (errors, warnings) — both lists of strings.
+    Logs errors/warnings directly and returns True (valid) or False (invalid).
     """
-    errors = []
-    warnings = []
     if not isinstance(desc, dict):
-        errors.append(f"{context}: dimension must be a JSON object, got {type(desc).__name__}")
-        return errors, warnings
+        logger.error("%s: dimension must be a JSON object, got %s", context, type(desc).__name__)
+        return False
     if 'type' not in desc:
-        errors.append(f"{context}: missing required field 'type'")
-        return errors, warnings
+        logger.error("%s: missing required field 'type'", context)
+        return False
     dim_type = str(desc['type']).lower()
     if dim_type == 'enum':
-        e, w = DimensionEnum.validate_desc(desc, context)
-        errors += e
-        warnings += w
+        return DimensionEnum.validate_desc(desc, context)
     elif dim_type == 'counter':
-        errors += DimensionCounter.validate_desc(desc, context)
+        return DimensionCounter.validate_desc(desc, context)
     elif dim_type == 'string':
-        errors += DimensionString.validate_desc(desc, context)
+        return DimensionString.validate_desc(desc, context)
     elif dim_type == 'int':
-        errors += DimensionInt.validate_desc(desc, context)
+        return DimensionInt.validate_desc(desc, context)
     elif dim_type == 'float':
-        errors += DimensionFloat.validate_desc(desc, context)
+        return DimensionFloat.validate_desc(desc, context)
     elif dim_type == 'timestamp':
-        errors += DimensionTimestamp.validate_desc(desc, context)
+        return DimensionTimestamp.validate_desc(desc, context)
     elif dim_type == 'clock':
-        errors += DimensionTimestampClock.validate_desc(desc, context)
+        return DimensionTimestampClock.validate_desc(desc, context)
     elif dim_type == 'ipaddress':
-        errors += DimensionIPAddress.validate_desc(desc, context)
+        return DimensionIPAddress.validate_desc(desc, context)
     elif dim_type == 'variable':
-        errors += DimensionVariable.validate_desc(desc, context)
+        return DimensionVariable.validate_desc(desc, context)
     elif dim_type == 'object':
-        errors += DimensionObject.validate_desc(desc, context)
+        return DimensionObject.validate_desc(desc, context)
     elif dim_type == 'list':
-        errors += DimensionList.validate_desc(desc, context)
+        return DimensionList.validate_desc(desc, context)
     else:
-        errors.append(
-            f"{context}: unknown dimension type '{desc['type']}'"
-            f" (known: {', '.join(KNOWN_DIMENSION_TYPES)})"
+        logger.error(
+            "%s: unknown dimension type '%s' (known: %s)",
+            context, desc['type'], ', '.join(KNOWN_DIMENSION_TYPES)
         )
-    return errors, warnings
+        return False

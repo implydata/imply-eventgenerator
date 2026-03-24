@@ -1,53 +1,63 @@
 """Pre-flight configuration validation for the event generator."""
 
+import logging
+
 from ieg.distributions import validate_distribution_desc
 from ieg.dimensions import validate_dimension_desc
 from ieg.states import State, Transition
+
+logger = logging.getLogger('ieg')
 
 
 def validate_config(config):
     """
     Validate a generator config dict.
-    Returns (errors, warnings) — both lists of strings.
-    Never raises — all problems are accumulated and returned.
+    Logs errors and warnings directly and returns True (valid) or False (has fatal errors).
+    Never raises — all problems are accumulated and reported before returning.
     Errors are fatal (generator cannot start). Warnings are non-fatal but likely mistakes.
     """
-    errors = []
-    warnings = []
+    valid = True
 
     # Top-level required fields
     if 'interarrival' not in config:
-        errors.append("missing required field 'interarrival'")
+        logger.error("Config missing required field 'interarrival'")
+        valid = False
     else:
-        errors += validate_distribution_desc(config['interarrival'], "interarrival")
+        if not validate_distribution_desc(config['interarrival'], "interarrival"):
+            valid = False
 
     # Emitters
     emitter_names = set()
     if 'emitters' not in config:
-        errors.append("missing required field 'emitters'")
+        logger.error("Config missing required field 'emitters'")
+        valid = False
     elif not isinstance(config['emitters'], list) or len(config['emitters']) == 0:
-        errors.append("'emitters' must be a non-empty list")
+        logger.error("Config 'emitters' must be a non-empty list")
+        valid = False
     else:
         for i, emitter in enumerate(config['emitters']):
             ctx = f"emitter '{emitter.get('name', f'[{i}]')}'"
             if 'name' not in emitter:
-                errors.append(f"{ctx}: missing required field 'name'")
+                logger.error("%s: missing required field 'name'", ctx)
+                valid = False
             else:
                 emitter_names.add(emitter['name'])
             if 'dimensions' not in emitter:
-                errors.append(f"{ctx}: missing required field 'dimensions'")
+                logger.error("%s: missing required field 'dimensions'", ctx)
+                valid = False
             else:
                 for dim in emitter.get('dimensions', []):
-                    e, w = validate_dimension_desc(dim, f"{ctx}, dimension '{dim.get('name', '?')}'")
-                    errors += e
-                    warnings += w
+                    if not validate_dimension_desc(dim, f"{ctx}, dimension '{dim.get('name', '?')}'"):
+                        valid = False
 
     # States
     state_names = set()
     if 'states' not in config:
-        errors.append("missing required field 'states'")
+        logger.error("Config missing required field 'states'")
+        valid = False
     elif not isinstance(config['states'], list) or len(config['states']) == 0:
-        errors.append("'states' must be a non-empty list")
+        logger.error("Config 'states' must be a non-empty list")
+        valid = False
     else:
         # Collect state names first (needed for cross-cutting checks)
         for state in config['states']:
@@ -67,19 +77,17 @@ def validate_config(config):
         # Per-state validation
         for i, state in enumerate(config['states']):
             ctx = f"state '{state.get('name', f'[{i}]')}'"
-            e, w = State.validate_desc(state, emitter_names, ctx)
-            errors += e
-            warnings += w
+            if not State.validate_desc(state, emitter_names, ctx):
+                valid = False
             if 'delay' in state:
-                errors += validate_distribution_desc(state['delay'], f"{ctx} delay")
+                if not validate_distribution_desc(state['delay'], f"{ctx} delay"):
+                    valid = False
             for var in state.get('variables', []):
-                e, w = validate_dimension_desc(var, f"{ctx}, variable '{var.get('name', '?')}'")
-                errors += e
-                warnings += w
+                if not validate_dimension_desc(var, f"{ctx}, variable '{var.get('name', '?')}'"):
+                    valid = False
             for var in state.get('variables_on_entry', []):
-                e, w = validate_dimension_desc(var, f"{ctx}, variables_on_entry '{var.get('name', '?')}'")
-                errors += e
-                warnings += w
+                if not validate_dimension_desc(var, f"{ctx}, variables_on_entry '{var.get('name', '?')}'"):
+                    valid = False
 
         # Cross-cutting: transition destination existence
         for state in config['states']:
@@ -87,7 +95,8 @@ def validate_config(config):
             for trans in state.get('transitions', []):
                 nxt = trans.get('next', '')
                 if nxt.lower() != 'stop' and nxt not in state_names:
-                    errors.append(f"state '{sname}': transition to undefined state '{nxt}'")
+                    logger.error("state '%s': transition to undefined state '%s'", sname, nxt)
+                    valid = False
 
         # Cross-cutting: variable references in emitter dimensions
         for emitter in config.get('emitters', []):
@@ -96,10 +105,11 @@ def validate_config(config):
                 if dim.get('type', '').lower() == 'variable':
                     ref = dim.get('variable', '')
                     if ref and ref not in all_set_variables:
-                        errors.append(
-                            f"emitter '{ename}', dimension '{dim.get('name', '?')}':"
-                            f" references variable '{ref}' which is never set by any state"
+                        logger.error(
+                            "emitter '%s', dimension '%s': references variable '%s' which is never set by any state",
+                            ename, dim.get('name', '?'), ref
                         )
+                        valid = False
 
         # Cross-cutting: infinite loop detection via reachability to 'stop'
         # A state can escape if it has any path (direct or indirect) to 'stop'
@@ -138,8 +148,9 @@ def validate_config(config):
                             frontier.add(nxt)
 
             for sname in sorted(reachable - can_escape):
-                errors.append(f"state '{sname}': no path to 'stop' — potential infinite loop")
+                logger.warning("state '%s': no path to 'stop' — potential infinite loop", sname)
+                # do NOT set valid = False — code runs fine, just never terminates
             for sname in sorted(state_names - reachable):
-                warnings.append(f"state '{sname}': unreachable from the initial state")
+                logger.warning("state '%s': unreachable from the initial state", sname)
 
-    return errors, warnings
+    return valid

@@ -6,9 +6,12 @@ distributions. This module includes functions for parsing distribution configura
 and generating samples from them.
 """
 
+import logging
 import math
 import numpy as np
 import dateutil.parser
+
+logger = logging.getLogger('ieg')
 
 class DistConstant:
     """
@@ -24,10 +27,11 @@ class DistConstant:
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'value' not in desc:
-            errors.append(f"{context}: constant distribution missing required field 'value'")
-        return errors
+            logger.error("%s: constant distribution missing required field 'value'", context)
+            valid = False
+        return valid
 
 class DistUniform:
     """
@@ -44,18 +48,21 @@ class DistUniform:
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'min' not in desc:
-            errors.append(f"{context}: uniform distribution missing required field 'min'")
+            logger.error("%s: uniform distribution missing required field 'min'", context)
+            valid = False
         if 'max' not in desc:
-            errors.append(f"{context}: uniform distribution missing required field 'max'")
+            logger.error("%s: uniform distribution missing required field 'max'", context)
+            valid = False
         if 'min' in desc and 'max' in desc:
             try:
                 if float(desc['min']) > float(desc['max']):
-                    errors.append(f"{context}: uniform distribution 'min' ({desc['min']}) must be <= 'max' ({desc['max']})")
+                    logger.error("%s: uniform distribution 'min' (%s) must be <= 'max' (%s)", context, desc['min'], desc['max'])
+                    valid = False
             except (TypeError, ValueError):
                 pass  # type errors will surface at runtime
-        return errors
+        return valid
 
 class DistExponential:
     """
@@ -71,16 +78,19 @@ class DistExponential:
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'mean' not in desc:
-            errors.append(f"{context}: exponential distribution missing required field 'mean'")
+            logger.error("%s: exponential distribution missing required field 'mean'", context)
+            valid = False
         else:
             try:
                 if float(desc['mean']) <= 0:
-                    errors.append(f"{context}: exponential distribution 'mean' must be > 0, got {desc['mean']}")
+                    logger.error("%s: exponential distribution 'mean' must be > 0, got %s", context, desc['mean'])
+                    valid = False
             except (TypeError, ValueError):
-                errors.append(f"{context}: exponential distribution 'mean' must be a number, got {desc['mean']!r}")
-        return errors
+                logger.error("%s: exponential distribution 'mean' must be a number, got %r", context, desc['mean'])
+                valid = False
+        return valid
 
 class DistNormal:
     """
@@ -97,18 +107,22 @@ class DistNormal:
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'mean' not in desc:
-            errors.append(f"{context}: normal distribution missing required field 'mean'")
+            logger.error("%s: normal distribution missing required field 'mean'", context)
+            valid = False
         if 'stddev' not in desc:
-            errors.append(f"{context}: normal distribution missing required field 'stddev'")
+            logger.error("%s: normal distribution missing required field 'stddev'", context)
+            valid = False
         else:
             try:
                 if float(desc['stddev']) <= 0:
-                    errors.append(f"{context}: normal distribution 'stddev' must be > 0, got {desc['stddev']}")
+                    logger.error("%s: normal distribution 'stddev' must be > 0, got %s", context, desc['stddev'])
+                    valid = False
             except (TypeError, ValueError):
-                errors.append(f"{context}: normal distribution 'stddev' must be a number, got {desc['stddev']!r}")
-        return errors
+                logger.error("%s: normal distribution 'stddev' must be a number, got %r", context, desc['stddev'])
+                valid = False
+        return valid
 
 class DistGMMTemporal:
     """
@@ -167,34 +181,42 @@ class DistGMMTemporal:
 
     @staticmethod
     def validate_desc(desc, context):
-        errors = []
+        valid = True
         if 'mean' not in desc:
-            errors.append(f"{context}: gmm_temporal distribution missing required field 'mean'")
+            logger.error("%s: gmm_temporal distribution missing required field 'mean'", context)
+            valid = False
         else:
             try:
                 if float(desc['mean']) <= 0:
-                    errors.append(f"{context}: gmm_temporal distribution 'mean' must be > 0, got {desc['mean']}")
+                    logger.error("%s: gmm_temporal distribution 'mean' must be > 0, got %s", context, desc['mean'])
+                    valid = False
             except (TypeError, ValueError):
-                errors.append(f"{context}: gmm_temporal distribution 'mean' must be a number, got {desc['mean']!r}")
+                logger.error("%s: gmm_temporal distribution 'mean' must be a number, got %r", context, desc['mean'])
+                valid = False
         if 'days' not in desc or not desc['days']:
-            errors.append(f"{context}: gmm_temporal distribution missing required field 'days' (must be a non-empty object)")
+            logger.error("%s: gmm_temporal distribution missing required field 'days' (must be a non-empty object)", context)
+            valid = False
         else:
             days = desc['days']
             for key, components in days.items():
                 try:
                     day_num = int(key)
                     if day_num < 1 or day_num > 7:
-                        errors.append(f"{context}: gmm_temporal day key '{key}' must be an integer 1–7 (ISO weekday)")
+                        logger.error("%s: gmm_temporal day key '%s' must be an integer 1–7 (ISO weekday)", context, key)
+                        valid = False
                 except (ValueError, TypeError):
-                    errors.append(f"{context}: gmm_temporal day key '{key}' must be an integer 1–7 (ISO weekday)")
+                    logger.error("%s: gmm_temporal day key '%s' must be an integer 1–7 (ISO weekday)", context, key)
+                    valid = False
                 if not components or not isinstance(components, list):
-                    errors.append(f"{context}: gmm_temporal day '{key}' must be a non-empty list of components")
+                    logger.error("%s: gmm_temporal day '%s' must be a non-empty list of components", context, key)
+                    valid = False
                 else:
                     for j, comp in enumerate(components):
                         for field in ('utc_hour', 'sigma', 'weight'):
                             if field not in comp:
-                                errors.append(f"{context}: gmm_temporal day '{key}' component [{j}] missing required field '{field}'")
-        return errors
+                                logger.error("%s: gmm_temporal day '%s' component [%d] missing required field '%s'", context, key, j, field)
+                                valid = False
+        return valid
 
 class Schedule:
     """
@@ -281,29 +303,28 @@ KNOWN_DISTRIBUTION_TYPES = ('constant', 'uniform', 'exponential', 'normal', 'gmm
 def validate_distribution_desc(desc, context):
     """
     Validate a distribution config dict without constructing any objects.
-    Returns a list of error strings.
+    Logs errors/warnings directly and returns True (valid) or False (invalid).
     """
-    errors = []
     if not isinstance(desc, dict):
-        errors.append(f"{context}: distribution must be a JSON object, got {type(desc).__name__}")
-        return errors
+        logger.error("%s: distribution must be a JSON object", context)
+        return False
     if 'type' not in desc:
-        errors.append(f"{context}: distribution missing required field 'type'")
-        return errors
+        logger.error("%s: distribution missing required field 'type'", context)
+        return False
     dist_type = str(desc['type']).lower()
     if dist_type == 'constant':
-        errors += DistConstant.validate_desc(desc, context)
+        return DistConstant.validate_desc(desc, context)
     elif dist_type == 'uniform':
-        errors += DistUniform.validate_desc(desc, context)
+        return DistUniform.validate_desc(desc, context)
     elif dist_type == 'exponential':
-        errors += DistExponential.validate_desc(desc, context)
+        return DistExponential.validate_desc(desc, context)
     elif dist_type == 'normal':
-        errors += DistNormal.validate_desc(desc, context)
+        return DistNormal.validate_desc(desc, context)
     elif dist_type == 'gmm_temporal':
-        errors += DistGMMTemporal.validate_desc(desc, context)
+        return DistGMMTemporal.validate_desc(desc, context)
     else:
-        errors.append(f"{context}: unknown distribution type '{desc['type']}' (known: {', '.join(KNOWN_DISTRIBUTION_TYPES)})")
-    return errors
+        logger.error("%s: unknown distribution type '%s' (known: %s)", context, desc['type'], ', '.join(KNOWN_DISTRIBUTION_TYPES))
+        return False
 
 
 def parse_timestamp_distribution(desc):

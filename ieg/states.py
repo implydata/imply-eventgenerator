@@ -1,7 +1,10 @@
+import logging
 import threading
 import random
 import time
 import isodate
+
+logger = logging.getLogger('ieg')
 
 class Transition:
     # Represents a state transition in the state machine.
@@ -15,22 +18,27 @@ class Transition:
 
     @staticmethod
     def validate_desc(desc, context):
-        """Validate a single transition config dict. Returns a list of error strings."""
-        errors = []
+        """Validate a single transition config dict. Logs errors and returns bool."""
+        valid = True
         if 'next' not in desc:
-            errors.append(f"{context}: transition missing required field 'next'")
+            logger.error("%s: transition missing required field 'next'", context)
+            valid = False
         elif not isinstance(desc['next'], str):
-            errors.append(f"{context}: transition 'next' must be a string, got {type(desc['next']).__name__}")
+            logger.error("%s: transition 'next' must be a string, got %s", context, type(desc['next']).__name__)
+            valid = False
         if 'probability' not in desc:
-            errors.append(f"{context}: transition missing required field 'probability'")
+            logger.error("%s: transition missing required field 'probability'", context)
+            valid = False
         else:
             try:
                 p = float(desc['probability'])
                 if not (0 < p <= 1):
-                    errors.append(f"{context}: transition 'probability' must be in (0, 1], got {desc['probability']}")
+                    logger.error("%s: transition 'probability' must be in (0, 1], got %s", context, desc['probability'])
+                    valid = False
             except (TypeError, ValueError):
-                errors.append(f"{context}: transition 'probability' must be a number, got {desc['probability']!r}")
-        return errors
+                logger.error("%s: transition 'probability' must be a number, got %r", context, desc['probability'])
+                valid = False
+        return valid
 
     @staticmethod
     def parse_transitions(desc):
@@ -59,36 +67,40 @@ class State:
 
     @staticmethod
     def validate_desc(desc, emitter_names, context):
-        """Validate a state config dict. Returns (errors, warnings)."""
-        errors = []
-        warnings = []
+        """Validate a state config dict. Logs errors/warnings and returns bool."""
+        valid = True
         if 'name' not in desc:
-            errors.append(f"{context}: missing required field 'name'")
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
         if 'delay' not in desc:
-            errors.append(f"{context}: missing required field 'delay'")
+            logger.error("%s: missing required field 'delay'", context)
+            valid = False
         transitions = desc.get('transitions')
         if not transitions or not isinstance(transitions, list):
-            errors.append(f"{context}: 'transitions' required and must be a non-empty list")
+            logger.error("%s: 'transitions' required and must be a non-empty list", context)
+            valid = False
         else:
             total_prob = 0.0
             for i, trans in enumerate(transitions):
                 trans_ctx = f"{context}, transition [{i}]"
-                errors += Transition.validate_desc(trans, trans_ctx)
+                if not Transition.validate_desc(trans, trans_ctx):
+                    valid = False
                 try:
                     total_prob += float(trans.get('probability', 0))
                 except (TypeError, ValueError):
                     pass
             if abs(total_prob - 1.0) > 0.01:
-                warnings.append(
-                    f"{context}: transition probabilities sum to {total_prob:.4f}, not 1.0"
-                    f" — random.choices will normalise but this is likely a mistake"
+                logger.warning(
+                    "%s: transition probabilities sum to %.4f, not 1.0"
+                    " — random.choices will normalise but this is likely a mistake",
+                    context, total_prob
                 )
+                # do NOT set valid = False — this is non-fatal
         emitter = desc.get('emitter')
         if emitter is not None and emitter not in emitter_names:
-            errors.append(
-                f"{context}: references emitter '{emitter}' which is not defined in 'emitters'"
-            )
-        return errors, warnings
+            logger.error("%s: references emitter '%s' which is not defined in 'emitters'", context, emitter)
+            valid = False
+        return valid
 
     def get_next_state_name(self):
         return random.choices(self.transistion_states, weights=self.transistion_probabilities, k=1)[0]
