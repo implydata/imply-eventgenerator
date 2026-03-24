@@ -200,13 +200,8 @@ class DataDriver:
         self.name = name
         self.config = config
 
-        errors, warnings = validate_config(config)
-        for w in warnings:
-            logger.warning("Config warning: %s", w)
-        if errors:
-            for e in errors:
-                logger.error("Config error: %s", e)
-            raise ValueError(f"Configuration is invalid ({len(errors)} error(s)) — see log output for details.")
+        if not validate_config(config):
+            raise ValueError("Configuration is invalid — see log output for details.")
 
         self.runtime = runtime
         self.total_recs = total_recs

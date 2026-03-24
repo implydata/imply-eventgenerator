@@ -121,19 +121,11 @@ def main(argv=None):
         # --validate: run pre-flight checks and exit
         if args.validate:
             from ieg.validate import validate_config
-            errors, warnings = validate_config(config)
-            for w in warnings:
-                logger.warning("Config warning: %s", w)
-            if errors:
-                for e in errors:
-                    logger.error("Config error: %s", e)
-                logger.critical("Config '%s' is invalid (%d error(s)). Exiting.", args.config_file, len(errors))
+            if not validate_config(config):
+                logger.critical("Config '%s' is invalid — see errors above.", args.config_file)
                 sys.exit(1)
             else:
-                if warnings:
-                    logger.info("Config '%s' is valid with %d warning(s).", args.config_file, len(warnings))
-                else:
-                    logger.info("Config '%s' is valid.", args.config_file)
+                logger.info("Config '%s' is valid.", args.config_file)
                 sys.exit(0)
 
         # Load target file or use target from config
