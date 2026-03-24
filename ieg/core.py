@@ -15,6 +15,7 @@ from ieg.dimensions import DimensionTimestampClock, DimensionVariable, get_dimen
 from ieg.distributions import parse_distribution, parse_schedule
 from ieg.states import Controller, State, Transition
 from ieg.targets import TargetConfluent, TargetFile, TargetKafka
+from ieg.validate import validate_config
 
 logger = logging.getLogger('ieg')
 
@@ -198,6 +199,15 @@ class DataDriver:
     def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None):
         self.name = name
         self.config = config
+
+        errors, warnings = validate_config(config)
+        for w in warnings:
+            logger.warning("Config warning: %s", w)
+        if errors:
+            for e in errors:
+                logger.error("Config error: %s", e)
+            raise ValueError(f"Configuration is invalid ({len(errors)} error(s)) — see log output for details.")
+
         self.runtime = runtime
         self.total_recs = total_recs
         self.time_type = time_type
@@ -339,11 +349,6 @@ class DataDriver:
             if self.initial_state is None:
                 self.initial_state = this_state
 
-        for state in self.states.values():
-            for transition in state.transitions:
-                next_state_name = transition.next_state
-                if next_state_name.lower() != 'stop' and next_state_name not in self.states:
-                    raise RuntimeError(f"State '{next_state_name}' referenced in transitions but not defined in state machine.")
 
     @staticmethod
     def get_value(record, key, default=""):

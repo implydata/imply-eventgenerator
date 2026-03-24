@@ -14,6 +14,25 @@ class Transition:
         return 'Transition(next_state='+str(self.next_state)+', probability='+str(self.probability)+')'
 
     @staticmethod
+    def validate_desc(desc, context):
+        """Validate a single transition config dict. Returns a list of error strings."""
+        errors = []
+        if 'next' not in desc:
+            errors.append(f"{context}: transition missing required field 'next'")
+        elif not isinstance(desc['next'], str):
+            errors.append(f"{context}: transition 'next' must be a string, got {type(desc['next']).__name__}")
+        if 'probability' not in desc:
+            errors.append(f"{context}: transition missing required field 'probability'")
+        else:
+            try:
+                p = float(desc['probability'])
+                if not (0 < p <= 1):
+                    errors.append(f"{context}: transition 'probability' must be in (0, 1], got {desc['probability']}")
+            except (TypeError, ValueError):
+                errors.append(f"{context}: transition 'probability' must be a number, got {desc['probability']!r}")
+        return errors
+
+    @staticmethod
     def parse_transitions(desc):
         transitions = []
         for trans in desc:
@@ -37,6 +56,39 @@ class State:
 
     def __str__(self):
         return 'State(name='+self.name+', dimensions='+str([str(d) for d in self.dimensions])+', delay='+str(self.delay)+', transistion_states='+str(self.transistion_states)+', transistion_probabilities='+str(self.transistion_probabilities)+'variables='+str([str(v) for v in self.variables])+')'
+
+    @staticmethod
+    def validate_desc(desc, emitter_names, context):
+        """Validate a state config dict. Returns (errors, warnings)."""
+        errors = []
+        warnings = []
+        if 'name' not in desc:
+            errors.append(f"{context}: missing required field 'name'")
+        if 'delay' not in desc:
+            errors.append(f"{context}: missing required field 'delay'")
+        transitions = desc.get('transitions')
+        if not transitions or not isinstance(transitions, list):
+            errors.append(f"{context}: 'transitions' required and must be a non-empty list")
+        else:
+            total_prob = 0.0
+            for i, trans in enumerate(transitions):
+                trans_ctx = f"{context}, transition [{i}]"
+                errors += Transition.validate_desc(trans, trans_ctx)
+                try:
+                    total_prob += float(trans.get('probability', 0))
+                except (TypeError, ValueError):
+                    pass
+            if abs(total_prob - 1.0) > 0.01:
+                warnings.append(
+                    f"{context}: transition probabilities sum to {total_prob:.4f}, not 1.0"
+                    f" — random.choices will normalise but this is likely a mistake"
+                )
+        emitter = desc.get('emitter')
+        if emitter is not None and emitter not in emitter_names:
+            errors.append(
+                f"{context}: references emitter '{emitter}' which is not defined in 'emitters'"
+            )
+        return errors, warnings
 
     def get_next_state_name(self):
         return random.choices(self.transistion_states, weights=self.transistion_probabilities, k=1)[0]

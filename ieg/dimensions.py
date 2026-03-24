@@ -2,7 +2,7 @@ import random
 import string
 import re
 from datetime import datetime, timezone
-from ieg.distributions import parse_distribution, parse_timestamp_distribution
+from ieg.distributions import parse_distribution, parse_timestamp_distribution, validate_distribution_desc
 
 #
 # Classes for different types of emitter dimension
@@ -61,6 +61,35 @@ class DimensionBase:
                 self.cardinality.append(value)
 
 
+    @staticmethod
+    def validate_desc(desc, context):
+        """Validate fields common to all DimensionBase subclasses (int, float, ipaddress)."""
+        errors = []
+        if 'name' not in desc:
+            errors.append(f"{context}: missing required field 'name'")
+        if 'type' not in desc:
+            errors.append(f"{context}: missing required field 'type'")
+        if 'cardinality' not in desc:
+            errors.append(f"{context}: missing required field 'cardinality'")
+        else:
+            cardinality = desc['cardinality']
+            try:
+                cardinality = int(cardinality)
+                if cardinality < 0:
+                    errors.append(f"{context}: 'cardinality' must be an integer >= 0, got {desc['cardinality']}")
+                elif cardinality > 0:
+                    if 'cardinality_distribution' not in desc:
+                        errors.append(f"{context}: 'cardinality' > 0 requires 'cardinality_distribution'")
+                    else:
+                        errors += validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution")
+            except (TypeError, ValueError):
+                errors.append(f"{context}: 'cardinality' must be an integer, got {desc['cardinality']!r}")
+        if 'distribution' not in desc:
+            errors.append(f"{context}: missing required field 'distribution'")
+        else:
+            errors += validate_distribution_desc(desc['distribution'], f"{context} distribution")
+        return errors
+
     def get_stochastic_value(self):
         """
         Generate a random individual value for the dimension.
@@ -111,6 +140,10 @@ class DimensionInt(DimensionBase):
     def __str__(self):
         return 'DimensionInt(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
+    @staticmethod
+    def validate_desc(desc, context):
+        return DimensionBase.validate_desc(desc, context)
+
     def get_stochastic_value(self):
         return int(self.value_distribution.get_sample())
 
@@ -131,6 +164,18 @@ class DimensionFloat(DimensionBase):
 
     def __str__(self):
         return 'DimensionFloat(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+
+    @staticmethod
+    def validate_desc(desc, context):
+        errors = DimensionBase.validate_desc(desc, context)
+        if 'precision' in desc:
+            try:
+                p = int(desc['precision'])
+                if p < 0:
+                    errors.append(f"{context}: 'precision' must be an integer >= 0, got {desc['precision']}")
+            except (TypeError, ValueError):
+                errors.append(f"{context}: 'precision' must be an integer, got {desc['precision']!r}")
+        return errors
 
     def get_stochastic_value(self):
         return float(self.value_distribution.get_sample())
@@ -154,7 +199,7 @@ class DimensionFloat(DimensionBase):
                 format = '%.'+str(self.precision)+'f'
                 s = '"'+self.name+'":'+str(format%value)
         return s
-    
+
 class DimensionCounter:
     # Represents a counter dimension.
     # Generates sequential values starting from a specified value.
@@ -185,6 +230,23 @@ class DimensionCounter:
             s += ', '+str(self.increment)
         s += ')'
         return s
+
+    @staticmethod
+    def validate_desc(desc, context):
+        errors = []
+        if 'name' not in desc:
+            errors.append(f"{context}: missing required field 'name'")
+        if 'start' in desc:
+            try:
+                float(desc['start'])
+            except (TypeError, ValueError):
+                errors.append(f"{context}: 'start' must be numeric, got {desc['start']!r}")
+        if 'increment' in desc:
+            try:
+                float(desc['increment'])
+            except (TypeError, ValueError):
+                errors.append(f"{context}: 'increment' must be numeric, got {desc['increment']!r}")
+        return errors
 
     def get_stochastic_value(self):
         v = self.value
@@ -218,6 +280,31 @@ class DimensionString(DimensionBase):
     def __str__(self):
         return 'DimensionString(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+', chars='+self.chars+')'
 
+    @staticmethod
+    def validate_desc(desc, context):
+        errors = []
+        if 'name' not in desc:
+            errors.append(f"{context}: missing required field 'name'")
+        if 'cardinality' not in desc:
+            errors.append(f"{context}: missing required field 'cardinality'")
+        else:
+            try:
+                cardinality = int(desc['cardinality'])
+                if cardinality < 0:
+                    errors.append(f"{context}: 'cardinality' must be an integer >= 0, got {desc['cardinality']}")
+                elif cardinality > 0:
+                    if 'cardinality_distribution' not in desc:
+                        errors.append(f"{context}: 'cardinality' > 0 requires 'cardinality_distribution'")
+                    else:
+                        errors += validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution")
+            except (TypeError, ValueError):
+                errors.append(f"{context}: 'cardinality' must be an integer, got {desc['cardinality']!r}")
+        if 'length_distribution' not in desc:
+            errors.append(f"{context}: missing required field 'length_distribution'")
+        else:
+            errors += validate_distribution_desc(desc['length_distribution'], f"{context} length_distribution")
+        return errors
+
     def get_stochastic_value(self):
         length = int(self.length_distribution.get_sample())
         return ''.join(random.choices(list(self.chars), k=length))
@@ -246,6 +333,13 @@ class DimensionTimestampClock:
     def __init__(self, clock, desc):
         self.clock = clock
         self.name = desc['name']  # Ensure self.name is set
+
+    @staticmethod
+    def validate_desc(desc, context):
+        errors = []
+        if 'name' not in desc:
+            errors.append(f"{context}: missing required field 'name'")
+        return errors
 
     def get_stochastic_value(self):
         # Retrieve the current time from the Clock instance
@@ -287,6 +381,19 @@ class DimensionTimestamp(DimensionBase):
     def __str__(self):
         return 'DimensionTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
+    @staticmethod
+    def validate_desc(desc, context):
+        errors = []
+        if 'name' not in desc:
+            errors.append(f"{context}: missing required field 'name'")
+        if 'cardinality' not in desc:
+            errors.append(f"{context}: missing required field 'cardinality'")
+        if 'distribution' not in desc:
+            errors.append(f"{context}: missing required field 'distribution'")
+        else:
+            errors += validate_distribution_desc(desc['distribution'], f"{context} distribution")
+        return errors
+
     def get_stochastic_value(self):
         # Return a random timestamp as a datetime object
         timestamp = datetime.fromtimestamp(self.value_distribution.get_sample())
@@ -321,6 +428,10 @@ class DimensionIPAddress(DimensionBase):
 
     def __str__(self):
         return 'DimensionIPAddress(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+
+    @staticmethod
+    def validate_desc(desc, context):
+        return DimensionBase.validate_desc(desc, context)
 
     def get_stochastic_value(self):
         value = int(self.value_distribution.get_sample())
@@ -365,6 +476,32 @@ class DimensionEnum:
 
     def __str__(self):
         return 'DimensionEnum(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+
+    @staticmethod
+    def validate_desc(desc, context):
+        """Returns (errors, warnings)."""
+        errors = []
+        warnings = []
+        if 'name' not in desc:
+            errors.append(f"{context}: missing required field 'name'")
+        values = desc.get('values')
+        if not values or not isinstance(values, list):
+            errors.append(f"{context}: 'values' required and must be a non-empty list")
+        if 'cardinality_distribution' not in desc:
+            errors.append(f"{context}: missing required field 'cardinality_distribution'")
+        else:
+            errors += validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution")
+            cd = desc['cardinality_distribution']
+            if isinstance(cd, dict) and cd.get('type', '').lower() == 'uniform' and values and isinstance(values, list):
+                try:
+                    if int(cd.get('max', 0)) > len(values) - 1:
+                        warnings.append(
+                            f"{context}: cardinality_distribution uniform 'max' ({cd['max']}) exceeds"
+                            f" last valid index ({len(values) - 1}) — distribution will be skewed"
+                        )
+                except (TypeError, ValueError):
+                    pass
+        return errors, warnings
 
     def get_stochastic_value(self):
         index = int(self.cardinality_distribution.get_sample())
@@ -423,6 +560,33 @@ class DimensionObject():
             s += ',' + str(e)
         s += '])'
         return s
+
+    @staticmethod
+    def validate_desc(desc, context):
+        errors = []
+        if 'name' not in desc:
+            errors.append(f"{context}: missing required field 'name'")
+        if 'cardinality' not in desc:
+            errors.append(f"{context}: missing required field 'cardinality'")
+        else:
+            try:
+                cardinality = int(desc['cardinality'])
+                if cardinality < 0:
+                    errors.append(f"{context}: 'cardinality' must be an integer >= 0, got {desc['cardinality']}")
+                elif cardinality > 0:
+                    if 'cardinality_distribution' not in desc:
+                        errors.append(f"{context}: 'cardinality' > 0 requires 'cardinality_distribution'")
+                    else:
+                        errors += validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution")
+            except (TypeError, ValueError):
+                errors.append(f"{context}: 'cardinality' must be an integer, got {desc['cardinality']!r}")
+        dims = desc.get('dimensions')
+        if not dims or not isinstance(dims, list):
+            errors.append(f"{context}: 'dimensions' required and must be a non-empty list")
+        else:
+            for nested in dims:
+                errors += validate_dimension_desc(nested, f"{context}, nested dimension '{nested.get('name', '?')}'")
+        return errors
 
     def get_instance(self):
         s = '"'+self.name+'": {'
@@ -495,6 +659,41 @@ class DimensionList():
         s += '])'
         return s
 
+    @staticmethod
+    def validate_desc(desc, context):
+        errors = []
+        if 'name' not in desc:
+            errors.append(f"{context}: missing required field 'name'")
+        if 'cardinality' not in desc:
+            errors.append(f"{context}: missing required field 'cardinality'")
+        else:
+            try:
+                cardinality = int(desc['cardinality'])
+                if cardinality < 0:
+                    errors.append(f"{context}: 'cardinality' must be an integer >= 0, got {desc['cardinality']}")
+                elif cardinality > 0:
+                    if 'cardinality_distribution' not in desc:
+                        errors.append(f"{context}: 'cardinality' > 0 requires 'cardinality_distribution'")
+                    else:
+                        errors += validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution")
+            except (TypeError, ValueError):
+                errors.append(f"{context}: 'cardinality' must be an integer, got {desc['cardinality']!r}")
+        elems = desc.get('elements')
+        if not elems or not isinstance(elems, list):
+            errors.append(f"{context}: 'elements' required and must be a non-empty list")
+        else:
+            for elem in elems:
+                errors += validate_dimension_desc(elem, f"{context}, element '{elem.get('name', '?')}'")
+        if 'length_distribution' not in desc:
+            errors.append(f"{context}: missing required field 'length_distribution'")
+        else:
+            errors += validate_distribution_desc(desc['length_distribution'], f"{context} length_distribution")
+        if 'selection_distribution' not in desc:
+            errors.append(f"{context}: missing required field 'selection_distribution'")
+        else:
+            errors += validate_distribution_desc(desc['selection_distribution'], f"{context} selection_distribution")
+        return errors
+
     def get_instance(self):
         s = '"'+self.name+'": ['
         length = int(self.length_distribution.get_sample())
@@ -540,6 +739,15 @@ class DimensionVariable:
 
     def __str__(self):
         return 'DimensionVariable(name='+self.name+', value='+self.variable_name+')'
+
+    @staticmethod
+    def validate_desc(desc, context):
+        errors = []
+        if 'name' not in desc:
+            errors.append(f"{context}: missing required field 'name'")
+        if 'variable' not in desc:
+            errors.append(f"{context}: missing required field 'variable'")
+        return errors
 
     def get_json_field_string(self, variables): # NOTE: because of timing, this method has a different signature than the other elements
         value = variables[self.variable_name]
@@ -590,3 +798,53 @@ def get_dimensions(desc, global_clock):
     # Parses the emitter configuration and returns a list of dimension objects using parse_element().
     elements = get_variables(desc, global_clock)  # Pass global_clock
     return elements
+
+KNOWN_DIMENSION_TYPES = (
+    'counter', 'enum', 'string', 'int', 'float',
+    'timestamp', 'clock', 'ipaddress', 'variable', 'object', 'list'
+)
+
+def validate_dimension_desc(desc, context):
+    """
+    Validate a dimension config dict without constructing any objects.
+    Returns (errors, warnings) — both lists of strings.
+    """
+    errors = []
+    warnings = []
+    if not isinstance(desc, dict):
+        errors.append(f"{context}: dimension must be a JSON object, got {type(desc).__name__}")
+        return errors, warnings
+    if 'type' not in desc:
+        errors.append(f"{context}: missing required field 'type'")
+        return errors, warnings
+    dim_type = str(desc['type']).lower()
+    if dim_type == 'enum':
+        e, w = DimensionEnum.validate_desc(desc, context)
+        errors += e
+        warnings += w
+    elif dim_type == 'counter':
+        errors += DimensionCounter.validate_desc(desc, context)
+    elif dim_type == 'string':
+        errors += DimensionString.validate_desc(desc, context)
+    elif dim_type == 'int':
+        errors += DimensionInt.validate_desc(desc, context)
+    elif dim_type == 'float':
+        errors += DimensionFloat.validate_desc(desc, context)
+    elif dim_type == 'timestamp':
+        errors += DimensionTimestamp.validate_desc(desc, context)
+    elif dim_type == 'clock':
+        errors += DimensionTimestampClock.validate_desc(desc, context)
+    elif dim_type == 'ipaddress':
+        errors += DimensionIPAddress.validate_desc(desc, context)
+    elif dim_type == 'variable':
+        errors += DimensionVariable.validate_desc(desc, context)
+    elif dim_type == 'object':
+        errors += DimensionObject.validate_desc(desc, context)
+    elif dim_type == 'list':
+        errors += DimensionList.validate_desc(desc, context)
+    else:
+        errors.append(
+            f"{context}: unknown dimension type '{desc['type']}'"
+            f" (known: {', '.join(KNOWN_DIMENSION_TYPES)})"
+        )
+    return errors, warnings
