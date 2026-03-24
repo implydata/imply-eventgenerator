@@ -78,6 +78,13 @@ def main(argv=None):
         help='Random seed for deterministic data generation. Use with -s (simulated time) for fully reproducible output.'
     )
 
+    parser.add_argument(
+        '--validate',
+        action='store_true',
+        default=False,
+        help='Validate the configuration file and exit without generating data.'
+    )
+
     args = parser.parse_args(argv)
 
     # Configure logging level based on --debug flag
@@ -110,6 +117,14 @@ def main(argv=None):
                 config = json.load(f)
             except json.JSONDecodeError as e:
                 raise ValueError(f"Error parsing config file '{args.config_file}': {e}")
+
+        # --validate: run pre-flight checks and exit
+        if args.validate:
+            from ieg.validate import validate_config
+            if not validate_config(config):
+                logger.critical("Config '%s' is invalid — see errors above.", args.config_file)
+                sys.exit(1)
+            sys.exit(0)
 
         # Load target file or use target from config
         if args.target_file:

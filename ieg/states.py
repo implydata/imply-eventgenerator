@@ -1,7 +1,10 @@
+import logging
 import threading
 import random
 import time
 import isodate
+
+logger = logging.getLogger('ieg')
 
 class Transition:
     # Represents a state transition in the state machine.
@@ -12,6 +15,30 @@ class Transition:
 
     def __str__(self):
         return 'Transition(next_state='+str(self.next_state)+', probability='+str(self.probability)+')'
+
+    @staticmethod
+    def validate_desc(desc, context):
+        """Validate a single transition config dict. Logs errors and returns bool."""
+        valid = True
+        if 'next' not in desc:
+            logger.error("%s: transition missing required field 'next'", context)
+            valid = False
+        elif not isinstance(desc['next'], str):
+            logger.error("%s: transition 'next' must be a string, got %s", context, type(desc['next']).__name__)
+            valid = False
+        if 'probability' not in desc:
+            logger.error("%s: transition missing required field 'probability'", context)
+            valid = False
+        else:
+            try:
+                p = float(desc['probability'])
+                if not (0 < p <= 1):
+                    logger.error("%s: transition 'probability' must be in (0, 1], got %s", context, desc['probability'])
+                    valid = False
+            except (TypeError, ValueError):
+                logger.error("%s: transition 'probability' must be a number, got %r", context, desc['probability'])
+                valid = False
+        return valid
 
     @staticmethod
     def parse_transitions(desc):
@@ -37,6 +64,43 @@ class State:
 
     def __str__(self):
         return 'State(name='+self.name+', dimensions='+str([str(d) for d in self.dimensions])+', delay='+str(self.delay)+', transistion_states='+str(self.transistion_states)+', transistion_probabilities='+str(self.transistion_probabilities)+'variables='+str([str(v) for v in self.variables])+')'
+
+    @staticmethod
+    def validate_desc(desc, emitter_names, context):
+        """Validate a state config dict. Logs errors/warnings and returns bool."""
+        valid = True
+        if 'name' not in desc:
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
+        if 'delay' not in desc:
+            logger.error("%s: missing required field 'delay'", context)
+            valid = False
+        transitions = desc.get('transitions')
+        if not transitions or not isinstance(transitions, list):
+            logger.error("%s: 'transitions' required and must be a non-empty list", context)
+            valid = False
+        else:
+            total_prob = 0.0
+            for i, trans in enumerate(transitions):
+                trans_ctx = f"{context}, transition [{i}]"
+                if not Transition.validate_desc(trans, trans_ctx):
+                    valid = False
+                try:
+                    total_prob += float(trans.get('probability', 0))
+                except (TypeError, ValueError):
+                    pass
+            if abs(total_prob - 1.0) > 0.01:
+                logger.warning(
+                    "%s: transition probabilities sum to %.4f, not 1.0"
+                    " — random.choices will normalise but this is likely a mistake",
+                    context, total_prob
+                )
+                # do NOT set valid = False — this is non-fatal
+        emitter = desc.get('emitter')
+        if emitter is not None and emitter not in emitter_names:
+            logger.error("%s: references emitter '%s' which is not defined in 'emitters'", context, emitter)
+            valid = False
+        return valid
 
     def get_next_state_name(self):
         return random.choices(self.transistion_states, weights=self.transistion_probabilities, k=1)[0]

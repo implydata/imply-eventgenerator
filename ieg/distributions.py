@@ -6,9 +6,12 @@ distributions. This module includes functions for parsing distribution configura
 and generating samples from them.
 """
 
+import logging
 import math
 import numpy as np
 import dateutil.parser
+
+logger = logging.getLogger('ieg')
 
 class DistConstant:
     """
@@ -21,6 +24,14 @@ class DistConstant:
     def get_sample(self):
         """Return the constant value."""
         return self.value
+
+    @staticmethod
+    def validate_desc(desc, context):
+        valid = True
+        if 'value' not in desc:
+            logger.error("%s: constant distribution missing required field 'value'", context)
+            valid = False
+        return valid
 
 class DistUniform:
     """
@@ -35,6 +46,24 @@ class DistUniform:
         """Return a uniformly distributed random value between min and max."""
         return np.random.uniform(self.min_value, self.max_value+1)
 
+    @staticmethod
+    def validate_desc(desc, context):
+        valid = True
+        if 'min' not in desc:
+            logger.error("%s: uniform distribution missing required field 'min'", context)
+            valid = False
+        if 'max' not in desc:
+            logger.error("%s: uniform distribution missing required field 'max'", context)
+            valid = False
+        if 'min' in desc and 'max' in desc:
+            try:
+                if float(desc['min']) > float(desc['max']):
+                    logger.error("%s: uniform distribution 'min' (%s) must be <= 'max' (%s)", context, desc['min'], desc['max'])
+                    valid = False
+            except (TypeError, ValueError):
+                pass  # type errors will surface at runtime
+        return valid
+
 class DistExponential:
     """
     Represents an exponential distribution with a given mean.
@@ -46,6 +75,22 @@ class DistExponential:
     def get_sample(self):
         """Return an exponentially distributed random value with the configured mean."""
         return np.random.exponential(scale=self.mean)
+
+    @staticmethod
+    def validate_desc(desc, context):
+        valid = True
+        if 'mean' not in desc:
+            logger.error("%s: exponential distribution missing required field 'mean'", context)
+            valid = False
+        else:
+            try:
+                if float(desc['mean']) <= 0:
+                    logger.error("%s: exponential distribution 'mean' must be > 0, got %s", context, desc['mean'])
+                    valid = False
+            except (TypeError, ValueError):
+                logger.error("%s: exponential distribution 'mean' must be a number, got %r", context, desc['mean'])
+                valid = False
+        return valid
 
 class DistNormal:
     """
@@ -59,6 +104,25 @@ class DistNormal:
     def get_sample(self):
         """Return a normally distributed random value with the configured mean and stddev."""
         return np.random.normal(self.mean, self.stddev)
+
+    @staticmethod
+    def validate_desc(desc, context):
+        valid = True
+        if 'mean' not in desc:
+            logger.error("%s: normal distribution missing required field 'mean'", context)
+            valid = False
+        if 'stddev' not in desc:
+            logger.error("%s: normal distribution missing required field 'stddev'", context)
+            valid = False
+        else:
+            try:
+                if float(desc['stddev']) <= 0:
+                    logger.error("%s: normal distribution 'stddev' must be > 0, got %s", context, desc['stddev'])
+                    valid = False
+            except (TypeError, ValueError):
+                logger.error("%s: normal distribution 'stddev' must be a number, got %r", context, desc['stddev'])
+                valid = False
+        return valid
 
 class DistGMMTemporal:
     """
@@ -114,6 +178,45 @@ class DistGMMTemporal:
         if multiplier <= 0:
             multiplier = 0.001
         return np.random.exponential(scale=self.mean / multiplier)
+
+    @staticmethod
+    def validate_desc(desc, context):
+        valid = True
+        if 'mean' not in desc:
+            logger.error("%s: gmm_temporal distribution missing required field 'mean'", context)
+            valid = False
+        else:
+            try:
+                if float(desc['mean']) <= 0:
+                    logger.error("%s: gmm_temporal distribution 'mean' must be > 0, got %s", context, desc['mean'])
+                    valid = False
+            except (TypeError, ValueError):
+                logger.error("%s: gmm_temporal distribution 'mean' must be a number, got %r", context, desc['mean'])
+                valid = False
+        if 'days' not in desc or not desc['days']:
+            logger.error("%s: gmm_temporal distribution missing required field 'days' (must be a non-empty object)", context)
+            valid = False
+        else:
+            days = desc['days']
+            for key, components in days.items():
+                try:
+                    day_num = int(key)
+                    if day_num < 1 or day_num > 7:
+                        logger.error("%s: gmm_temporal day key '%s' must be an integer 1–7 (ISO weekday)", context, key)
+                        valid = False
+                except (ValueError, TypeError):
+                    logger.error("%s: gmm_temporal day key '%s' must be an integer 1–7 (ISO weekday)", context, key)
+                    valid = False
+                if not components or not isinstance(components, list):
+                    logger.error("%s: gmm_temporal day '%s' must be a non-empty list of components", context, key)
+                    valid = False
+                else:
+                    for j, comp in enumerate(components):
+                        for field in ('utc_hour', 'sigma', 'weight'):
+                            if field not in comp:
+                                logger.error("%s: gmm_temporal day '%s' component [%d] missing required field '%s'", context, key, j, field)
+                                valid = False
+        return valid
 
 class Schedule:
     """
@@ -194,6 +297,35 @@ def parse_distribution(desc, clock=None):
         return DistGMMTemporal(desc['mean'], days, clock)
     else:
         raise ValueError(f'Error: Unknown distribution "{dist_type}"')
+
+KNOWN_DISTRIBUTION_TYPES = ('constant', 'uniform', 'exponential', 'normal', 'gmm_temporal')
+
+def validate_distribution_desc(desc, context):
+    """
+    Validate a distribution config dict without constructing any objects.
+    Logs errors/warnings directly and returns True (valid) or False (invalid).
+    """
+    if not isinstance(desc, dict):
+        logger.error("%s: distribution must be a JSON object", context)
+        return False
+    if 'type' not in desc:
+        logger.error("%s: distribution missing required field 'type'", context)
+        return False
+    dist_type = str(desc['type']).lower()
+    if dist_type == 'constant':
+        return DistConstant.validate_desc(desc, context)
+    elif dist_type == 'uniform':
+        return DistUniform.validate_desc(desc, context)
+    elif dist_type == 'exponential':
+        return DistExponential.validate_desc(desc, context)
+    elif dist_type == 'normal':
+        return DistNormal.validate_desc(desc, context)
+    elif dist_type == 'gmm_temporal':
+        return DistGMMTemporal.validate_desc(desc, context)
+    else:
+        logger.error("%s: unknown distribution type '%s' (known: %s)", context, desc['type'], ', '.join(KNOWN_DISTRIBUTION_TYPES))
+        return False
+
 
 def parse_timestamp_distribution(desc):
     """
