@@ -1,2 +1,2 @@
 #HEADER time,bytes_in,bytes_out,cookie,server,dest_port,http_content_type,http_method,http_referrer,http_user_agent,ident,response_time_microseconds,client,status,uri_path,uri_query,user
-{{time|%s}},{{bytes_in}},{{bytes_out}},{{cookie}},{{server}},{{dest_port}},{{http_content_type}},{{http_method}},"{{http_referrer}}","{{http_user_agent}}",{{ident}},{{response_time_microseconds}},{{client}},{{status}},{{uri_path}},{{uri_query}},{{user}}
+{{time|%s}},{{bytes_in}},{{bytes_out}},"{{cookie}}","{{server}}",{{dest_port}},"{{http_content_type}}","{{http_method}}","{{http_referrer}}","{{http_user_agent}}","{{ident}}",{{response_time_microseconds}},{{client}},{{status}},"{{uri_path}}","{{uri_query}}","{{user}}"
