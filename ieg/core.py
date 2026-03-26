@@ -196,7 +196,7 @@ class Clock:
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
-    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None):
+    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None, header=None):
         self.name = name
         self.config = config
 
@@ -210,6 +210,7 @@ class DataDriver:
         self.max_entities = max_entities
         self.status_msg = 'Creating...'
         self.record_format = record_format
+        self.header = header
 
         if self.record_format:
             self.record_format = render_env_variables(record_format)
@@ -485,6 +486,8 @@ class DataDriver:
 
     def simulate(self):
         """Start the simulation, spawning workers and running until completion."""
+        if self.header:
+            self.target_printer.print(self.header)
         self.status_msg = f'Starting {self.type} job.'
         thread_name = 'Spawning'
         thrd = threading.Thread(target=self.spawning_thread, args=(), name=thread_name, daemon=True)
