@@ -47,6 +47,7 @@ All variants follow the same state machine structure, output fields, and format 
 | --- | --- |
 | `conf/form/apache_access_json.txt` | Raw `apache:access:json` events, one JSON object per line |
 | `conf/form/hec_apache_access_json.txt` | Splunk / Lumi HEC envelope with the event nested inside |
+| `conf/form/csv_apache_access_json.txt` | CSV output with a header row, fields matching `apache:access:json` field names |
 
 ### HEC format details
 
@@ -123,6 +124,12 @@ Generate in Splunk HEC format for ingestion into Splunk or Lumi:
 ```bash
 TARGET_SOURCE="my_host/httpd/access_json.log" TARGET_INDEX="main" \
   python generator.py -c conf/gen/apache_access_json_lighting.json -f conf/form/hec_apache_access_json.txt -m 10 -n 1000
+```
+
+Generate CSV output (includes header row automatically):
+
+```bash
+python generator.py -c conf/gen/apache_access_json_lighting.json -f conf/form/csv_apache_access_json.txt -m 10 -n 1000
 ```
 
 Generate deterministic data (same seed = same output):
