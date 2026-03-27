@@ -40,14 +40,3 @@ TARGET_SOURCE="my/source" TARGET_INDEX="main" python generator.py -c conf/gen/ex
 ```
 
 The generator will exit with an error if any environment variables referenced in the format file are not set.
-
-## Output headers
-
-For tabular formats like CSV, you can embed a header line in the format file by starting the first line with `#HEADER` followed by a space and the header content:
-
-```text
-#HEADER time,client,status,http_method,uri_path,bytes_out
-{{time|%s}},{{client}},{{status}},{{http_method}},{{uri_path}},{{bytes_out}}
-```
-
-The `#HEADER` line is written once to the output before any records are generated. It is stripped from the template so it is never repeated per-record. Format files without a `#HEADER` line behave exactly as before.

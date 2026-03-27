@@ -46,7 +46,7 @@ Templates use [Jinja2](https://jinja.palletsprojects.com/). Every emitter dimens
 
 ### Field values
 
-```
+```text
 {{ client }}           → 66.249.65.12
 {{ status }}           → 200
 {{ bytes_out }}        → 4823
@@ -56,14 +56,14 @@ Templates use [Jinja2](https://jinja.palletsprojects.com/). Every emitter dimens
 
 Datetime fields (e.g. `time`) are Python `datetime` objects, so Jinja2's standard methods apply:
 
-```
+```text
 {{ time.strftime('%d/%b/%Y:%H:%M:%S') }}   → 01/Jan/2025:00:00:03
 {{ time.timestamp()|int }}                 → 1735689603
 ```
 
 ### Conditional output
 
-```
+```text
 "{{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %}"
 ```
 
@@ -73,7 +73,7 @@ This renders `?query=string` only when `uri_query` is non-empty.
 
 Use `env.VARIABLE_NAME` to substitute environment variables at render time:
 
-```
+```text
 {"index": "{{ env.SPLUNK_INDEX }}", "event": "{{ client }} {{ status }}"}
 ```
 
@@ -100,6 +100,5 @@ This checks that the named template exists and that all referenced environment v
 | Multiple formats from one config | Yes — pick by name | No — one file per format |
 | Datetime formatting | `{{ time.strftime(...) }}` or `{{ time.timestamp()\|int }}` | `{{time\|%d/%b/%Y}}` |
 | Environment variables | `{{ env.VAR }}` | `%VAR%` |
-| Headers | `"header"` key in template | `#HEADER` line in file |
 
 Format files remain fully supported. See [formats.md](formats.md) for the `-f` reference.

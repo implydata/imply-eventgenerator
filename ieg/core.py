@@ -220,7 +220,7 @@ class Clock:
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
-    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None, header=None, template_name=None):
+    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None, template_name=None):
         self.name = name
         self.config = config
 
@@ -234,7 +234,7 @@ class DataDriver:
         self.max_entities = max_entities
         self.status_msg = 'Creating...'
         self.record_format = record_format
-        self.header = header
+        self.header = None
         self.jinja_template = None
 
         if template_name is not None:

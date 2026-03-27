@@ -156,8 +156,7 @@ def main(argv=None):
                 except json.JSONDecodeError as e:
                     raise ValueError(f"Error parsing schedule file '{args.schedule_file}': {e}")
 
-        # Load record format file, extracting optional #HEADER line
-        header = None
+        # Load record format file
         record_format = None
         if args.record_format_file:
             logger.warning(
@@ -168,10 +167,6 @@ def main(argv=None):
                 try:
                     with open(args.record_format_file, 'r') as f:
                         raw = f.read()
-                    lines = raw.splitlines()
-                    if lines and lines[0].startswith('#HEADER '):
-                        header = lines[0][len('#HEADER '):].strip()
-                        raw = '\n'.join(lines[1:])
                     # Interpret escape sequences like \t
                     record_format = raw.strip().encode('utf-8').decode('unicode_escape')
                 except UnicodeDecodeError as e:
@@ -191,7 +186,6 @@ def main(argv=None):
             max_entities=max_entities,
             record_format=record_format,
             schedule_config=schedule_config,
-            header=header,
             template_name=args.template_name
         )
         logger.info("Starting synthetic event data generator at %s", datetime.now().isoformat())
