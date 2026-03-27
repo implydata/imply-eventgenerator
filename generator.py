@@ -35,7 +35,10 @@ def main(argv=None):
     parser.add_argument('-c', dest='config_file', required=True, help='Generator configuration file')
     parser.add_argument('-t', dest='target_file', help='Target configuration file. If not specified, the target from the config file will be used. If neither is specified, stdout will be used as the target.')
     
-    parser.add_argument('-f', dest='record_format_file', help='Format file for record pattern.')
+    fmt_group = parser.add_mutually_exclusive_group()
+    fmt_group.add_argument('-f', dest='record_format_file', help='Format file for record pattern.')
+    fmt_group.add_argument('--template', dest='template_name', default=None,
+                           help='Named template from the generator config\'s "templates" block.')
 
     parser.add_argument(
         '-s',
@@ -118,10 +121,16 @@ def main(argv=None):
             except json.JSONDecodeError as e:
                 raise ValueError(f"Error parsing config file '{args.config_file}': {e}")
 
+        # Prevent -f being used against a config that has embedded templates
+        if args.record_format_file and config.get('templates'):
+            raise ValueError(
+                f"Config '{args.config_file}' defines embedded templates — use --template instead of -f."
+            )
+
         # --validate: run pre-flight checks and exit
         if args.validate:
             from ieg.validate import validate_config
-            if not validate_config(config):
+            if not validate_config(config, template_name=args.template_name):
                 logger.critical("Config '%s' is invalid — see errors above.", args.config_file)
                 sys.exit(1)
             sys.exit(0)
@@ -178,7 +187,8 @@ def main(argv=None):
             max_entities=max_entities,
             record_format=record_format,
             schedule_config=schedule_config,
-            header=header
+            header=header,
+            template_name=args.template_name
         )
         logger.info("Starting synthetic event data generator at %s", datetime.now().isoformat())
         driver.simulate()

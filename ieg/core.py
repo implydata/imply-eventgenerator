@@ -9,6 +9,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 
+
 from sortedcontainers import SortedList
 
 from ieg.dimensions import DimensionTimestampClock, DimensionVariable, get_dimensions, get_variables
@@ -17,10 +18,33 @@ from ieg.states import Controller, State, Transition
 from ieg.targets import TargetConfluent, TargetFile, TargetKafka
 from ieg.validate import validate_config
 
+from jinja2 import Environment, Undefined, UndefinedError
+
 logger = logging.getLogger('ieg')
 
 # Update TEMPLATE_REGEX to capture optional strftime format
 TEMPLATE_REGEX = re.compile(r"{{\s*([^|}]+)(?:\|([^}]+))?\s*}}")
+
+
+class _StrictEnv:
+    """Wraps os.environ for Jinja2 templates. Raises UndefinedError on missing
+    vars so templates fail loudly, but allows explicit defaults via .get()."""
+
+    def __getattr__(self, name):
+        try:
+            return os.environ[name]
+        except KeyError:
+            raise UndefinedError(f"Environment variable '{name}' is not set")
+
+    def __getitem__(self, name):
+        return self.__getattr__(name)
+
+    def get(self, name, default=None):
+        return os.environ.get(name, default)
+
+
+_jinja_env = Environment(undefined=Undefined)
+_jinja_env.globals['env'] = _StrictEnv()
 
 def render_env_variables(config):
     """
@@ -196,11 +220,11 @@ class Clock:
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
-    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None, header=None):
+    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None, header=None, template_name=None):
         self.name = name
         self.config = config
 
-        if not validate_config(config):
+        if not validate_config(config, template_name=template_name):
             raise ValueError("Configuration is invalid — see log output for details.")
 
         self.runtime = runtime
@@ -211,6 +235,17 @@ class DataDriver:
         self.status_msg = 'Creating...'
         self.record_format = record_format
         self.header = header
+        self.jinja_template = None
+
+        if template_name is not None:
+            templates = config.get('templates', {})
+            if template_name not in templates:
+                available = ', '.join(templates.keys()) if templates else 'none'
+                raise ValueError(f"Template '{template_name}' not found in config. Available: {available}")
+            tmpl = templates[template_name]
+            self.jinja_template = _jinja_env.from_string(tmpl['body'])
+            if self.header is None and 'header' in tmpl:
+                self.header = tmpl['header']
 
         if self.record_format:
             self.record_format = render_env_variables(record_format)
@@ -392,6 +427,9 @@ class DataDriver:
 
     def render_record(self, record):
         """Format a record as JSON or using the configured record format template."""
+        if self.jinja_template is not None:
+            return self.jinja_template.render(**record)
+
         if not self.record_format:
             # If no record format is provided, return the record as a JSON string.
             for key, value in record.items():

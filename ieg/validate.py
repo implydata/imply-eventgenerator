@@ -1,6 +1,8 @@
 """Pre-flight configuration validation for the event generator."""
 
 import logging
+import os
+import re
 
 from ieg.distributions import validate_distribution_desc
 from ieg.dimensions import validate_dimension_desc
@@ -9,7 +11,7 @@ from ieg.states import State, Transition
 logger = logging.getLogger('ieg')
 
 
-def validate_config(config):
+def validate_config(config, template_name=None):
     """
     Validate a generator config dict.
     Logs errors and warnings directly and returns True (valid) or False (has fatal errors).
@@ -152,5 +154,24 @@ def validate_config(config):
                 # do NOT set valid = False — code runs fine, just never terminates
             for sname in sorted(state_names - reachable):
                 logger.warning("state '%s': unreachable from the initial state", sname)
+
+    # Templates block validation
+    templates = config.get('templates', {})
+    if template_name is not None:
+        if not templates:
+            logger.error("--template '%s' specified but config has no 'templates' block", template_name)
+            valid = False
+        elif template_name not in templates:
+            available = ', '.join(templates.keys())
+            logger.error("Template '%s' not found in config. Available: %s", template_name, available)
+            valid = False
+        else:
+            body = templates[template_name].get('body', '')
+            unresolved = [v for v in re.findall(r"env\.(\w+)", body)
+                          if v != 'get' and v not in os.environ]
+            for var in unresolved:
+                logger.error("Template '%s': environment variable '%s' is not set", template_name, var)
+            if unresolved:
+                valid = False
 
     return valid
