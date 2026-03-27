@@ -92,80 +92,80 @@ For configs without a `templates` block, use `-f` to supply an external format f
 
 ### Generation limits
 
-Use either `-n` or `-r` to limit how long generation executes for. If neither option is present, the script will run indefinitely.
-
-#### Limit generation to a length of time
-
-Time durations may be specified in ISO8601 format.
-
-For example, specify 30 seconds as follows:
+Use `-n` to stop after a number of records, or `-r` to stop after a duration (ISO 8601). If neither is set, the generator runs indefinitely.
 
 ```bash
-python generator.py -f generator_config.json -o target_config.json -r PT30S
-```
+# 1000 records
+python generator.py -c presets/configs/ecommerce.json -t apache:access:json -n 1000
 
-Specify 10 minutes as follows:
-
-```bash
-python generator.py -f generator_config.json -o target_config.json -r PT10M
-```
-
-Or, specify 1 hour as follows:
-
-```bash
-python generator.py -f generator_config.json -o target_config.json -r PT1H
-```
-
-#### Limit generation to a number of records
-
-Use `-n` to limit generation to a number of records.
-
-```bash
-python generator.py -f generator_config.json -o target_config.json -n 1000
+# One hour of data
+python generator.py -c presets/configs/ecommerce.json -t apache:access:json -r PT1H
 ```
 
 ### Simulated time
 
-Specify a start time in ISO format to instruct the driver to use simulated time instead of the system clock time (the default).
-
-In the following example, the constraint is the number of records.
+By default, timestamps reflect the real system clock. Use `-s` to start a synthetic clock at a fixed point in time — records are produced instantly rather than in real time, which is recommended for generating large volumes of historical data.
 
 ```bash
-python3 generator.py -c conf/gen/example.json -n 20 -s "2001-12-20T13:13"
+# 1000 records starting 1 Jan 2025
+python generator.py -c presets/configs/ecommerce.json -t apache:access:json -n 1000 -s "2025-01-01T00:00"
+
+# One hour of data starting 1 Jan 2025
+python generator.py -c presets/configs/ecommerce.json -t apache:access:json -r PT1H -s "2025-01-01T00:00"
 ```
 
-* `example.json` generator configuration is used.
-* `-n` requires that only 20 rows are output.
-* The synthetic `time` clock will start on 20th December 2001 at 13:13pm.
+## Using the output
 
-This results in:
+The generator always writes to stdout. Pipe it to whatever destination you need.
 
-```json
-{"time":"2001-12-20T13:13:12.132","server":"127.0.0.5","client":"63.211.68.115","endpoint":"GET /api/users/73/contributions","response_time_ms":326}
-{"time":"2001-12-20T13:13:17.464","server":"127.0.0.3","client":"79.58.216.203","endpoint":"GET /api/search?q=quantum-mechanics","response_time_ms":262}
-{"time":"2001-12-20T13:13:20.776","server":"127.0.0.4","client":"96.54.85.35","endpoint":"GET /api/categories","response_time_ms":75}
-{"time":"2001-12-20T13:13:28.023","server":"127.0.0.4","client":"96.54.85.35","endpoint":"GET /api/articles/56/contributors","response_time_ms":41}
-{"time":"2001-12-20T13:13:28.077","server":"127.0.0.5","client":"18.202.244.47","endpoint":"POST /api/feedback","response_time_ms":179194}
-```
+### stdout
 
-In the next example, the constraint is duration. This will cause the generator to create as many JSON records as would fit into a given duration (see `-r` below).
+The default — useful for inspection or piping to other tools:
 
 ```bash
-python3 generator.py -c conf/gen/example.json -r PT1H -s "2027-03-12"
+python generator.py -c presets/configs/ecommerce.json -t apache:access:json -n 100
 ```
 
-* The `-s` flag sets a synthetic clock start of 12th March 2027.
-* Since `-r` is set to `PT1H`, the generator creates an hour's worth of data.
+### File
 
-The result is a list of events spanning an hour from the time given in `-s`. This is therefore recommended when generating large volumes of data.
+Redirect stdout to a file:
 
-```json
-{"time":"2027-03-12T00:00","server":"127.0.0.6","client":"60.138.23.232","endpoint":"GET /api/articles/102/history","response_time_ms":405}
-{"time":"2027-03-12T00:00:06.157","server":"127.0.0.6","client":"73.198.96.12","endpoint":"GET /api/articles","response_time_ms":210}
-{"time":"2027-03-12T00:00:06.623","server":"127.0.0.4","client":"87.21.26.43","endpoint":"GET /api/articles/42","response_time_ms":445}
-:
-:
-{"time":"2027-03-12T00:59:59.961","server":"127.0.0.4","client":"87.21.26.43","endpoint":"GET /api/users/73/contributions","response_time_ms":489}
-{"time":"2027-03-12T00:59:59.965","server":"127.0.0.4","client":"62.155.215.104","endpoint":"POST /api/users/login","response_time_ms":97521}
-{"time":"2027-03-12T00:59:59.973","server":"127.0.0.5","client":"87.21.26.43","endpoint":"GET /api/articles/56/contributors","response_time_ms":118}
+```bash
+python generator.py -c presets/configs/ecommerce.json -t apache:access:json -n 1000 > events.json
 ```
+
+### Apache Kafka
+
+Pipe to [kcat](https://github.com/edenhill/kcat):
+
+```bash
+python generator.py -c presets/configs/ecommerce.json -t apache:access:json \
+  | kcat -b localhost:9092 -t my-topic
+```
+
+### Confluent Cloud
+
+Use kcat with SASL authentication:
+
+```bash
+python generator.py -c presets/configs/ecommerce.json -t apache:access:json \
+  | kcat -b pkc-example.us-east-1.aws.confluent.cloud:9092 \
+         -X security.protocol=SASL_SSL \
+         -X sasl.mechanisms=PLAIN \
+         -X sasl.username="$CONFLUENT_API_KEY" \
+         -X sasl.password="$CONFLUENT_API_SECRET" \
+         -t my-topic
+```
+
+### Splunk HEC
+
+When the endpoint is able to apply metadata (e.g. `sourcetype`, `index`, and `host`), pipe to `services/collector/raw`:
+
+```bash
+python generator.py -c presets/configs/ecommerce.json -t access_combined \
+  | curl -s -X POST https://hec.example.com/services/collector/raw \
+         -H "Authorization: Splunk $HEC_TOKEN" \
+         --data-binary @-
+```
+
+For full control over metadata, use a pipeline tool that wraps each event in a HEC envelope — an [OTel Collector](https://opentelemetry.io/docs/collector/) with a Splunk HEC exporter, or Cribl or Vector.
