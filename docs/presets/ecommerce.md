@@ -2,6 +2,23 @@
 
 A mid-traffic e-commerce scenario simulating a general retail store. Sits between the lighting (busier) and furniture (quieter) variants in terms of traffic volume and session duration.
 
+## Quick start
+
+```bash
+# Apache combined log
+python generator.py -c presets/configs/ecommerce.json --template access_combined -n 100 -s "2025-01-01T00:00"
+
+# JSON (Splunk TA)
+python generator.py -c presets/configs/ecommerce.json --template apache:access:json -r PT1H -s "2025-01-01T00:00"
+
+# CSV
+python generator.py -c presets/configs/ecommerce.json --template csv -n 1000 -s "2025-01-01T00:00"
+
+# With time-of-day variation
+python generator.py -c presets/configs/ecommerce.json --template access_combined \
+  -m 300 --schedule presets/schedules/ecommerce.json
+```
+
 ## Templates
 
 | Template | Output |
@@ -37,6 +54,17 @@ A mid-traffic e-commerce scenario simulating a general retail store. Sits betwee
 | `dest_port` | Server port (80 or 443) |
 | `response_time_microseconds` | Response latency in microseconds |
 
+## Product categories
+
+| Category | Weight | Example products |
+| --- | --- | --- |
+| Electronics | 25% | Laptop, wireless headphones, smartwatch, tablet, portable speaker |
+| Clothing | 22% | Casual jacket, running shoes, denim jeans, summer dress, wool sweater |
+| Home & Garden | 18% | Coffee maker, scented candles, throw pillow, indoor plant pot, wall art |
+| Kitchen | 15% | Non-stick pan, chef's knife, French press, cutting board, blender |
+| Sports | 12% | Yoga mat, resistance bands, water bottle, gym bag, foam roller |
+| Beauty | 8% | Face moisturiser, vitamin C serum, lip balm, essential oil, hair mask |
+
 ## State machine
 
 Workers simulate a browsing session:
@@ -50,34 +78,6 @@ Workers simulate a browsing session:
 ```
 
 Session-level properties (IP, user-agent, cookie, server) are drawn once at entry and persist for the full session. Page dwell times are drawn from uniform distributions (seconds to minutes, depending on category and config).
-
-## Quick start
-
-```bash
-# Apache combined log
-python generator.py -c presets/configs/ecommerce.json --template access_combined -n 100 -s "2025-01-01T00:00"
-
-# JSON (Splunk TA)
-python generator.py -c presets/configs/ecommerce.json --template apache:access:json -r PT1H -s "2025-01-01T00:00"
-
-# CSV
-python generator.py -c presets/configs/ecommerce.json --template csv -n 1000 -s "2025-01-01T00:00"
-
-# With time-of-day variation
-python generator.py -c presets/configs/ecommerce.json --template access_combined \
-  -m 300 --schedule presets/schedules/ecommerce.json
-```
-
-## Product categories
-
-| Category | Weight | Example products |
-| --- | --- | --- |
-| Electronics | 25% | Laptop, wireless headphones, smartwatch, tablet, portable speaker |
-| Clothing | 22% | Casual jacket, running shoes, denim jeans, summer dress, wool sweater |
-| Home & Garden | 18% | Coffee maker, scented candles, throw pillow, indoor plant pot, wall art |
-| Kitchen | 15% | Non-stick pan, chef's knife, French press, cutting board, blender |
-| Sports | 12% | Yoga mat, resistance bands, water bottle, gym bag, foam roller |
-| Beauty | 8% | Face moisturiser, vitamin C serum, lip balm, essential oil, hair mask |
 
 ## Concurrency (`-m`)
 
