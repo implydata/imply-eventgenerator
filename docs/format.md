@@ -1,5 +1,8 @@
 # Output format reference
 
+> **Deprecated:** Format files (`-f`) and the configs in `conf/` are deprecated and will be removed in a future release.
+> Use [embedded templates](templates.md) with `--template` and the configs in `library/` instead.
+
 Use the `-f` option to specify a format file for output records. If not specified, JSON is used.
 
 A format file is a text file with key names in braces (`{{` and `}}`) where emitter dimensions will be inserted.

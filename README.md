@@ -33,6 +33,8 @@ For additional configurations, see the following directories:
 * `./conf/tar`: [Target specifications](#target-specification), such as Kafka or file
 * `./conf/form`: [Record formats](#output-format), such as TSV
 
+The `library/` folder contains ready-to-use scenario configs with [embedded output templates](docs/templates.md) — use `--template` to select an output format by name. See [library/README.md](library/README.md) for details.
+
 ## Command-line reference
 
 Run the `generator.py` script from the command line with Python.
@@ -46,8 +48,9 @@ python generator.py \
         -m <generator workers limit> \
         -n <record limit> \
         -r <duration limit in ISO8610 format> \
+        --template <template name> \
         --schedule <schedule file> \
-        --debug
+        --debug \
         --seed <integer>
 ```
 
@@ -55,7 +58,8 @@ python generator.py \
 | --- | --- |
 | [`-c`](#generator-specification) | The name of the file in the `config_file` folder containing the [generator specification](#generator-specification). |
 | [`-t`](#target-specification) | The name of the file that contains the [target definition](docs/tarspec.md). This over-rides any `target` specified in the generator specification. If neither is provided, stdout will be used. |
-| [`-f`](#output-format) | A file that contains a pattern that can be used to format the output records. If not specified, JSON is used. |
+| [`--template`](docs/templates.md) | A named output template embedded in the generator config. Mutually exclusive with `-f`. See [output templates](docs/templates.md). |
+| [`-f`](#output-format) | **(Deprecated)** A file that contains a pattern that can be used to format the output records. Use `--template` instead. |
 | [`-s`](#simulated-time) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
@@ -100,9 +104,9 @@ For full details, see the [target specification reference](docs/tarspec.md).
 
 ### Output format
 
-A text file with key names in braces (`{{` and `}}`) where emitter dimensions will be inserted. This allows for formats other than JSON to be generated, such as CSV or TSV. Format files also support datetime formatting and environment variable substitution.
+Configs that include a `templates` block (such as those in `library/`) support named output templates selected with `--template`. Templates use Jinja2 and can produce JSON, CSV, NCSA combined logs, and more from a single config. See the [output templates reference](docs/templates.md).
 
-For full details, see the [output format reference](docs/format.md).
+For configs without a `templates` block, use `-f` to supply an external format file — a text file with field names in braces (`{{` and `}}`). Format files support datetime formatting and environment variable substitution. See the [format file reference](docs/format.md).
 
 ### Generation limits
 

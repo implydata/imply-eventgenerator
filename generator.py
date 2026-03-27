@@ -160,6 +160,10 @@ def main(argv=None):
         header = None
         record_format = None
         if args.record_format_file:
+            logger.warning(
+                "-f is deprecated and will be removed in a future release. "
+                "Use --template with a library config instead. See docs/templates.md."
+            )
             if os.path.exists(args.record_format_file):
                 try:
                     with open(args.record_format_file, 'r') as f:
