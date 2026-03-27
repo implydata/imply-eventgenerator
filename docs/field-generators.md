@@ -1,6 +1,6 @@
 # Field generators
 
-Field generators are JSON objects that appear in emitter [`dimensions`](./genspec-emitters.md) and state [`variables`](./genspec-states.md).
+Field generators are JSON objects that appear in emitter [`dimensions`](./emitters.md) and state [`variables`](./states.md).
 
 Whenever a worker encounters a field generator, whether via an emitter dimension list or a state variable, it generates a key (`name`) and a value.
 
@@ -11,12 +11,12 @@ The value that is generated depends on the field generator `type`.
 Available field generator types are:
 
 * [`clock`](#clock) generates a datetime using the simulated clock.
-* [`timestamp`](./type-timestamp.md) generates a datetime between a range.
-* [`string`](./type-string.md) creates a synthetic string, optionally limited to a specific list of characters.
-* [`int`](./type-int.md) generates whole numbers.
-* [`float`](./type-float.md) generates floating point numbers.
-* [`ipaddress`](./type-ipaddress.md) creates a network IP address.
-* [`counter`](./type-counter.md) creates an incrementing integer.
+* [`timestamp`](./types/timestamp.md) generates a datetime between a range.
+* [`string`](./types/string.md) creates a synthetic string, optionally limited to a specific list of characters.
+* [`int`](./types/int.md) generates whole numbers.
+* [`float`](./types/float.md) generates floating point numbers.
+* [`ipaddress`](./types/ipaddress.md) creates a network IP address.
+* [`counter`](./types/counter.md) creates an incrementing integer.
 * [`enum`](#enum)
 * [`object`](#object)
 * [`list`](#list)
@@ -28,9 +28,9 @@ Use the `clock`-type field generator to mimic an event timestamp.
 Every state machine worker has an internal clock that starts at the time the worker is created by the data generator.
 
 * The very first worker starts either at the current date time, or by using the `-s` argument at the [command line](./command-line.md), at a simulated clock start time.
-* The next output event for that worker is emitted based on the `delay` between `states`. For more information, see [`states`](./genspec-states.md).
+* The next output event for that worker is emitted based on the `delay` between `states`. For more information, see [`states`](./states.md).
 
-The data generator spawns additional workers up to a configurable maximum, e.g. using the `-m` argument at the [command line](./command-line.md). The interval between workers being spawned is controlled by the `interarrival` time, set in the [generator specification](./genspec.md).
+The data generator spawns additional workers up to a configurable maximum, e.g. using the `-m` argument at the [command line](./command-line.md). The interval between workers being spawned is controlled by the `interarrival` time, set in the [generator configuration](./generator-config.md).
 
 ```bash
 python3 src/generator.py -f example.json -n 10 -m 1

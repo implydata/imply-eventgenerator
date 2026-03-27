@@ -1,0 +1,26 @@
+{
+  "type": "gmm_temporal",
+  "days": {
+    "1": [
+      {"utc_hour": 10, "sigma": 2.0, "weight": 0.50},
+      {"utc_hour": 14, "sigma": 2.5, "weight": 0.72},
+      {"utc_hour": 20, "sigma": 1.5, "weight": 0.28}
+    ],
+    "2": [
+      {"utc_hour": 12, "sigma": 3.0, "weight": 1.00},
+      {"utc_hour": 20.5, "sigma": 1.5, "weight": 0.39}
+    ],
+    "5": [
+      {"utc_hour": 11, "sigma": 2.5, "weight": 0.89},
+      {"utc_hour": 18, "sigma": 1.5, "weight": 0.56}
+    ],
+    "6": [
+      {"utc_hour": 14, "sigma": 3.0, "weight": 0.56},
+      {"utc_hour": 21, "sigma": 1.5, "weight": 0.39}
+    ],
+    "7": [
+      {"utc_hour": 13, "sigma": 3.0, "weight": 0.44},
+      {"utc_hour": 19, "sigma": 2.0, "weight": 0.28}
+    ]
+  }
+}

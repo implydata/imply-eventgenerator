@@ -4,3 +4,4 @@ kafka-python
 numpy
 sortedcontainers
 isodate
+jinja2

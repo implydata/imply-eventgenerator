@@ -1,6 +1,6 @@
 # Synthetic integers
 
-When a [field generator](./fieldgen.md) type is `int`, a random integer is created.
+When a [field generator](./field-generators.md) type is `int`, a random integer is created.
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |

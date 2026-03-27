@@ -1,6 +1,6 @@
 # Synthetic IP addresses
 
-When a [field generator](./fieldgen.md) type is `ipaddress`, a random IP address is created.
+When a [field generator](./field-generators.md) type is `ipaddress`, a random IP address is created.
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |

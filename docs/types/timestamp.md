@@ -1,6 +1,6 @@
 # Synthetic timestamps
 
-When a [field generator](./fieldgen.md) type is `timestamp`, an ISO format datetime is produced.
+When a [field generator](./field-generators.md) type is `timestamp`, an ISO format datetime is produced.
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |
@@ -14,7 +14,7 @@ When a [field generator](./fieldgen.md) type is `timestamp`, an ISO format datet
 
 In this example, there are two states: `state_1` and `state_2`. There is a 20% probability that the data generator will switch to `state_2` after `state_1`.
 
-The emitter for `state_1` is `example_event_1`. This emits a simple [`string`](./type-string.md) as `emitter_number`, and `timestamp` in the range between 1st January 2020 at 3pm and 1st January 2020 at 8pm. `percent_nulls` adds a 25% chance that the value is null.
+The emitter for `state_1` is `example_event_1`. This emits a simple [`string`](./types/string.md) as `emitter_number`, and `timestamp` in the range between 1st January 2020 at 3pm and 1st January 2020 at 8pm. `percent_nulls` adds a 25% chance that the value is null.
 
 The emitter for `state_2` is `example_event_2` which also emits a simple string containing the emitter number. The `timestamp` for these events lie between 1st and 2nd of January 1920.
 

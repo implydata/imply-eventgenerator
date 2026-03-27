@@ -1,6 +1,6 @@
 # Synthetic counters
 
-When a [field generator](./fieldgen.md) type is `counter`, an integer is created that increments with every generation.
+When a [field generator](./field-generators.md) type is `counter`, an integer is created that increments with every generation.
 
 Counters are not incremented when missing or null.
 

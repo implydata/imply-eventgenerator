@@ -35,7 +35,10 @@ def main(argv=None):
     parser.add_argument('-c', dest='config_file', required=True, help='Generator configuration file')
     parser.add_argument('-t', dest='target_file', help='Target configuration file. If not specified, the target from the config file will be used. If neither is specified, stdout will be used as the target.')
     
-    parser.add_argument('-f', dest='record_format_file', help='Format file for record pattern.')
+    fmt_group = parser.add_mutually_exclusive_group()
+    fmt_group.add_argument('-f', dest='record_format_file', help='Format file for record pattern.')
+    fmt_group.add_argument('--template', dest='template_name', default=None,
+                           help='Named template from the generator config\'s "templates" block.')
 
     parser.add_argument(
         '-s',
@@ -118,10 +121,16 @@ def main(argv=None):
             except json.JSONDecodeError as e:
                 raise ValueError(f"Error parsing config file '{args.config_file}': {e}")
 
+        # Prevent -f being used against a config that has embedded templates
+        if args.record_format_file and config.get('templates'):
+            raise ValueError(
+                f"Config '{args.config_file}' defines embedded templates — use --template instead of -f."
+            )
+
         # --validate: run pre-flight checks and exit
         if args.validate:
             from ieg.validate import validate_config
-            if not validate_config(config):
+            if not validate_config(config, template_name=args.template_name):
                 logger.critical("Config '%s' is invalid — see errors above.", args.config_file)
                 sys.exit(1)
             sys.exit(0)
@@ -148,18 +157,22 @@ def main(argv=None):
                     raise ValueError(f"Error parsing schedule file '{args.schedule_file}': {e}")
 
         # Load record format file
+        record_format = None
         if args.record_format_file:
+            logger.warning(
+                "-f is deprecated and will be removed in a future release. "
+                "Use --template with a library config instead. See docs/templates.md."
+            )
             if os.path.exists(args.record_format_file):
                 try:
                     with open(args.record_format_file, 'r') as f:
-                        # Interpret escape sequences like \t
-                        record_format = f.read().strip().encode('utf-8').decode('unicode_escape')
+                        raw = f.read()
+                    # Interpret escape sequences like \t
+                    record_format = raw.strip().encode('utf-8').decode('unicode_escape')
                 except UnicodeDecodeError as e:
                     raise ValueError(f"Error decoding record format file '{args.record_format_file}': {e}")
             else:
                 raise FileNotFoundError(f"Record format file '{args.record_format_file}' not found. Ensure the file path is correct.")
-        else:
-            record_format = None
 
         # Start a new data driver
         driver = DataDriver(
@@ -172,7 +185,8 @@ def main(argv=None):
             start_time=start_time,
             max_entities=max_entities,
             record_format=record_format,
-            schedule_config=schedule_config
+            schedule_config=schedule_config,
+            template_name=args.template_name
         )
         logger.info("Starting synthetic event data generator at %s", datetime.now().isoformat())
         driver.simulate()

@@ -2,9 +2,9 @@
 
 Distribution JSON objects define the distribution pattern to follow when creating synthetic data.
 
-They appear in emitter `dimensions` lists, and the [`interarrival`](./genspec-interarrival.md) period.
+They appear in emitter `dimensions` lists, and the `interarrival` period.
 
-| Field | Use | [`timestamp`](./type-timestamp) | [`string`](./type-string.md) | [`int`](./type-int.md) | [`float`](./type-float.md) | [`ipaddress`](./type-ipaddress.md) |
+| Field | Use | [`timestamp`](./types/timestamp.md) | [`string`](./types/string.md) | [`int`](./types/int.md) | [`float`](./types/float.md) | [`ipaddress`](./types/ipaddress.md) |
 | --- | --- | --- | --- | --- | --- | --- |
 | `distribution` | Determines how the values for the dimension are generated. | Y | | Y | Y | Y |
 | `length_distribution` | Determines the length of the generated value of the dimension. | | Y | | | |
@@ -123,7 +123,7 @@ For the same pattern every day, define a single day key:
 
 ## Cardinality
 
-Use `cardinality` in an [emitter's](./genspec-emitters.md) list of `dimensions` to define the length of the set of possible values.
+Use `cardinality` in an [emitter's](./emitters.md) list of `dimensions` to define the length of the set of possible values.
 
 The generator creates a list of values with length `cardinality`.
 
