@@ -19,7 +19,7 @@ pip install -r requirements.txt
 Run the following example to test the generator script:
 
 ```sh
-python generator.py -c conf/gen/apache_access_combined.json -m 1 -n 10
+python generator.py -c presets/configs/ecommerce.json -t access_combined -m 1 -n 10
 ```
 
 This command generates logs in the format of [Apache access combined logs](https://httpd.apache.org/docs/2.4/logs.html).
@@ -27,13 +27,7 @@ It uses a single worker to generate 10 records, and it outputs the results to th
 
 For more examples and test cases, see [`test.sh`](./test.sh).
 
-For additional configurations, see the following directories:
-
-* `./conf/gen`: [Generator configurations](#generator-configuration), such as Apache logs
-* `./conf/tar`: [Target configurations](#target-configuration), such as Kafka or file
-* `./conf/form`: [Record formats](#output-format), such as TSV
-
-The `presets/` folder contains ready-to-use configs with [embedded output templates](docs/templates.md) — use `--template` to select an output format by name. See [presets/README.md](presets/README.md) for details.
+The `presets/` folder contains ready-to-use configs with [embedded output templates](docs/templates.md) — use `-t` to select an output format by name. See [presets/README.md](presets/README.md) for details.
 
 ## Command-line reference
 
@@ -42,13 +36,12 @@ Run the `generator.py` script from the command line with Python.
 ```bash
 python generator.py \
         -c <generator configuration file> \
-        -t <target configuration file> \
+        -t <template name> \
         -f <format file> \
         -s <start timestamp> \
         -m <generator workers limit> \
         -n <record limit> \
         -r <duration limit in ISO8610 format> \
-        --template <template name> \
         --schedule <schedule file> \
         --debug \
         --seed <integer>
@@ -57,9 +50,8 @@ python generator.py \
 | Argument | Description |
 | --- | --- |
 | [`-c`](#generator-configuration) | The name of the file in the `config_file` folder containing the [generator configuration](#generator-configuration). |
-| [`-t`](#target-configuration) | The name of the file that contains the [target definition](docs/targets.md). This over-rides any `target` specified in the generator configuration. If neither is provided, stdout will be used. |
-| [`--template`](docs/templates.md) | A named output template embedded in the generator config. Mutually exclusive with `-f`. See [output templates](docs/templates.md). |
-| [`-f`](#output-format) | **(Deprecated)** A file that contains a pattern that can be used to format the output records. Use `--template` instead. |
+| [`-t` / `--template`](docs/templates.md) | A named output template embedded in the generator config. Mutually exclusive with `-f`. See [output templates](docs/templates.md). |
+| [`-f`](#output-format) | **(Deprecated)** A file that contains a pattern that can be used to format the output records. Use `-t` instead. |
 | [`-s`](#simulated-time) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-configuration) | The maximum number of workers to create. Defaults to 100. |
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
@@ -80,7 +72,6 @@ A generator configuration follows this structure:
 {
   "states": [ ... ],
   "emitters": [ ... ],
-  "target": { },
   "interarrival": { }
 }
 ```
@@ -89,18 +80,9 @@ The sections of the JSON document concern what each data generator worker will d
 
 * A list of [`states`](docs/states.md) that a worker can transition through.
 * A list of [`emitters`](docs/emitters.md), listing the dimensions that will be output by a worker and what data they will contain. Each dimension uses a [field generator](docs/field-generators.md) to produce values, controlled by [distributions](docs/distributions.md).
-* A [`target`](docs/targets.md) definition (optional), stating where records should be written. When not provided inside a generator configuration, a separate JSON file can be specified using the `-o` argument. This allows for the same generator to be used with different targets.
 * The `interarrival` time, controlling how often a new worker is spawned. The default maximum number of workers is 100, unless the `-m` argument is used.
 
 For full details, see the [generator configuration reference](docs/generator-config.md). See also [common patterns](docs/patterns.md) and [best practices](docs/best-practices.md) for building configurations.
-
-### Target configuration
-
-Set the output of the data generator by setting the `target` object.
-
-Use the _-o_ option to designate a target definition file name.
-
-For full details, see the [target configuration reference](docs/targets.md).
 
 ### Output format
 
@@ -166,14 +148,14 @@ This results in:
 {"time":"2001-12-20T13:13:28.077","server":"127.0.0.5","client":"18.202.244.47","endpoint":"POST /api/feedback","response_time_ms":179194}
 ```
 
-In the next example, the constraint is duration. This will cause the generator to create as many JSON records as would fit into a given duration (see `-t` below).
+In the next example, the constraint is duration. This will cause the generator to create as many JSON records as would fit into a given duration (see `-r` below).
 
 ```bash
 python3 generator.py -c conf/gen/example.json -r PT1H -s "2027-03-12"
 ```
 
 * The `-s` flag sets a synthetic clock start of 12th March 2027.
-* Since `-t` is set to `1h`, the generator creates an hour's worth of data.
+* Since `-r` is set to `PT1H`, the generator creates an hour's worth of data.
 
 The result is a list of events spanning an hour from the time given in `-s`. This is therefore recommended when generating large volumes of data.
 
