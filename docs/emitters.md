@@ -1,6 +1,6 @@
 # Event emitters
 
-Emitters define the data that will be created by the data generator when a particular [state](./genspec-states.md) is reached.
+Emitters define the data that will be created by the data generator when a particular [state](./states.md) is reached.
 
 Define one or more emitters, each with its own dimensions and data configuration.
 
@@ -13,6 +13,6 @@ Each emitter has this structure:
 
 Use the `dimensions` list to prescribe the event timestamp, attributes, and measures for each record created by a worker as it enters each state.
 
-The `dimensions` list is made up of [field generators](./fieldgen.md) and, optionally, [worker variables](./type-variable.md).
+The `dimensions` list is made up of [field generators](./field-generators.md) and, optionally, [worker variables](./types/variable.md).
 
-To understand how to create worker variables, see [states](./genspec-states.md).
+To understand how to create worker variables, see [states](./states.md).

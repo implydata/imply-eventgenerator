@@ -2,13 +2,13 @@
 
 Control the behavior of the data generator using a JSON configuration object known as the "Generator Configuration". See the `config_file` folder for [examples](../config_file/examples).
 
-Workers traverse a number of [`states`](./genspec-states.md) and generate events as they go using [`emitters`](./genspec-emitters.md). States may optionally omit an emitter to create non-emitting states useful for routing, delays, or variable setup. Workers are created periodically, according to the [`interarrival`](./genspec-interarrival.md) time.
+Workers traverse a number of [`states`](./states.md) and generate events as they go using [`emitters`](./emitters.md). States may optionally omit an emitter to create non-emitting states useful for routing, delays, or variable setup. Workers are created periodically, according to the `interarrival` time.
 
 | Object | Description | Options | Required? |
 | --- | --- | --- | --- |
-| [`states`](./genspec-states.md) | A list of states that will be used to generate events. | See [`states`](./genspec-states.md) | Yes |
-| [`emitters`](./genspec-emitters.md) | A list of emitters. | See [`emitters`](./genspec-emitters.md) | Yes |
-| [`target`](./tarspec.md) | A target configuration. | See [`targets`](./tarspec.md) | No |
+| [`states`](./states.md) | A list of states that will be used to generate events. | See [`states`](./states.md) | Yes |
+| [`emitters`](./emitters.md) | A list of emitters. | See [`emitters`](./emitters.md) | Yes |
+| [`target`](./targets.md) | A target configuration. | See [`targets`](./targets.md) | No |
 | `interarrival` | The period of time that elapses before the next worker is started. | A [distribution](./distributions.md) object. | Yes |
 
 In this example, there is just one state: `state_1`. When each worker reaches that state, it uses the `example_record_1` emitter to produce an event with one field called `enum_dim`, where the possible values of that field are selected using a uniform distribution from a list of characters. Since no `target` is specified, the output is sent to stdout.
@@ -100,7 +100,7 @@ When run with the `-m 3`, 3 workers are spawned. Since `interarrival` is a `cons
 
 ## See Also
 
-- [States Documentation](genspec-states.md) - Detailed state configuration guide
-- [Emitters Documentation](genspec-emitters.md) - Emitter configuration reference
+- [States Documentation](states.md) - Detailed state configuration guide
+- [Emitters Documentation](emitters.md) - Emitter configuration reference
 - [Common Patterns](patterns.md) - State machine patterns and techniques for building realistic configurations
 - [Best Practices](best-practices.md) - Configuration guidelines, naming conventions, and development workflow

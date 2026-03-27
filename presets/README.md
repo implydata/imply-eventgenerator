@@ -18,4 +18,4 @@ Ready-to-use generator configs and schedules. Each config embeds named output te
 | `ecommerce.json` | Weekday afternoon peaks, quiet overnight and weekends |
 | `full.json` | Flat 1.0 multiplier — equivalent to no schedule |
 
-See [schedule documentation](../docs/schedule.md) for how schedules interact with `-m` and how to write your own.
+See [schedule documentation](../docs/schedules.md) for how schedules interact with `-m` and how to write your own.

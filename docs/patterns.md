@@ -1009,8 +1009,8 @@ These six patterns represent essential techniques for building realistic, effici
 
 For more information, see:
 
-- [Generator Configuration](genspec.md) - Core concepts and field reference
-- [States Documentation](genspec-states.md) - Detailed state configuration guide including variables_on_entry
+- [Generator Configuration](generator-config.md) - Core concepts and field reference
+- [States Documentation](states.md) - Detailed state configuration guide including variables_on_entry
 - [Best Practices](best-practices.md) - Configuration guidelines and conventions
 
 *These patterns were discovered during the development of production-quality VPC Flow Logs synthetic data generation. They represent battle-tested approaches for creating realistic, performant state machine configurations.*

@@ -1,14 +1,14 @@
 # Worker variables
 
-When a worker encounters an [emitter dimension](./genspec-emitters.md#dimensions) with a `type` of `variable`, the worker variable is used, rather than a new value value being created.
+When a worker encounters an [emitter dimension](./emitters.md#dimensions) with a `type` of `variable`, the worker variable is used, rather than a new value value being created.
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |
 | `type` | The data type for the dimension. | `float` | Yes | |
 | `name` | The unique name for the dimension. | String | Yes | |
-| `variable` | The name of a [state variable](./genspec.md#variables). | String | Yes | |
+| `variable` | The name of a [state variable](./generator-config.md#variables). | String | Yes | |
 
-In the following example, there are two states, `state_1` and `state_2`. In `state_1`, two variables are created, `var_client_ip` and `var_account_code`. Notice that these conform to the normal configuration for [dimensions in emitters](./genspec-emitters.md) - [`ipaddress`](./type-ipaddress.md) and [`string`](./type-string.md) respectively.
+In the following example, there are two states, `state_1` and `state_2`. In `state_1`, two variables are created, `var_client_ip` and `var_account_code`. Notice that these conform to the normal configuration for [dimensions in emitters](./emitters.md) - [`ipaddress`](./types/ipaddress.md) and [`string`](./types/string.md) respectively.
 
 Both states use the `click` emitter, which contains:
 

@@ -57,14 +57,14 @@ python generator.py \
 | Argument | Description |
 | --- | --- |
 | [`-c`](#generator-configuration) | The name of the file in the `config_file` folder containing the [generator configuration](#generator-configuration). |
-| [`-t`](#target-configuration) | The name of the file that contains the [target definition](docs/tarspec.md). This over-rides any `target` specified in the generator configuration. If neither is provided, stdout will be used. |
+| [`-t`](#target-configuration) | The name of the file that contains the [target definition](docs/targets.md). This over-rides any `target` specified in the generator configuration. If neither is provided, stdout will be used. |
 | [`--template`](docs/templates.md) | A named output template embedded in the generator config. Mutually exclusive with `-f`. See [output templates](docs/templates.md). |
 | [`-f`](#output-format) | **(Deprecated)** A file that contains a pattern that can be used to format the output records. Use `--template` instead. |
 | [`-s`](#simulated-time) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-configuration) | The maximum number of workers to create. Defaults to 100. |
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
 | [`-r`](#generation-limits) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
-| [`--schedule`](docs/schedule.md) | A JSON file that modulates the number of active workers over time, producing time-of-day traffic variation. See the [schedule documentation](docs/schedule.md) for available schedules and how to write your own. |
+| [`--schedule`](docs/schedules.md) | A JSON file that modulates the number of active workers over time, producing time-of-day traffic variation. See the [schedule documentation](docs/schedules.md) for available schedules and how to write your own. |
 | `--debug` | Enable debug logging. Outputs detailed thread scheduling and event queue information to stderr. |
 | [`--seed`](docs/deterministic.md) | An integer seed for deterministic data generation. Use with `-s` for fully reproducible output. |
 
@@ -72,7 +72,7 @@ You can also run the generator as an HTTP service. See the [server API reference
 
 ### Generator configuration
 
-The [generator configuration](docs/genspec.md) is a JSON document that sets how the data generator will execute. When the `-f` option is used, the generator configuration will be read from a file, otherwise the generator configuration will be read from `stdin`.
+The [generator configuration](docs/generator-config.md) is a JSON document that sets how the data generator will execute. When the `-f` option is used, the generator configuration will be read from a file, otherwise the generator configuration will be read from `stdin`.
 
 A generator configuration follows this structure:
 
@@ -87,12 +87,12 @@ A generator configuration follows this structure:
 
 The sections of the JSON document concern what each data generator worker will do.
 
-* A list of [`states`](docs/genspec-states.md) that a worker can transition through.
-* A list of [`emitters`](docs/genspec-emitters.md), listing the dimensions that will be output by a worker and what data they will contain. Each dimension uses a [field generator](docs/fieldgen.md) to produce values, controlled by [distributions](docs/distributions.md).
-* A [`target`](docs/tarspec.md) definition (optional), stating where records should be written. When not provided inside a generator configuration, a separate JSON file can be specified using the `-o` argument. This allows for the same generator to be used with different targets.
+* A list of [`states`](docs/states.md) that a worker can transition through.
+* A list of [`emitters`](docs/emitters.md), listing the dimensions that will be output by a worker and what data they will contain. Each dimension uses a [field generator](docs/field-generators.md) to produce values, controlled by [distributions](docs/distributions.md).
+* A [`target`](docs/targets.md) definition (optional), stating where records should be written. When not provided inside a generator configuration, a separate JSON file can be specified using the `-o` argument. This allows for the same generator to be used with different targets.
 * The `interarrival` time, controlling how often a new worker is spawned. The default maximum number of workers is 100, unless the `-m` argument is used.
 
-For full details, see the [generator configuration reference](docs/genspec.md). See also [common patterns](docs/patterns.md) and [best practices](docs/best-practices.md) for building configurations.
+For full details, see the [generator configuration reference](docs/generator-config.md). See also [common patterns](docs/patterns.md) and [best practices](docs/best-practices.md) for building configurations.
 
 ### Target configuration
 
@@ -100,13 +100,13 @@ Set the output of the data generator by setting the `target` object.
 
 Use the _-o_ option to designate a target definition file name.
 
-For full details, see the [target configuration reference](docs/tarspec.md).
+For full details, see the [target configuration reference](docs/targets.md).
 
 ### Output format
 
 Configs that include a `templates` block (such as those in `presets/configs/`) support named output templates selected with `--template`. Templates use Jinja2 and can produce JSON, CSV, NCSA combined logs, and more from a single config. See the [output templates reference](docs/templates.md).
 
-For configs without a `templates` block, use `-f` to supply an external format file — a text file with field names in braces (`{{` and `}}`). Format files support datetime formatting and environment variable substitution. See the [format file reference](docs/format.md).
+For configs without a `templates` block, use `-f` to supply an external format file — a text file with field names in braces (`{{` and `}}`). Format files support datetime formatting and environment variable substitution. See the [format file reference](docs/formats.md).
 
 ### Generation limits
 

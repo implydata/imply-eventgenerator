@@ -849,5 +849,5 @@ When creating a new configuration:
 For related information, see:
 
 - [Common Patterns](patterns.md) - State machine patterns and techniques
-- [Generator Configuration](genspec.md) - Core concepts and field reference
-- [States Documentation](genspec-states.md) - Detailed state configuration guide
+- [Generator Configuration](generator-config.md) - Core concepts and field reference
+- [States Documentation](states.md) - Detailed state configuration guide

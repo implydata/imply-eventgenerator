@@ -1,6 +1,6 @@
 # Synthetic floating point numbers
 
-When a [field generator](./fieldgen.md) type is  `float`, random floating point numbers are created.
+When a [field generator](./field-generators.md) type is  `float`, random floating point numbers are created.
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |

@@ -1,6 +1,6 @@
 # Synthetic strings
 
-When a [field generator](./fieldgen.md) type is  `string`, a random string is created.
+When a [field generator](./field-generators.md) type is  `string`, a random string is created.
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |

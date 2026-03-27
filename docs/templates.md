@@ -102,4 +102,4 @@ This checks that the named template exists and that all referenced environment v
 | Environment variables | `{{ env.VAR }}` | `%VAR%` |
 | Headers | `"header"` key in template | `#HEADER` line in file |
 
-Format files remain fully supported. See [format.md](format.md) for the `-f` reference.
+Format files remain fully supported. See [formats.md](formats.md) for the `-f` reference.
