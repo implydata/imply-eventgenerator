@@ -1009,7 +1009,7 @@ These six patterns represent essential techniques for building realistic, effici
 
 For more information, see:
 
-- [Generator Specification](genspec.md) - Core concepts and field reference
+- [Generator Configuration](genspec.md) - Core concepts and field reference
 - [States Documentation](genspec-states.md) - Detailed state configuration guide including variables_on_entry
 - [Best Practices](best-practices.md) - Configuration guidelines and conventions
 

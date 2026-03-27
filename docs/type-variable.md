@@ -8,7 +8,7 @@ When a worker encounters an [emitter dimension](./genspec-emitters.md#dimensions
 | `name` | The unique name for the dimension. | String | Yes | |
 | `variable` | The name of a [state variable](./genspec.md#variables). | String | Yes | |
 
-In the following example, there are two states, `state_1` and `state_2`. In `state_1`, two variables are created, `var_client_ip` and `var_account_code`. Notice that these conform to the normal specification for [dimensions in emitters](./genspec-emitters.md) - [`ipaddress`](./type-ipaddress.md) and [`string`](./type-string.md) respectively.
+In the following example, there are two states, `state_1` and `state_2`. In `state_1`, two variables are created, `var_client_ip` and `var_account_code`. Notice that these conform to the normal configuration for [dimensions in emitters](./genspec-emitters.md) - [`ipaddress`](./type-ipaddress.md) and [`string`](./type-string.md) respectively.
 
 Both states use the `click` emitter, which contains:
 

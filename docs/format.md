@@ -1,7 +1,7 @@
 # Output format reference
 
 > **Deprecated:** Format files (`-f`) and the configs in `conf/` are deprecated and will be removed in a future release.
-> Use [embedded templates](templates.md) with `--template` and the configs in `library/` instead.
+> Use [embedded templates](templates.md) with `--template` and the configs in `presets/configs/` instead.
 
 Use the `-f` option to specify a format file for output records. If not specified, JSON is used.
 

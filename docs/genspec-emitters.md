@@ -2,14 +2,14 @@
 
 Emitters define the data that will be created by the data generator when a particular [state](./genspec-states.md) is reached.
 
-Define one or more emitters, each with its own dimensions and data specification.
+Define one or more emitters, each with its own dimensions and data configuration.
 
 Each emitter has this structure:
 
 | Field | Description | Possible values | Required? |
 | --- | --- | --- | --- |
 | `name` | The unique name for the emitter. | | Yes |
-| `dimensions` | A list of attributes and measures, and, for each, the specification for how data will be generated. | | Yes |
+| `dimensions` | A list of attributes and measures, and, for each, the configuration for how data will be generated. | | Yes |
 
 Use the `dimensions` list to prescribe the event timestamp, attributes, and measures for each record created by a worker as it enters each state.
 

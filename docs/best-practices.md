@@ -227,7 +227,7 @@ Add comments to explain non-obvious logic:
 
 ### README Files
 
-For each generator configuration, create a companion README named `<config>_README.md` in the `conf/` directory. This allows the README to cover the generator spec, format files, and target files together. Use the following standard structure:
+For each generator configuration, create a companion README named `<config>_README.md` in the `conf/` directory. This allows the README to cover the generator config, format files, and target files together. Use the following standard structure:
 
 ```text
 # <Config Name> Generator
@@ -849,5 +849,5 @@ When creating a new configuration:
 For related information, see:
 
 - [Common Patterns](patterns.md) - State machine patterns and techniques
-- [Generator Specification](genspec.md) - Core concepts and field reference
+- [Generator Configuration](genspec.md) - Core concepts and field reference
 - [States Documentation](genspec-states.md) - Detailed state configuration guide

@@ -1,5 +1,7 @@
 # Clickstream Generator
 
+> **Deprecated:** This config is deprecated and will be removed in a future release.
+
 ## Quick Start
 
 ```bash

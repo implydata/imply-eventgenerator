@@ -7,7 +7,7 @@ Templates are named output formats embedded directly in a generator config. They
 Select a template by name at the command line with `--template`:
 
 ```bash
-python generator.py -c library/ecommerce.json --template access_combined -n 20 -s "2025-01-01T00:00"
+python generator.py -c presets/configs/ecommerce.json --template access_combined -n 20 -s "2025-01-01T00:00"
 ```
 
 `--template` and `-f` are mutually exclusive. If the config has a `templates` block, use `--template`; if you have a standalone format file, use `-f`.
@@ -84,7 +84,7 @@ Use `env.VARIABLE_NAME` to substitute environment variables at render time:
 Run `--validate` to check the config and any referenced template before generating data:
 
 ```bash
-python generator.py -c library/ecommerce.json --template apache:access:json --validate
+python generator.py -c presets/configs/ecommerce.json --template apache:access:json --validate
 ```
 
 This checks that the named template exists and that all referenced environment variables are set.

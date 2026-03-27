@@ -284,7 +284,7 @@ This pattern is particularly useful in complex state machines where you want to 
 
 ## See Also
 
-- [Generator Specification](genspec.md) - Core concepts and configuration overview
+- [Generator Configuration](genspec.md) - Core concepts and configuration overview
 - [Common Patterns](patterns.md) - State machine patterns including:
   - Variable Persistence Across States
   - Flow Duration with variables_on_entry (for realistic flow duration)

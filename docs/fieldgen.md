@@ -30,7 +30,7 @@ Every state machine worker has an internal clock that starts at the time the wor
 * The very first worker starts either at the current date time, or by using the `-s` argument at the [command line](./command-line.md), at a simulated clock start time.
 * The next output event for that worker is emitted based on the `delay` between `states`. For more information, see [`states`](./genspec-states.md).
 
-The data generator spawns additional workers up to a configurable maximum, e.g. using the `-m` argument at the [command line](./command-line.md). The interval between workers being spawned is controlled by the `interarrival` time, set in the [generator specification](./genspec.md).
+The data generator spawns additional workers up to a configurable maximum, e.g. using the `-m` argument at the [command line](./command-line.md). The interval between workers being spawned is controlled by the `interarrival` time, set in the [generator configuration](./genspec.md).
 
 ```bash
 python3 src/generator.py -f example.json -n 10 -m 1

@@ -14,7 +14,7 @@ When combined with simulated time (`-s`), thread execution is deterministically 
 
 ```bash
 python generator.py \
-  -c <generator specification file> \
+  -c <generator configuration file> \
   -s <start timestamp> \
   -r <duration> \
   --seed <integer>
