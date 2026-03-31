@@ -1,5 +1,22 @@
 # Worker states
 
+## The Actor
+
+Every state machine models the behaviour of a single **Actor** — the real-world entity whose lifecycle the state machine represents. Each concurrent worker (`-m`) runs one independent instance of the machine, simulating one Actor at a time.
+
+Identifying the Actor upfront is the most important design decision for a new config. It determines what counts as a "session", what variables are set once at entry and carried through, and where the natural `stop` point is.
+
+| Config | Actor |
+| --- | --- |
+| `ecommerce_lighting` | A visitor browsing the website |
+| `vpc_flow_logs` | A network connection |
+| `ssh_auth` | A remote client opening an SSH connection |
+| `pbx_calls` | A caller making a phone call |
+
+Think of each worker as a BPMN pool — one lane, one participant, one lifecycle from `initial` to `stop`.
+
+---
+
 When the worker reaches a state, the following happens:
 
 1. [`variables_on_entry`](#variables_on_entry) values are set (if specified).
