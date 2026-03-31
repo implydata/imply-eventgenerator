@@ -1,0 +1,134 @@
+{
+  "templates": {
+    "asterisk_cdr": {
+      "body": "\"{{ accountcode }}\",\"{{ src }}\",\"{{ dst }}\",\"default\",\"{{ src }}\",\"SIP/{{ src }}\",\"{{ dstchannel }}\",\"{{ lastapp }}\",\"{{ lastdata }}\",\"{{ time.strftime('%Y-%m-%d %H:%M:%S') }}\",\"{{ time.strftime('%Y-%m-%d %H:%M:%S') }}\",\"{{ time.strftime('%Y-%m-%d %H:%M:%S') }}\",{{ duration }},{% if disposition == 'ANSWERED' %}{{ duration }}{% else %}0{% endif %},\"{{ disposition }}\",\"DOCUMENTATION\""
+    }
+  },
+  "_description": "Asterisk IP PBX call detail records (asterisk_cdr sourcetype). Models the full call lifecycle per caller: initial sets caller/destination, ringing delays until the call is picked up or times out, then the call is answered (with a realistic talk-time delay before the CDR is emitted) or rejected immediately.",
+  "interarrival": {
+    "type": "exponential",
+    "mean": 30.0
+  },
+  "emitters": [
+    {
+      "name": "cdr",
+      "dimensions": [
+        { "name": "time", "type": "clock" },
+        { "name": "accountcode", "type": "variable", "variable": "var_accountcode" },
+        { "name": "src", "type": "variable", "variable": "var_src" },
+        { "name": "dst", "type": "variable", "variable": "var_dst" },
+        { "name": "dstchannel", "type": "variable", "variable": "var_dstchannel" },
+        { "name": "lastapp", "type": "variable", "variable": "var_lastapp" },
+        { "name": "lastdata", "type": "variable", "variable": "var_lastdata" },
+        { "name": "duration", "type": "variable", "variable": "var_duration" },
+        { "name": "disposition", "type": "variable", "variable": "var_disposition" }
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "initial",
+      "_comment": "Sets per-call identity. No emission.",
+      "delay": { "type": "constant", "value": 0 },
+      "variables": [
+        {
+          "name": "var_accountcode",
+          "type": "enum",
+          "values": ["", "sales", "support", "billing"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 3 }
+        },
+        {
+          "name": "var_src",
+          "type": "int",
+          "cardinality": 500,
+          "cardinality_distribution": { "type": "exponential", "mean": 100 },
+          "distribution": { "type": "uniform", "min": 2000000000, "max": 9999999999 }
+        },
+        {
+          "name": "var_dst",
+          "type": "int",
+          "cardinality": 20,
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 19 },
+          "distribution": { "type": "uniform", "min": 1000, "max": 9999 }
+        }
+      ],
+      "transitions": [
+        { "next": "ringing", "probability": 1.0 }
+      ]
+    },
+    {
+      "name": "ringing",
+      "_comment": "Phone is ringing. Delay models ring time before outcome is determined. No emission.",
+      "delay": { "type": "uniform", "min": 5, "max": 30 },
+      "variables": [],
+      "transitions": [
+        { "next": "answered", "probability": 0.7 },
+        { "next": "no_answer", "probability": 0.2 },
+        { "next": "busy", "probability": 0.1 }
+      ]
+    },
+    {
+      "name": "answered",
+      "_comment": "Call is in progress. Delay models talk time. CDR emitted when call ends.",
+      "emitter": "cdr",
+      "variables": [
+        { "name": "var_dstchannel", "type": "enum", "values": ["SIP/trunk-0001", "SIP/trunk-0002", "SIP/trunk-0003"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 } },
+        { "name": "var_lastapp", "type": "enum", "values": ["Dial"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_lastdata", "type": "enum", "values": ["SIP/trunk,30,tTr"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        {
+          "name": "var_duration",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "exponential", "mean": 180 }
+        },
+        { "name": "var_disposition", "type": "enum", "values": ["ANSWERED"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "exponential", "mean": 180 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    },
+    {
+      "name": "no_answer",
+      "_comment": "Rang out. CDR emitted immediately with ring duration.",
+      "emitter": "cdr",
+      "variables": [
+        { "name": "var_dstchannel", "type": "enum", "values": [""], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_lastapp", "type": "enum", "values": ["Dial"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_lastdata", "type": "enum", "values": ["SIP/trunk,30,tTr"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        {
+          "name": "var_duration",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 10, "max": 45 }
+        },
+        { "name": "var_disposition", "type": "enum", "values": ["NO ANSWER"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    },
+    {
+      "name": "busy",
+      "_comment": "Line busy. CDR emitted immediately.",
+      "emitter": "cdr",
+      "variables": [
+        { "name": "var_dstchannel", "type": "enum", "values": [""], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_lastapp", "type": "enum", "values": ["Dial"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_lastdata", "type": "enum", "values": ["SIP/trunk,30,tTr"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        {
+          "name": "var_duration",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 2, "max": 8 }
+        },
+        { "name": "var_disposition", "type": "enum", "values": ["BUSY"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "constant", "value": 0 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    }
+  ]
+}
