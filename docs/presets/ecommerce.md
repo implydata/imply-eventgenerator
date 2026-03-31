@@ -70,14 +70,20 @@ python generator.py -c presets/configs/ecommerce.json --template access_combined
 Workers simulate a browsing session:
 
 ```text
-[start] → browse_products → browse_cat → [product_detail | add_to_cart | stop]
-                                                    ↓               ↓
-                                              view_detail       checkout → stop
-                                                    ↓
-                                              [add_to_cart | stop]
+[start] ──(99.9%)──→ browse_products ──→ browse_cat_* ⟲
+           (0.1%)↓         ↓                  ↓
+               hacker ⟲  not_found         add_to_cart
+                  ↓(1%)    ↓(→ browse)         ↓
+                stop      stop             checkout ──→ thank_you ──→ stop
+                                               ↓             
+                                           try_again ──→ checkout
 ```
 
+Each `browse_cat_*` state corresponds to a product category (Electronics, Clothing, Home & Garden, Kitchen, Sports, Beauty). From a category state the worker can: self-loop (browse more in that category), proceed to `add_to_cart`, return to `browse_products`, or stop. `not_found` is a dead-end 404 that loops back to `browse_products`.
+
 Session-level properties (IP, user-agent, cookie, server) are drawn once at entry and persist for the full session. Page dwell times are drawn from uniform distributions (seconds to minutes, depending on category and config).
+
+0.1% of sessions are "hacker" sessions: on entry the worker switches to rapid-fire exploit attempts (0.01 s interarrival, 404/403/400 responses, probing paths such as `/.env`, `/admin`, `/wp-login.php`). The hacker loop self-continues with 99% probability, averaging ~100 requests before stopping.
 
 ## Concurrency (`-m`)
 
