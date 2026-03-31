@@ -238,11 +238,10 @@
         {
           "name": "var_client",
           "type": "ipaddress",
-          "cardinality": 5,
+          "cardinality": 3000,
           "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 5
+            "type": "exponential",
+            "mean": 300
           },
           "distribution": {
             "type": "uniform",
