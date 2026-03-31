@@ -12,6 +12,7 @@ Identifying the Actor upfront is the most important design decision for a new co
 | `vpc_flow_logs` | A network connection |
 | `ssh_auth` | A remote client opening an SSH connection |
 | `pbx_calls` | A caller making a phone call |
+| `endpoint_network` | A connection attempt arriving at or leaving a Windows host |
 
 Think of each worker as a BPMN pool — one lane, one participant, one lifecycle from `initial` to `stop`.
 
