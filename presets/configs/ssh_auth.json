@@ -1,0 +1,121 @@
+{
+  "templates": {
+    "linux_secure": {
+      "body": "{{ time.strftime('%b %d %H:%M:%S') }} {{ hostname }} sshd[{{ pid }}]: {% if line_type == 'auth' %}{{ action }} for {{ user }} from {{ src_ip }} port {{ src_port }} ssh2{% else %}pam_unix(sshd:session): {{ action }} for user {{ user }}{% endif %}"
+    }
+  },
+  "_description": "Linux SSH authentication log (linux_secure sourcetype). Models SSH connection lifecycle: brute-force attempts loop on failed_password before either giving up or succeeding; successful logins proceed to session_opened then session_closed.",
+  "interarrival": {
+    "type": "exponential",
+    "mean": 10.0
+  },
+  "emitters": [
+    {
+      "name": "ssh_log",
+      "dimensions": [
+        { "name": "time", "type": "clock" },
+        { "name": "hostname", "type": "variable", "variable": "var_hostname" },
+        { "name": "pid", "type": "variable", "variable": "var_pid" },
+        { "name": "user", "type": "variable", "variable": "var_user" },
+        { "name": "src_ip", "type": "variable", "variable": "var_src_ip" },
+        { "name": "src_port", "type": "variable", "variable": "var_src_port" },
+        { "name": "action", "type": "variable", "variable": "var_action" },
+        { "name": "line_type", "type": "variable", "variable": "var_line_type" }
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "initial",
+      "_comment": "Sets per-connection variables. No emission.",
+      "delay": { "type": "constant", "value": 0 },
+      "variables": [
+        {
+          "name": "var_hostname",
+          "type": "enum",
+          "values": ["web01", "web02", "db01", "app01", "bastion"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 4 }
+        },
+        {
+          "name": "var_user",
+          "type": "enum",
+          "values": ["root", "admin", "deploy", "ubuntu", "ec2-user", "git", "jenkins", "ansible"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 7 }
+        },
+        {
+          "name": "var_src_ip",
+          "type": "ipaddress",
+          "cardinality": 200,
+          "cardinality_distribution": { "type": "exponential", "mean": 50 },
+          "distribution": { "type": "uniform", "min": 167772160, "max": 3758096383 }
+        },
+        {
+          "name": "var_src_port",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 1024, "max": 65535 }
+        },
+        {
+          "name": "var_pid",
+          "type": "int",
+          "cardinality": 0,
+          "distribution": { "type": "uniform", "min": 1000, "max": 65535 }
+        }
+      ],
+      "transitions": [
+        { "next": "failed_password", "probability": 0.4 },
+        { "next": "accepted", "probability": 0.6 }
+      ]
+    },
+    {
+      "name": "failed_password",
+      "emitter": "ssh_log",
+      "variables": [
+        { "name": "var_line_type", "type": "enum", "values": ["auth"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_action", "type": "enum", "values": ["Failed password"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "exponential", "mean": 3.0 },
+      "transitions": [
+        { "next": "failed_password", "probability": 0.35 },
+        { "next": "accepted", "probability": 0.05 },
+        { "next": "stop", "probability": 0.6 }
+      ]
+    },
+    {
+      "name": "accepted",
+      "emitter": "ssh_log",
+      "variables": [
+        { "name": "var_line_type", "type": "enum", "values": ["auth"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_action", "type": "enum", "values": ["Accepted password"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "uniform", "min": 0.1, "max": 1.0 },
+      "transitions": [
+        { "next": "session_opened", "probability": 1.0 }
+      ]
+    },
+    {
+      "name": "session_opened",
+      "emitter": "ssh_log",
+      "variables": [
+        { "name": "var_line_type", "type": "enum", "values": ["session"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_action", "type": "enum", "values": ["session opened"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "exponential", "mean": 600.0 },
+      "transitions": [
+        { "next": "session_closed", "probability": 1.0 }
+      ]
+    },
+    {
+      "name": "session_closed",
+      "emitter": "ssh_log",
+      "variables": [
+        { "name": "var_line_type", "type": "enum", "values": ["session"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } },
+        { "name": "var_action", "type": "enum", "values": ["session closed"], "cardinality_distribution": { "type": "uniform", "min": 0, "max": 0 } }
+      ],
+      "delay": { "type": "uniform", "min": 0.1, "max": 0.5 },
+      "transitions": [
+        { "next": "stop", "probability": 1.0 }
+      ]
+    }
+  ]
+}
