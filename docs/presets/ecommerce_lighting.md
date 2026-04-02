@@ -64,25 +64,89 @@ python generator.py -c presets/configs/ecommerce_lighting.json --template access
 | LED | 15% | Ultra bright LED bulb, eco-friendly LED panel, LED desk lamp |
 | Vintage | 8% | Retro chandelier, antique wall lamp, industrial pendant light |
 
-## State machine
+## Session routing
 
-Workers simulate a browsing session:
+Each session is routed at startup by `global_init` (no event emitted):
+
+| Session type | Probability | Description |
+| --- | --- | --- |
+| Human | 99.7% | Normal shopper browsing the store |
+| Hacker | 0.1% | Automated scanner probing for vulnerabilities |
+| Bot | 0.2% | Web crawler indexing site content |
+| Bounce | 1.0% | Session starts but exits before the homepage loads |
+
+---
+
+## Human flow
 
 ```text
-           (98.9%)──→ browse_products ──→ browse_cat_* ⟲
-[start] ──→(0.1%) ──→ hacker ⟲               ↓
-           (1.0%) ──→ stop            add_to_cart
-                          ↓                   ↓
-                      not_found           checkout ──→ thank_you ──→ stop
-                          ↓                   ↓
-                      browse_products     try_again ──→ checkout
+                    ┌──(99%)──→ browse_products ──→ browse_cat_* ⟲
+global_init ──→ initial_human                            ↓
+                    └──(1%)──→ stop               add_to_cart
+                                                        ↓
+                          not_found ←──────────── checkout ──→ thank_you ──→ stop
+                              ↓                        ↓
+                        browse_products            try_again ──→ checkout
 ```
 
-Each `browse_cat_*` state corresponds to a product category (Indoor, Outdoor, Smart, LED, Vintage). From a category state the worker can: self-loop (browse more in that category), proceed to `add_to_cart`, return to `browse_products`, or stop. `browse_products` itself also has a direct stop path. `not_found` is a dead-end 404 that loops back to `browse_products`.
+`initial_human` emits the homepage (`/`) hit and sets session-level properties — IP address, browser user-agent, cookie, and HTTP version — which persist unchanged for the rest of the session.
 
-Session-level properties (IP, user-agent, cookie, server) are drawn once at entry and persist for the full session. Page dwell times are drawn from uniform distributions (seconds to minutes, depending on category and config).
+From `browse_products` the worker selects a product category (`browse_cat_indoor_lighting`, `browse_cat_outdoor_lighting`, `browse_cat_smart_lighting`, `browse_cat_led_lighting`, `browse_cat_vintage_lighting`). Each category state can self-loop (dwell time: 90–300 s for considered categories, 60–180 s for commodity), proceed to `add_to_cart`, return to `browse_products`, or exit. `not_found` generates a 404 and loops back to `browse_products`. The stop probability is highest at `browse_products` (15%), reflecting the typical drop-off before category selection.
 
-0.1% of sessions are "hacker" sessions: on entry the worker switches to rapid-fire exploit attempts (0.01 s interarrival, 404/403/400 responses, probing paths such as `/.env`, `/admin`, `/wp-login.php`). The hacker loop self-continues with 99% probability, averaging ~100 requests before stopping.
+---
+
+## Hacker flow
+
+```text
+global_init ──→ hacker_start ──→ hacker ⟲(99%)
+                                      ↓(1%)
+                                     stop
+```
+
+`hacker_start` fires once on session entry (no event emitted) to pin the session-level properties:
+
+| Property | Value |
+| --- | --- |
+| User-agent | One of: `sqlmap/1.7.8`, `Nikto/2.1.6`, `masscan/1.3`, `zgrab/0.x`, `curl/7.68.0`, `python-requests/2.28.1`, `Go-http-client/1.1`, `Wget/1.21.2` |
+| Client IP | Drawn from a pool of **3 IPs** (simulates a single attacker or small botnet) |
+
+The `hacker` state then loops at ~0.01 s interarrival, emitting probe requests with:
+
+- **Paths:** `/.env`, `/.git/config`, `/phpinfo.php`, `/admin/*`, `/wp-admin`, path traversal strings, backup files
+- **Query strings:** SQL injection fragments (`?user=admin'--`, `?query=SELECT%20*%20FROM%20users`), `?cmd=whoami`
+- **Methods:** GET, POST, PUT, DELETE
+- **Status codes:** 400, 401, 403, 404, 500, 502, 503
+
+The loop continues with 99% probability, averaging ~100 probe requests per session before stopping.
+
+---
+
+## Bot flow
+
+```text
+global_init ──→ bot_start ──→ bot ⟲(98%)
+                                  ↓(2%)
+                                 stop
+```
+
+`bot_start` fires once on session entry (no event emitted) to pin the session-level properties:
+
+| Property | Value |
+| --- | --- |
+| User-agent | One of: `Googlebot/2.1`, `bingbot/2.0`, `Applebot/0.1`, `SemrushBot/7`, `AhrefsBot/7.0`, `DotBot/1.2`, `python-requests/2.28.1`, `curl/7.68.0`, `Scrapy/2.11.0` |
+| Client IP | Drawn from a pool of **5 IPs** (simulates a crawler's datacenter egress range) |
+| HTTP version | Always `HTTP/1.1` |
+
+The `bot` state then loops at ~1 s interarrival, emitting crawl requests with:
+
+- **Paths:** `/robots.txt`, `/sitemap.xml`, `/products`, category index pages, individual product pages
+- **Methods:** GET only
+- **Status codes:** ~67% 200, ~22% 301, ~11% 404
+- **Referrer:** always `-`
+
+The loop continues with 98% probability, averaging ~50 crawl requests per session before stopping.
+
+---
 
 ## Concurrency (`-m`)
 
