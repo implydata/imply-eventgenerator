@@ -108,6 +108,7 @@ global_init ──→ hacker_start ──→ hacker ⟲(99%)
 | --- | --- |
 | User-agent | One of: `sqlmap/1.7.8`, `Nikto/2.1.6`, `masscan/1.3`, `zgrab/0.x`, `curl/7.68.0`, `python-requests/2.28.1`, `Go-http-client/1.1`, `Wget/1.21.2` |
 | Client IP | Drawn from a pool of **3 IPs** (simulates a single attacker or small botnet) |
+| HTTP version | Always `HTTP/1.1` |
 
 The `hacker` state then loops at ~0.01 s interarrival, emitting probe requests with:
 
