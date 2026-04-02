@@ -169,7 +169,28 @@
   ],
   "states": [
     {
-      "name": "initial",
+      "name": "global_init",
+      "delay": {
+        "type": "constant",
+        "value": 0
+      },
+      "transitions": [
+        {
+          "next": "initial_human",
+          "probability": 0.997
+        },
+        {
+          "next": "hacker_start",
+          "probability": 0.001
+        },
+        {
+          "next": "bot_start",
+          "probability": 0.002
+        }
+      ]
+    },
+    {
+      "name": "initial_human",
       "emitter": "apache_json_log",
       "variables": [
         {
@@ -397,11 +418,7 @@
       "transitions": [
         {
           "next": "browse_products",
-          "probability": 0.989
-        },
-        {
-          "next": "hacker",
-          "probability": 0.001
+          "probability": 0.99
         },
         {
           "next": "stop",
@@ -984,6 +1001,55 @@
       ]
     },
     {
+      "name": "hacker_start",
+      "variables_on_entry": [
+        {
+          "name": "var_client",
+          "type": "ipaddress",
+          "cardinality": 3,
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 2
+          },
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          }
+        },
+        {
+          "name": "var_http_user_agent",
+          "type": "enum",
+          "values": [
+            "sqlmap/1.7.8#stable (https://sqlmap.org)",
+            "Nikto/2.1.6",
+            "masscan/1.3 (https://github.com/robertdavidgraham/masscan)",
+            "zgrab/0.x",
+            "curl/7.68.0",
+            "python-requests/2.28.1",
+            "Go-http-client/1.1",
+            "Wget/1.21.2"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 7
+          }
+        }
+      ],
+      "delay": {
+        "type": "constant",
+        "value": 0
+      },
+      "transitions": [
+        {
+          "next": "hacker",
+          "probability": 1.0
+        }
+      ]
+    },
+    {
       "name": "hacker",
       "emitter": "apache_json_log",
       "variables": [
@@ -1148,6 +1214,196 @@
         {
           "next": "stop",
           "probability": 0.01
+        }
+      ]
+    },
+    {
+      "name": "bot_start",
+      "variables_on_entry": [
+        {
+          "name": "var_client",
+          "type": "ipaddress",
+          "cardinality": 5,
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 4
+          },
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          }
+        },
+        {
+          "name": "var_http_user_agent",
+          "type": "enum",
+          "values": [
+            "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+            "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+            "Mozilla/5.0 (compatible; Applebot/0.1; +http://www.apple.com/go/applebot)",
+            "SemrushBot/7~bl",
+            "AhrefsBot/7.0; +https://ahrefs.com/robot/",
+            "DotBot/1.2",
+            "python-requests/2.28.1",
+            "curl/7.68.0",
+            "Scrapy/2.11.0 (+https://scrapy.org)"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 8
+          }
+        },
+        {
+          "name": "var_http_version",
+          "type": "enum",
+          "values": [
+            "HTTP/1.1"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 0
+          }
+        }
+      ],
+      "delay": {
+        "type": "constant",
+        "value": 0
+      },
+      "transitions": [
+        {
+          "next": "bot",
+          "probability": 1.0
+        }
+      ]
+    },
+    {
+      "name": "bot",
+      "emitter": "apache_json_log",
+      "variables": [
+        {
+          "name": "var_uri_path",
+          "type": "enum",
+          "values": [
+            "/robots.txt",
+            "/sitemap.xml",
+            "/products",
+            "/categories/indoor-lighting",
+            "/categories/outdoor-lighting",
+            "/categories/smart-lighting",
+            "/categories/led-lighting",
+            "/categories/vintage-lighting",
+            "/categories/indoor-lighting/aurora-chandelier",
+            "/categories/indoor-lighting/nebula-table-lamp",
+            "/categories/indoor-lighting/stellar-floor-lamp",
+            "/categories/outdoor-lighting/solar-path-light",
+            "/categories/outdoor-lighting/moonlit-garden-lamp",
+            "/categories/smart-lighting/voice-controlled-bulb",
+            "/categories/smart-lighting/color-changing-bulb",
+            "/categories/led-lighting/ultra-bright-led-panel",
+            "/categories/vintage-lighting/edison-filament-bulb"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 16
+          }
+        },
+        {
+          "name": "var_uri_query",
+          "type": "enum",
+          "values": [
+            ""
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 0
+          }
+        },
+        {
+          "name": "var_status",
+          "type": "enum",
+          "values": [
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            301,
+            301,
+            404
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 8
+          }
+        },
+        {
+          "name": "var_http_method",
+          "type": "enum",
+          "values": [
+            "GET"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 0
+          }
+        },
+        {
+          "name": "var_http_referrer",
+          "type": "enum",
+          "values": [
+            "-"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 0
+          }
+        },
+        {
+          "name": "var_http_content_type",
+          "type": "enum",
+          "values": [
+            "-"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 0
+          }
+        },
+        {
+          "name": "var_user",
+          "type": "enum",
+          "values": [
+            "-"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 0
+          }
+        }
+      ],
+      "delay": {
+        "type": "exponential",
+        "mean": 1.0
+      },
+      "transitions": [
+        {
+          "next": "bot",
+          "probability": 0.98
+        },
+        {
+          "next": "stop",
+          "probability": 0.02
         }
       ]
     }
