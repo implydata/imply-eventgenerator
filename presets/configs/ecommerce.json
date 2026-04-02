@@ -1142,6 +1142,30 @@
             "min": 0,
             "max": 7
           }
+        },
+        {
+          "name": "var_user",
+          "type": "enum",
+          "values": [
+            "-"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 0
+          }
+        },
+        {
+          "name": "var_http_version",
+          "type": "enum",
+          "values": [
+            "HTTP/1.1"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 0
+          }
         }
       ],
       "delay": {
@@ -1321,6 +1345,18 @@
           "type": "enum",
           "values": [
             "HTTP/1.1"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 0
+          }
+        },
+        {
+          "name": "var_user",
+          "type": "enum",
+          "values": [
+            "-"
           ],
           "cardinality_distribution": {
             "type": "uniform",
