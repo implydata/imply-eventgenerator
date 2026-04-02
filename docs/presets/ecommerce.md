@@ -74,20 +74,19 @@ Each session is routed at startup by `global_init` (no event emitted):
 | Human | 99.7% | Normal shopper browsing the store |
 | Hacker | 0.1% | Automated scanner probing for vulnerabilities |
 | Bot | 0.2% | Web crawler indexing site content |
-| Bounce | 1.0% | Session starts but exits before the homepage loads |
 
 ---
 
 ## Human flow
 
 ```text
-                    ┌──(99%)──→ browse_products ──→ browse_cat_* ⟲
-global_init ──→ initial_human                            ↓
-                    └──(1%)──→ stop               add_to_cart
-                                                        ↓
-                          not_found ←──────────── checkout ──→ thank_you ──→ stop
-                              ↓                        ↓
-                        browse_products            try_again ──→ checkout
+global_init ──→ initial_human ──→ browse_products ──→ browse_cat_* ⟲
+                                        ↓                    ↓
+                                    not_found           add_to_cart
+                                        ↓                    ↓
+                                  browse_products       checkout ──→ thank_you ──→ stop
+                                                             ↓
+                                                         try_again ──→ checkout
 ```
 
 `initial_human` emits the homepage (`/`) hit and sets session-level properties — IP address, browser user-agent, cookie, and HTTP version — which persist unchanged for the rest of the session.

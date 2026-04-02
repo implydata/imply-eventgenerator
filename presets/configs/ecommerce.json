@@ -497,11 +497,7 @@
       "transitions": [
         {
           "next": "browse_products",
-          "probability": 0.99
-        },
-        {
-          "next": "stop",
-          "probability": 0.01
+          "probability": 1.0
         }
       ]
     },
