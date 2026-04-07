@@ -23,73 +23,6 @@
       "body": "{{ time.timestamp()|int }},{{ bytes_in }},{{ bytes_out }},\"{{ cookie }}\",\"{{ server }}\",{{ dest_port }},\"{{ http_content_type }}\",\"{{ http_method }}\",\"{{ http_referrer }}\",\"{{ http_user_agent }}\",\"{{ ident }}\",{{ response_time_microseconds }},{{ client }},{{ status }},\"{{ uri_path }}\",\"{{ uri_query }}\",\"{{ user }}\""
     }
   },
-  "interarrival": {
-    "type": "gmm_temporal",
-    "mean": 1.0,
-    "_comment": "Generic e-commerce store \u2014 one new session per second on average",
-    "days": {
-      "1": [
-        {
-          "utc_hour": 12,
-          "sigma": 2.5,
-          "weight": 1.1
-        },
-        {
-          "utc_hour": 19,
-          "sigma": 2.0,
-          "weight": 1.4
-        }
-      ],
-      "2": [
-        {
-          "utc_hour": 12,
-          "sigma": 3.0,
-          "weight": 1.8
-        },
-        {
-          "utc_hour": 20,
-          "sigma": 1.5,
-          "weight": 0.8
-        }
-      ],
-      "5": [
-        {
-          "utc_hour": 11,
-          "sigma": 2.5,
-          "weight": 1.5
-        },
-        {
-          "utc_hour": 18,
-          "sigma": 2.0,
-          "weight": 1.2
-        }
-      ],
-      "6": [
-        {
-          "utc_hour": 13,
-          "sigma": 3.0,
-          "weight": 1.3
-        },
-        {
-          "utc_hour": 20,
-          "sigma": 2.0,
-          "weight": 1.0
-        }
-      ],
-      "7": [
-        {
-          "utc_hour": 14,
-          "sigma": 3.0,
-          "weight": 0.9
-        },
-        {
-          "utc_hour": 19,
-          "sigma": 2.0,
-          "weight": 0.6
-        }
-      ]
-    }
-  },
   "emitters": [
     {
       "name": "web_log",
@@ -232,14 +165,82 @@
   ],
   "states": [
     {
-      "name": "global_init",
-      "delay": {
-        "type": "constant",
-        "value": 0
+      "name": "session_start",
+      "type": "event:start:timer",
+      "timer": {
+        "type": "gmm_temporal",
+        "mean": 1.0,
+        "_comment": "Generic e-commerce store \u2014 one new session per second on average",
+        "days": {
+          "1": [
+            {
+              "utc_hour": 12,
+              "sigma": 2.5,
+              "weight": 1.1
+            },
+            {
+              "utc_hour": 19,
+              "sigma": 2.0,
+              "weight": 1.4
+            }
+          ],
+          "2": [
+            {
+              "utc_hour": 12,
+              "sigma": 3.0,
+              "weight": 1.8
+            },
+            {
+              "utc_hour": 20,
+              "sigma": 1.5,
+              "weight": 0.8
+            }
+          ],
+          "5": [
+            {
+              "utc_hour": 11,
+              "sigma": 2.5,
+              "weight": 1.5
+            },
+            {
+              "utc_hour": 18,
+              "sigma": 2.0,
+              "weight": 1.2
+            }
+          ],
+          "6": [
+            {
+              "utc_hour": 13,
+              "sigma": 3.0,
+              "weight": 1.3
+            },
+            {
+              "utc_hour": 20,
+              "sigma": 2.0,
+              "weight": 1.0
+            }
+          ],
+          "7": [
+            {
+              "utc_hour": 14,
+              "sigma": 3.0,
+              "weight": 0.9
+            },
+            {
+              "utc_hour": 19,
+              "sigma": 2.0,
+              "weight": 0.6
+            }
+          ]
+        }
       },
+      "next": "global_init"
+    },
+    {
+      "name": "global_init",
       "transitions": [
         {
-          "next": "initial_human",
+          "next": "initial_human_wait",
           "probability": 0.997
         },
         {
@@ -250,11 +251,18 @@
           "next": "bot_start",
           "probability": 0.002
         }
-      ]
+      ],
+      "type": "gateway:exclusive"
     },
     {
-      "name": "initial_human",
-      "emitter": "web_log",
+      "name": "initial_human_wait",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 0.3,
+        "max": 1.2
+      },
+      "next": "initial_human",
       "variables_on_entry": [
         {
           "name": "var_client",
@@ -426,7 +434,12 @@
             "max": 2
           }
         }
-      ],
+      ]
+    },
+    {
+      "name": "initial_human",
+      "type": "activity",
+      "emitter": "web_log",
       "variables": [
         {
           "name": "var_uri_path",
@@ -489,20 +502,21 @@
           }
         }
       ],
+      "next": "browse_products_wait"
+    },
+    {
+      "name": "browse_products_wait",
+      "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
-        "min": 0.3,
-        "max": 1.2
+        "min": 30.0,
+        "max": 120.0
       },
-      "transitions": [
-        {
-          "next": "browse_products",
-          "probability": 1.0
-        }
-      ]
+      "next": "browse_products"
     },
     {
       "name": "browse_products",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -530,44 +544,55 @@
           }
         }
       ],
-      "delay": {
-        "type": "uniform",
-        "min": 30.0,
-        "max": 120.0
-      },
+      "next": "browse_products_route"
+    },
+    {
+      "name": "browse_products_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "browse_cat_electronics",
+          "next": "browse_cat_electronics_wait",
           "probability": 0.3
         },
         {
-          "next": "browse_cat_clothing",
+          "next": "browse_cat_clothing_wait",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_home_garden",
+          "next": "browse_cat_home_garden_wait",
           "probability": 0.15
         },
         {
-          "next": "browse_cat_kitchen",
+          "next": "browse_cat_kitchen_wait",
           "probability": 0.12
         },
         {
-          "next": "browse_cat_sports",
+          "next": "browse_cat_sports_wait",
           "probability": 0.1
         },
         {
-          "next": "browse_cat_beauty",
+          "next": "browse_cat_beauty_wait",
           "probability": 0.06
         },
         {
-          "next": "not_found",
+          "next": "not_found_wait",
           "probability": 0.02
         }
       ]
     },
     {
+      "name": "browse_cat_electronics_wait",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 90.0,
+        "max": 300.0
+      },
+      "next": "browse_cat_electronics"
+    },
+    {
       "name": "browse_cat_electronics",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -591,32 +616,43 @@
           }
         }
       ],
-      "delay": {
-        "type": "uniform",
-        "min": 90.0,
-        "max": 300.0
-      },
+      "next": "browse_cat_electronics_route"
+    },
+    {
+      "name": "browse_cat_electronics_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart",
+          "next": "add_to_cart_wait",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_electronics",
+          "next": "browse_cat_electronics_wait",
           "probability": 0.4
         },
         {
-          "next": "browse_products",
+          "next": "browse_products_wait",
           "probability": 0.3
         },
         {
-          "next": "stop",
+          "next": "session_end",
           "probability": 0.05
         }
       ]
     },
     {
+      "name": "browse_cat_clothing_wait",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 60.0,
+        "max": 240.0
+      },
+      "next": "browse_cat_clothing"
+    },
+    {
       "name": "browse_cat_clothing",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -640,32 +676,43 @@
           }
         }
       ],
-      "delay": {
-        "type": "uniform",
-        "min": 60.0,
-        "max": 240.0
-      },
+      "next": "browse_cat_clothing_route"
+    },
+    {
+      "name": "browse_cat_clothing_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart",
+          "next": "add_to_cart_wait",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_clothing",
+          "next": "browse_cat_clothing_wait",
           "probability": 0.4
         },
         {
-          "next": "browse_products",
+          "next": "browse_products_wait",
           "probability": 0.3
         },
         {
-          "next": "stop",
+          "next": "session_end",
           "probability": 0.05
         }
       ]
     },
     {
+      "name": "browse_cat_home_garden_wait",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 60.0,
+        "max": 240.0
+      },
+      "next": "browse_cat_home_garden"
+    },
+    {
       "name": "browse_cat_home_garden",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -689,32 +736,43 @@
           }
         }
       ],
-      "delay": {
-        "type": "uniform",
-        "min": 60.0,
-        "max": 240.0
-      },
+      "next": "browse_cat_home_garden_route"
+    },
+    {
+      "name": "browse_cat_home_garden_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart",
+          "next": "add_to_cart_wait",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_home_garden",
+          "next": "browse_cat_home_garden_wait",
           "probability": 0.4
         },
         {
-          "next": "browse_products",
+          "next": "browse_products_wait",
           "probability": 0.3
         },
         {
-          "next": "stop",
+          "next": "session_end",
           "probability": 0.05
         }
       ]
     },
     {
+      "name": "browse_cat_kitchen_wait",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 60.0,
+        "max": 240.0
+      },
+      "next": "browse_cat_kitchen"
+    },
+    {
       "name": "browse_cat_kitchen",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -738,32 +796,43 @@
           }
         }
       ],
-      "delay": {
-        "type": "uniform",
-        "min": 60.0,
-        "max": 240.0
-      },
+      "next": "browse_cat_kitchen_route"
+    },
+    {
+      "name": "browse_cat_kitchen_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart",
+          "next": "add_to_cart_wait",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_kitchen",
+          "next": "browse_cat_kitchen_wait",
           "probability": 0.4
         },
         {
-          "next": "browse_products",
+          "next": "browse_products_wait",
           "probability": 0.3
         },
         {
-          "next": "stop",
+          "next": "session_end",
           "probability": 0.05
         }
       ]
     },
     {
+      "name": "browse_cat_sports_wait",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 60.0,
+        "max": 180.0
+      },
+      "next": "browse_cat_sports"
+    },
+    {
       "name": "browse_cat_sports",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -787,32 +856,43 @@
           }
         }
       ],
-      "delay": {
-        "type": "uniform",
-        "min": 60.0,
-        "max": 180.0
-      },
+      "next": "browse_cat_sports_route"
+    },
+    {
+      "name": "browse_cat_sports_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart",
+          "next": "add_to_cart_wait",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_sports",
+          "next": "browse_cat_sports_wait",
           "probability": 0.4
         },
         {
-          "next": "browse_products",
+          "next": "browse_products_wait",
           "probability": 0.3
         },
         {
-          "next": "stop",
+          "next": "session_end",
           "probability": 0.05
         }
       ]
     },
     {
+      "name": "browse_cat_beauty_wait",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 60.0,
+        "max": 180.0
+      },
+      "next": "browse_cat_beauty"
+    },
+    {
       "name": "browse_cat_beauty",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -836,32 +916,43 @@
           }
         }
       ],
-      "delay": {
-        "type": "uniform",
-        "min": 60.0,
-        "max": 180.0
-      },
+      "next": "browse_cat_beauty_route"
+    },
+    {
+      "name": "browse_cat_beauty_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart",
+          "next": "add_to_cart_wait",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_beauty",
+          "next": "browse_cat_beauty_wait",
           "probability": 0.4
         },
         {
-          "next": "browse_products",
+          "next": "browse_products_wait",
           "probability": 0.3
         },
         {
-          "next": "stop",
+          "next": "session_end",
           "probability": 0.05
         }
       ]
     },
     {
+      "name": "add_to_cart_wait",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 10.0,
+        "max": 30.0
+      },
+      "next": "add_to_cart"
+    },
+    {
       "name": "add_to_cart",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -877,28 +968,39 @@
           }
         }
       ],
-      "delay": {
-        "type": "uniform",
-        "min": 10.0,
-        "max": 30.0
-      },
+      "next": "add_to_cart_route"
+    },
+    {
+      "name": "add_to_cart_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "checkout",
+          "next": "checkout_wait",
           "probability": 0.35
         },
         {
-          "next": "browse_products",
+          "next": "browse_products_wait",
           "probability": 0.5
         },
         {
-          "next": "stop",
+          "next": "session_end",
           "probability": 0.15
         }
       ]
     },
     {
+      "name": "checkout_wait",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 120.0,
+        "max": 300.0
+      },
+      "next": "checkout"
+    },
+    {
       "name": "checkout",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -938,28 +1040,39 @@
           }
         }
       ],
-      "delay": {
-        "type": "uniform",
-        "min": 120.0,
-        "max": 300.0
-      },
+      "next": "checkout_route"
+    },
+    {
+      "name": "checkout_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "thank_you",
+          "next": "thank_you_wait",
           "probability": 0.65
         },
         {
-          "next": "try_again",
+          "next": "try_again_wait",
           "probability": 0.1
         },
         {
-          "next": "stop",
+          "next": "session_end",
           "probability": 0.25
         }
       ]
     },
     {
+      "name": "thank_you_wait",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 5.0,
+        "max": 15.0
+      },
+      "next": "thank_you"
+    },
+    {
       "name": "thank_you",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -999,20 +1112,21 @@
           }
         }
       ],
+      "next": "session_end"
+    },
+    {
+      "name": "try_again_wait",
+      "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
-        "min": 5.0,
-        "max": 15.0
+        "min": 30.0,
+        "max": 90.0
       },
-      "transitions": [
-        {
-          "next": "stop",
-          "probability": 1.0
-        }
-      ]
+      "next": "try_again"
     },
     {
       "name": "try_again",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -1040,24 +1154,35 @@
           }
         }
       ],
-      "delay": {
-        "type": "uniform",
-        "min": 30.0,
-        "max": 90.0
-      },
+      "next": "try_again_route"
+    },
+    {
+      "name": "try_again_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "checkout",
+          "next": "checkout_wait",
           "probability": 0.9
         },
         {
-          "next": "stop",
+          "next": "session_end",
           "probability": 0.1
         }
       ]
     },
     {
+      "name": "not_found_wait",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 5.0,
+        "max": 15.0
+      },
+      "next": "not_found"
+    },
+    {
       "name": "not_found",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -1094,20 +1219,11 @@
           }
         }
       ],
-      "delay": {
-        "type": "uniform",
-        "min": 5.0,
-        "max": 15.0
-      },
-      "transitions": [
-        {
-          "next": "browse_products",
-          "probability": 1.0
-        }
-      ]
+      "next": "browse_products_wait"
     },
     {
       "name": "hacker_start",
+      "type": "activity",
       "variables_on_entry": [
         {
           "name": "var_client",
@@ -1168,19 +1284,20 @@
           }
         }
       ],
+      "next": "hacker_wait"
+    },
+    {
+      "name": "hacker_wait",
+      "type": "event:intermediate:timer",
       "delay": {
-        "type": "constant",
-        "value": 0
+        "type": "exponential",
+        "mean": 0.01
       },
-      "transitions": [
-        {
-          "next": "hacker",
-          "probability": 1.0
-        }
-      ]
+      "next": "hacker"
     },
     {
       "name": "hacker",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -1287,23 +1404,25 @@
           }
         }
       ],
-      "delay": {
-        "type": "exponential",
-        "mean": 0.01
-      },
+      "next": "hacker_route"
+    },
+    {
+      "name": "hacker_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "hacker",
+          "next": "hacker_wait",
           "probability": 0.99
         },
         {
-          "next": "stop",
+          "next": "session_end",
           "probability": 0.01
         }
       ]
     },
     {
       "name": "bot_start",
+      "type": "activity",
       "variables_on_entry": [
         {
           "name": "var_client",
@@ -1365,19 +1484,20 @@
           }
         }
       ],
+      "next": "bot_wait"
+    },
+    {
+      "name": "bot_wait",
+      "type": "event:intermediate:timer",
       "delay": {
-        "type": "constant",
-        "value": 0
+        "type": "exponential",
+        "mean": 1.0
       },
-      "transitions": [
-        {
-          "next": "bot",
-          "probability": 1.0
-        }
-      ]
+      "next": "bot"
     },
     {
       "name": "bot",
+      "type": "activity",
       "emitter": "web_log",
       "variables": [
         {
@@ -1487,20 +1607,25 @@
           }
         }
       ],
-      "delay": {
-        "type": "exponential",
-        "mean": 1.0
-      },
+      "next": "bot_route"
+    },
+    {
+      "name": "bot_route",
+      "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "bot",
+          "next": "bot_wait",
           "probability": 0.98
         },
         {
-          "next": "stop",
+          "next": "session_end",
           "probability": 0.02
         }
       ]
+    },
+    {
+      "name": "session_end",
+      "type": "event:end"
     }
   ]
 }
