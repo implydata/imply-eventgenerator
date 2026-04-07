@@ -33,11 +33,10 @@ def main(argv=None):
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Generates synthetic event data.')
     parser.add_argument('-c', dest='config_file', required=True, help='Generator configuration file')
-    parser.add_argument('-t', dest='target_file', help='Target configuration file. If not specified, the target from the config file will be used. If neither is specified, stdout will be used as the target.')
-    
+
     fmt_group = parser.add_mutually_exclusive_group()
     fmt_group.add_argument('-f', dest='record_format_file', help='Format file for record pattern.')
-    fmt_group.add_argument('--template', dest='template_name', default=None,
+    fmt_group.add_argument('-t', '--template', dest='template_name', default=None,
                            help='Named template from the generator config\'s "templates" block.')
 
     parser.add_argument(
@@ -135,18 +134,6 @@ def main(argv=None):
                 sys.exit(1)
             sys.exit(0)
 
-        # Load target file or use target from config
-        if args.target_file:
-            with open(args.target_file, 'r') as f:
-                try:
-                    target = json.load(f)
-                except json.JSONDecodeError as e:
-                    raise ValueError(f"Error parsing target file '{args.target_file}': {e}")
-        elif 'target' in config.keys():
-            target = config['target']
-        else:
-            target = None
-
         # Load schedule file
         schedule_config = None
         if args.schedule_file:
@@ -178,7 +165,6 @@ def main(argv=None):
         driver = DataDriver(
             name='cli',
             config=config,
-            target=target,
             runtime=runtime,
             total_recs=total_recs,
             time_type=time_type,

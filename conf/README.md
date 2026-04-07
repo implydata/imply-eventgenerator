@@ -37,11 +37,3 @@ Schedules have moved to [`presets/schedules/`](../presets/README.md).
 | --- | --- |
 | `conf/schedule/ecommerce.json` | [`presets/schedules/ecommerce.json`](../presets/schedules/ecommerce.json) |
 | `conf/schedule/full.json` | [`presets/schedules/full.json`](../presets/schedules/full.json) |
-
-## Targets
-
-| File | Description |
-| --- | --- |
-| `conf/tar/file.json` | Write output to a file |
-| `conf/tar/hec_file.json` | Write HEC-formatted output to a file |
-| `conf/tar/kakfa_docker_clicks.json` | Write to a local Kafka topic |
