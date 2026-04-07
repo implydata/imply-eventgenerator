@@ -93,8 +93,8 @@ class State:
             return valid
 
         if state_type == 'event:start:timer':
-            if 'timer' not in desc:
-                logger.error("%s: event:start:timer missing required field 'timer'", context)
+            if 'cardinality_distribution' not in desc:
+                logger.error("%s: event:start:timer missing required field 'cardinality_distribution'", context)
                 valid = False
             if desc.get('emitter') is not None:
                 logger.error("%s: event:start:timer must not have an emitter", context)
@@ -114,8 +114,8 @@ class State:
             return valid
 
         if state_type == 'event:intermediate:timer':
-            if 'delay' not in desc:
-                logger.error("%s: event:intermediate:timer missing required field 'delay'", context)
+            if 'cardinality_distribution' not in desc:
+                logger.error("%s: event:intermediate:timer missing required field 'cardinality_distribution'", context)
                 valid = False
             if 'next' not in desc:
                 logger.error("%s: event:intermediate:timer missing required field 'next'", context)
@@ -135,8 +135,8 @@ class State:
             return valid
 
         if state_type == 'activity':
-            if 'delay' in desc:
-                logger.error("%s: activity must not have 'delay' — precede it with event:intermediate:timer", context)
+            if 'cardinality_distribution' in desc:
+                logger.error("%s: activity must not have 'cardinality_distribution' — precede it with event:intermediate:timer", context)
                 valid = False
             if 'transitions' in desc:
                 logger.error("%s: activity uses 'next', not 'transitions' — add a gateway:exclusive for routing", context)
@@ -160,8 +160,8 @@ class State:
             if desc.get('emitter') is not None:
                 logger.error("%s: gateway:exclusive must not have an emitter", context)
                 valid = False
-            if 'delay' in desc:
-                logger.error("%s: gateway:exclusive must not have 'delay'", context)
+            if 'cardinality_distribution' in desc:
+                logger.error("%s: gateway:exclusive must not have 'cardinality_distribution'", context)
                 valid = False
             if 'next' in desc:
                 logger.error("%s: gateway:exclusive uses 'transitions', not 'next'", context)

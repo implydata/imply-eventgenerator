@@ -82,7 +82,7 @@
   "states": [
     {
       "type": "event:start:timer", "name": "session_start",
-      "timer": {
+      "cardinality_distribution": {
         "type": "gmm_temporal",
         "mean": 1.0,
         "_comment": "Generic e-commerce store — one new session per second on average",
@@ -165,30 +165,18 @@
         {
           "type": "enum", "name": "var_http_referrer",
           "values": [
-            "https://www.google.com/",
-            "https://www.bing.com/",
-            "https://search.yahoo.com/",
-            "https://duckduckgo.com/",
-            "https://www.baidu.com/",
-            "https://yandex.com/",
-            "https://www.facebook.com/",
-            "https://www.instagram.com/",
-            "https://twitter.com/",
-            "https://www.linkedin.com/",
-            "https://www.pinterest.com/",
-            "https://www.reddit.com/",
-            "https://www.tiktok.com/",
-            "https://www.amazon.com/",
-            "https://www.ebay.com/",
-            "https://www.etsy.com/",
-            "https://www.walmart.com/",
-            "https://www.aliexpress.com/",
-            "https://www.youtube.com/",
-            "https://medium.com/",
-            "https://www.quora.com/",
-            "https://www.forbes.com/",
-            "https://techcrunch.com/",
-            "https://www.retailmenot.com/",
+            "https://www.google.com/", "https://www.bing.com/",
+            "https://search.yahoo.com/", "https://duckduckgo.com/",
+            "https://www.baidu.com/", "https://yandex.com/",
+            "https://www.facebook.com/", "https://www.instagram.com/",
+            "https://twitter.com/", "https://www.linkedin.com/",
+            "https://www.pinterest.com/", "https://www.reddit.com/",
+            "https://www.tiktok.com/", "https://www.amazon.com/",
+            "https://www.ebay.com/", "https://www.etsy.com/",
+            "https://www.walmart.com/", "https://www.aliexpress.com/",
+            "https://www.youtube.com/", "https://medium.com/",
+            "https://www.quora.com/", "https://www.forbes.com/",
+            "https://techcrunch.com/", "https://www.retailmenot.com/",
             "https://www.slickdeals.net/"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
@@ -232,65 +220,19 @@
         {
           "type": "enum", "name": "var_user",
           "values": [
-            "natalie38",
-            "herbertdixon",
-            "-",
-            "gusosborne",
-            "sallyosborne",
-            "willowlim",
-            "mialim",
-            "miltonle",
-            "bambismith",
-            "rocketsmith",
-            "hannahrobinson",
-            "aaron94",
-            "jasmine23",
-            "bernd73",
-            "kennethjohnson",
-            "alice997",
-            "janet27",
-            "ochambers",
-            "jaredevans",
-            "charlenefields",
-            "davidbarry",
-            "roy04",
-            "rhawkins",
-            "michelle00",
-            "geraldine77",
-            "elaine554",
-            "grahambrown",
-            "-",
-            "eileenconnor",
-            "-",
-            "ethelmcdonald",
-            "tiffany76",
-            "-",
-            "carrillojames",
-            "aliciaclark",
-            "fosternicole",
-            "byrdjennifer",
-            "donald43",
-            "lharmon",
-            "lynnkristina",
-            "gonzalesbrad",
-            "suzanne83",
-            "tsummers",
-            "kevin19",
-            "anthonyvincent",
-            "daniel79",
-            "cmolina",
-            "watsontracey",
-            "-",
-            "jenkinskrista",
-            "shawkatherine",
-            "sentancefinley",
-            "waniarchasamuel",
-            "cunninghammary",
-            "pandrews",
-            "windsorbella",
-            "nielsenursula",
-            "parkeranthony",
-            "horace778"
+            "natalie38", "herbertdixon", "-", "gusosborne", "sallyosborne",
+            "willowlim", "mialim", "miltonle", "bambismith", "rocketsmith",
+            "hannahrobinson", "aaron94", "jasmine23", "bernd73",
+            "kennethjohnson", "alice997", "janet27", "ochambers", "jaredevans",
+            "charlenefields", "davidbarry", "roy04", "rhawkins", "michelle00",
+            "geraldine77", "elaine554", "grahambrown", "-", "eileenconnor", "-",
+            "ethelmcdonald", "tiffany76", "-", "carrillojames", "aliciaclark",
+            "fosternicole", "byrdjennifer", "donald43", "lharmon",
+            "lynnkristina", "gonzalesbrad", "suzanne83", "tsummers", "kevin19",
+            "anthonyvincent", "daniel79", "cmolina", "watsontracey", "-",
+            "jenkinskrista", "shawkatherine", "sentancefinley",
+            "waniarchasamuel", "cunninghammary", "pandrews", "windsorbella",
+            "nielsenursula", "parkeranthony", "horace778"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 58}
         },
@@ -321,7 +263,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_products",
-      "delay": {"type": "uniform", "min": 30.0, "max": 120.0},
+      "cardinality_distribution": {"type": "uniform", "min": 30.0, "max": 120.0},
       "next": "emit_browse_products"
     },
     {
@@ -347,7 +289,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_cat_electronics",
-      "delay": {"type": "uniform", "min": 90.0, "max": 300.0},
+      "cardinality_distribution": {"type": "uniform", "min": 90.0, "max": 300.0},
       "next": "emit_browse_cat_electronics"
     },
     {
@@ -384,7 +326,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_cat_clothing",
-      "delay": {"type": "uniform", "min": 60.0, "max": 240.0},
+      "cardinality_distribution": {"type": "uniform", "min": 60.0, "max": 240.0},
       "next": "emit_browse_cat_clothing"
     },
     {
@@ -421,7 +363,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_cat_home_garden",
-      "delay": {"type": "uniform", "min": 60.0, "max": 240.0},
+      "cardinality_distribution": {"type": "uniform", "min": 60.0, "max": 240.0},
       "next": "emit_browse_cat_home_garden"
     },
     {
@@ -458,7 +400,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_cat_kitchen",
-      "delay": {"type": "uniform", "min": 60.0, "max": 240.0},
+      "cardinality_distribution": {"type": "uniform", "min": 60.0, "max": 240.0},
       "next": "emit_browse_cat_kitchen"
     },
     {
@@ -473,10 +415,8 @@
             "/categories/kitchen/non-stick-pan",
             "/categories/kitchen/mixing-bowl",
             "/categories/kitchen/vegetable-peeler",
-            "/categories/kitchen/kitchen-scale",
-            "/categories/kitchen/blender",
-            "/categories/kitchen/toaster",
-            "/categories/kitchen/air-fryer",
+            "/categories/kitchen/kitchen-scale", "/categories/kitchen/blender",
+            "/categories/kitchen/toaster", "/categories/kitchen/air-fryer",
             "/categories/kitchen/espresso-machine"
           ],
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
@@ -495,7 +435,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_cat_sports",
-      "delay": {"type": "uniform", "min": 60.0, "max": 180.0},
+      "cardinality_distribution": {"type": "uniform", "min": 60.0, "max": 180.0},
       "next": "emit_browse_cat_sports"
     },
     {
@@ -505,14 +445,11 @@
         {
           "type": "enum", "name": "var_uri_path",
           "values": [
-            "/categories/sports/yoga-mat",
-            "/categories/sports/resistance-bands",
-            "/categories/sports/dumbbells",
-            "/categories/sports/water-bottle",
+            "/categories/sports/yoga-mat", "/categories/sports/resistance-bands",
+            "/categories/sports/dumbbells", "/categories/sports/water-bottle",
             "/categories/sports/running-shorts",
             "/categories/sports/tennis-racket",
-            "/categories/sports/cycling-gloves",
-            "/categories/sports/jump-rope",
+            "/categories/sports/cycling-gloves", "/categories/sports/jump-rope",
             "/categories/sports/foam-roller",
             "/categories/sports/protein-shaker"
           ],
@@ -532,7 +469,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_cat_beauty",
-      "delay": {"type": "uniform", "min": 60.0, "max": 180.0},
+      "cardinality_distribution": {"type": "uniform", "min": 60.0, "max": 180.0},
       "next": "emit_browse_cat_beauty"
     },
     {
@@ -543,14 +480,10 @@
           "type": "enum", "name": "var_uri_path",
           "values": [
             "/categories/beauty/face-moisturiser",
-            "/categories/beauty/hair-dryer",
-            "/categories/beauty/nail-polish",
-            "/categories/beauty/lip-balm",
-            "/categories/beauty/sunscreen-spf50",
-            "/categories/beauty/mascara",
-            "/categories/beauty/perfume",
-            "/categories/beauty/face-mask",
-            "/categories/beauty/eye-cream",
+            "/categories/beauty/hair-dryer", "/categories/beauty/nail-polish",
+            "/categories/beauty/lip-balm", "/categories/beauty/sunscreen-spf50",
+            "/categories/beauty/mascara", "/categories/beauty/perfume",
+            "/categories/beauty/face-mask", "/categories/beauty/eye-cream",
             "/categories/beauty/body-lotion"
           ],
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
@@ -569,7 +502,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_add_to_cart",
-      "delay": {"type": "uniform", "min": 10.0, "max": 30.0},
+      "cardinality_distribution": {"type": "uniform", "min": 10.0, "max": 30.0},
       "next": "emit_add_to_cart"
     },
     {
@@ -590,7 +523,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_checkout",
-      "delay": {"type": "uniform", "min": 120.0, "max": 300.0},
+      "cardinality_distribution": {"type": "uniform", "min": 120.0, "max": 300.0},
       "next": "emit_checkout"
     },
     {
@@ -613,7 +546,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_thank_you",
-      "delay": {"type": "uniform", "min": 5.0, "max": 15.0},
+      "cardinality_distribution": {"type": "uniform", "min": 5.0, "max": 15.0},
       "next": "emit_thank_you"
     },
     {
@@ -628,7 +561,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_try_again",
-      "delay": {"type": "uniform", "min": 30.0, "max": 90.0},
+      "cardinality_distribution": {"type": "uniform", "min": 30.0, "max": 90.0},
       "next": "emit_try_again"
     },
     {
@@ -649,7 +582,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_not_found",
-      "delay": {"type": "uniform", "min": 5.0, "max": 15.0},
+      "cardinality_distribution": {"type": "uniform", "min": 5.0, "max": 15.0},
       "next": "emit_not_found"
     },
     {
@@ -661,15 +594,11 @@
           "type": "enum", "name": "var_uri_path",
           "values": [
             "/categories/furniture/modern-sofa",
-            "/categories/automotive/car-vacuum",
-            "/categories/pets/dog-bed",
-            "/categories/garden/lawnmower",
-            "/categories/office/standing-desk",
+            "/categories/automotive/car-vacuum", "/categories/pets/dog-bed",
+            "/categories/garden/lawnmower", "/categories/office/standing-desk",
             "/categories/travel/luggage-set",
-            "/categories/music/acoustic-guitar",
-            "/categories/art/oil-paint-set",
-            "/categories/baby/changing-mat",
-            "/categories/food/protein-powder"
+            "/categories/music/acoustic-guitar", "/categories/art/oil-paint-set",
+            "/categories/baby/changing-mat", "/categories/food/protein-powder"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 9}
         }
@@ -684,14 +613,10 @@
         {
           "type": "enum", "name": "var_http_user_agent",
           "values": [
-            "sqlmap/1.7.8#stable (https://sqlmap.org)",
-            "Nikto/2.1.6",
+            "sqlmap/1.7.8#stable (https://sqlmap.org)", "Nikto/2.1.6",
             "masscan/1.3 (https://github.com/robertdavidgraham/masscan)",
-            "zgrab/0.x",
-            "curl/7.68.0",
-            "python-requests/2.28.1",
-            "Go-http-client/1.1",
-            "Wget/1.21.2"
+            "zgrab/0.x", "curl/7.68.0", "python-requests/2.28.1",
+            "Go-http-client/1.1", "Wget/1.21.2"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
         },
@@ -710,7 +635,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_hacker",
-      "delay": {"type": "exponential", "mean": 0.01},
+      "cardinality_distribution": {"type": "exponential", "mean": 0.01},
       "next": "emit_hacker"
     },
     {
@@ -736,34 +661,18 @@
         {
           "type": "enum", "name": "var_uri_path",
           "values": [
-            "/admin",
-            "/login",
-            "/etc/passwd",
-            "/wp-admin",
-            "/sql",
-            "/../../../../etc/shadow",
-            "/.git/config",
-            "/.env",
-            "/.htaccess",
-            "/phpinfo.php",
-            "/server-status",
-            "/backup.sql",
-            "/config.php.bak",
-            "/admin/login",
-            "/admin/users",
-            "/admin/config",
-            "/admin/db"
+            "/admin", "/login", "/etc/passwd", "/wp-admin", "/sql",
+            "/../../../../etc/shadow", "/.git/config", "/.env", "/.htaccess",
+            "/phpinfo.php", "/server-status", "/backup.sql", "/config.php.bak",
+            "/admin/login", "/admin/users", "/admin/config", "/admin/db"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 16}
         },
         {
           "type": "enum", "name": "var_uri_query",
           "values": [
-            "",
-            "?user=admin'--",
-            "?query=SELECT%20*%20FROM%20users",
-            "?debug=true",
-            "?cmd=whoami"
+            "", "?user=admin'--", "?query=SELECT%20*%20FROM%20users",
+            "?debug=true", "?cmd=whoami"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
         }
@@ -788,11 +697,8 @@
             "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
             "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
             "Mozilla/5.0 (compatible; Applebot/0.1; +http://www.apple.com/go/applebot)",
-            "SemrushBot/7~bl",
-            "AhrefsBot/7.0; +https://ahrefs.com/robot/",
-            "DotBot/1.2",
-            "python-requests/2.28.1",
-            "curl/7.68.0",
+            "SemrushBot/7~bl", "AhrefsBot/7.0; +https://ahrefs.com/robot/",
+            "DotBot/1.2", "python-requests/2.28.1", "curl/7.68.0",
             "Scrapy/2.11.0 (+https://scrapy.org)"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 8}
@@ -812,7 +718,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_bot",
-      "delay": {"type": "exponential", "mean": 1.0},
+      "cardinality_distribution": {"type": "exponential", "mean": 1.0},
       "next": "emit_bot"
     },
     {
@@ -832,14 +738,9 @@
         {
           "type": "enum", "name": "var_uri_path",
           "values": [
-            "/robots.txt",
-            "/sitemap.xml",
-            "/products",
-            "/categories/electronics",
-            "/categories/clothing",
-            "/categories/sports",
-            "/categories/home-garden",
-            "/categories/books",
+            "/robots.txt", "/sitemap.xml", "/products",
+            "/categories/electronics", "/categories/clothing",
+            "/categories/sports", "/categories/home-garden", "/categories/books",
             "/categories/electronics/laptop",
             "/categories/electronics/smartphone",
             "/categories/clothing/mens-jacket",

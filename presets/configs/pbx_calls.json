@@ -24,7 +24,7 @@
   "states": [
     {
       "type": "event:start:timer", "name": "call_start",
-      "timer": {"type": "exponential", "mean": 30.0},
+      "cardinality_distribution": {"type": "exponential", "mean": 30.0},
       "next": "setup_call"
     },
     {
@@ -69,12 +69,12 @@
     {
       "type": "event:intermediate:timer", "name": "pause_busy",
       "_comment": "Busy signal is near-instantaneous.",
-      "delay": {"type": "uniform", "min": 0.5, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 0.5, "max": 2.0},
       "next": "emit_busy"
     },
     {
       "type": "event:intermediate:timer", "name": "pause_ringing",
-      "delay": {"type": "uniform", "min": 5, "max": 30},
+      "cardinality_distribution": {"type": "uniform", "min": 5, "max": 30},
       "next": "route_ringing"
     },
     {
@@ -87,7 +87,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_answered",
-      "delay": {"type": "exponential", "mean": 180},
+      "cardinality_distribution": {"type": "exponential", "mean": 180},
       "next": "emit_answered"
     },
     {

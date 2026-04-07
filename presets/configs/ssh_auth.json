@@ -23,7 +23,7 @@
   "states": [
     {
       "type": "event:start:timer", "name": "session_start",
-      "timer": {"type": "exponential", "mean": 10.0},
+      "cardinality_distribution": {"type": "exponential", "mean": 10.0},
       "next": "setup_session"
     },
     {
@@ -79,7 +79,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_failed_password",
-      "delay": {"type": "exponential", "mean": 3.0},
+      "cardinality_distribution": {"type": "exponential", "mean": 3.0},
       "next": "emit_failed_password"
     },
     {
@@ -101,7 +101,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_accepted",
-      "delay": {"type": "uniform", "min": 0.1, "max": 1.0},
+      "cardinality_distribution": {"type": "uniform", "min": 0.1, "max": 1.0},
       "next": "emit_accepted"
     },
     {
@@ -115,7 +115,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_session_opened",
-      "delay": {"type": "exponential", "mean": 600.0},
+      "cardinality_distribution": {"type": "exponential", "mean": 600.0},
       "next": "emit_session_opened"
     },
     {
@@ -129,7 +129,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_session_closed",
-      "delay": {"type": "uniform", "min": 0.1, "max": 0.5},
+      "cardinality_distribution": {"type": "uniform", "min": 0.1, "max": 0.5},
       "next": "emit_session_closed"
     },
     {

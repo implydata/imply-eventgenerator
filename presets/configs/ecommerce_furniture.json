@@ -82,7 +82,7 @@
   "states": [
     {
       "type": "event:start:timer", "name": "session_start",
-      "timer": {"type": "exponential", "mean": 3.0},
+      "cardinality_distribution": {"type": "exponential", "mean": 3.0},
       "next": "route_global_init"
     },
     {
@@ -116,30 +116,18 @@
         {
           "type": "enum", "name": "var_http_referrer",
           "values": [
-            "https://www.google.com/",
-            "https://www.bing.com/",
-            "https://search.yahoo.com/",
-            "https://duckduckgo.com/",
-            "https://www.baidu.com/",
-            "https://yandex.com/",
-            "https://www.facebook.com/",
-            "https://www.instagram.com/",
-            "https://twitter.com/",
-            "https://www.linkedin.com/",
-            "https://www.pinterest.com/",
-            "https://www.reddit.com/",
-            "https://www.tiktok.com/",
-            "https://www.amazon.com/",
-            "https://www.ebay.com/",
-            "https://www.etsy.com/",
-            "https://www.walmart.com/",
-            "https://www.wayfair.com/",
-            "https://www.youtube.com/",
-            "https://medium.com/",
-            "https://www.quora.com/",
-            "https://www.architecturaldigest.com/",
-            "https://www.houzz.com/",
-            "https://www.retailmenot.com/",
+            "https://www.google.com/", "https://www.bing.com/",
+            "https://search.yahoo.com/", "https://duckduckgo.com/",
+            "https://www.baidu.com/", "https://yandex.com/",
+            "https://www.facebook.com/", "https://www.instagram.com/",
+            "https://twitter.com/", "https://www.linkedin.com/",
+            "https://www.pinterest.com/", "https://www.reddit.com/",
+            "https://www.tiktok.com/", "https://www.amazon.com/",
+            "https://www.ebay.com/", "https://www.etsy.com/",
+            "https://www.walmart.com/", "https://www.wayfair.com/",
+            "https://www.youtube.com/", "https://medium.com/",
+            "https://www.quora.com/", "https://www.architecturaldigest.com/",
+            "https://www.houzz.com/", "https://www.retailmenot.com/",
             "https://www.slickdeals.net/"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
@@ -178,65 +166,20 @@
         {
           "type": "enum", "name": "var_user",
           "values": [
-            "marcus_reed",
-            "theodorawilson",
-            "-",
-            "oliverstone",
-            "clarajennings",
-            "jamesburton",
-            "sophiapark",
-            "nathaniel09",
-            "gracemurphy",
-            "elijahcooper",
-            "hannahmitchell",
-            "lucas72",
-            "isabella44",
-            "karl88",
-            "victoriaadams",
-            "emily_chen",
-            "peter_lang",
-            "oscarprice",
-            "julianmorris",
-            "dianaflores",
-            "maxwellroberts",
-            "ray06",
-            "nhoward",
-            "christine01",
-            "penelope55",
-            "evelyn332",
-            "gordonwhite",
-            "-",
-            "francescahill",
-            "-",
-            "dorothyknight",
-            "samantha81",
-            "-",
-            "reyesjames",
-            "monicaward",
-            "davisrebecca",
-            "sandrajenkins",
-            "william48",
-            "mpatterson",
-            "annakristina",
-            "garciabrad",
-            "catherine90",
-            "rsummers",
-            "nicholas22",
-            "anthonyscott",
-            "benjamin65",
-            "jmorales",
-            "brownlinda",
-            "-",
-            "cookkrista",
-            "youngkatherine",
-            "harringtonfinley",
-            "okadasamuel",
-            "fitzgeraldmary",
-            "pandrews",
-            "kingstonbella",
-            "larsenursula",
-            "cooperanthony",
-            "edmund778"
+            "marcus_reed", "theodorawilson", "-", "oliverstone", "clarajennings",
+            "jamesburton", "sophiapark", "nathaniel09", "gracemurphy",
+            "elijahcooper", "hannahmitchell", "lucas72", "isabella44", "karl88",
+            "victoriaadams", "emily_chen", "peter_lang", "oscarprice",
+            "julianmorris", "dianaflores", "maxwellroberts", "ray06", "nhoward",
+            "christine01", "penelope55", "evelyn332", "gordonwhite", "-",
+            "francescahill", "-", "dorothyknight", "samantha81", "-",
+            "reyesjames", "monicaward", "davisrebecca", "sandrajenkins",
+            "william48", "mpatterson", "annakristina", "garciabrad",
+            "catherine90", "rsummers", "nicholas22", "anthonyscott",
+            "benjamin65", "jmorales", "brownlinda", "-", "cookkrista",
+            "youngkatherine", "harringtonfinley", "okadasamuel",
+            "fitzgeraldmary", "pandrews", "kingstonbella", "larsenursula",
+            "cooperanthony", "edmund778"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 55}
         },
@@ -255,7 +198,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_products",
-      "delay": {"type": "uniform", "min": 30, "max": 90},
+      "cardinality_distribution": {"type": "uniform", "min": 30, "max": 90},
       "next": "emit_browse_products"
     },
     {
@@ -281,7 +224,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_cat_living_room",
-      "delay": {"type": "uniform", "min": 90, "max": 300},
+      "cardinality_distribution": {"type": "uniform", "min": 90, "max": 300},
       "next": "emit_browse_cat_living_room"
     },
     {
@@ -318,7 +261,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_cat_bedroom",
-      "delay": {"type": "uniform", "min": 90, "max": 300},
+      "cardinality_distribution": {"type": "uniform", "min": 90, "max": 300},
       "next": "emit_browse_cat_bedroom"
     },
     {
@@ -355,7 +298,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_cat_dining_room",
-      "delay": {"type": "uniform", "min": 90, "max": 300},
+      "cardinality_distribution": {"type": "uniform", "min": 90, "max": 300},
       "next": "emit_browse_cat_dining_room"
     },
     {
@@ -392,7 +335,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_cat_office",
-      "delay": {"type": "uniform", "min": 90, "max": 300},
+      "cardinality_distribution": {"type": "uniform", "min": 90, "max": 300},
       "next": "emit_browse_cat_office"
     },
     {
@@ -429,7 +372,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_browse_cat_outdoor",
-      "delay": {"type": "uniform", "min": 90, "max": 300},
+      "cardinality_distribution": {"type": "uniform", "min": 90, "max": 300},
       "next": "emit_browse_cat_outdoor"
     },
     {
@@ -467,7 +410,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_add_to_cart",
-      "delay": {"type": "uniform", "min": 15, "max": 45},
+      "cardinality_distribution": {"type": "uniform", "min": 15, "max": 45},
       "next": "emit_add_to_cart"
     },
     {
@@ -488,7 +431,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_checkout",
-      "delay": {"type": "uniform", "min": 180, "max": 420},
+      "cardinality_distribution": {"type": "uniform", "min": 180, "max": 420},
       "next": "emit_checkout"
     },
     {
@@ -511,7 +454,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_thank_you",
-      "delay": {"type": "uniform", "min": 5, "max": 15},
+      "cardinality_distribution": {"type": "uniform", "min": 5, "max": 15},
       "next": "emit_thank_you"
     },
     {
@@ -526,7 +469,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_try_again",
-      "delay": {"type": "uniform", "min": 30, "max": 90},
+      "cardinality_distribution": {"type": "uniform", "min": 30, "max": 90},
       "next": "emit_try_again"
     },
     {
@@ -547,7 +490,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_not_found",
-      "delay": {"type": "uniform", "min": 2, "max": 5},
+      "cardinality_distribution": {"type": "uniform", "min": 2, "max": 5},
       "next": "emit_not_found"
     },
     {
@@ -582,14 +525,10 @@
         {
           "type": "enum", "name": "var_http_user_agent",
           "values": [
-            "sqlmap/1.7.8#stable (https://sqlmap.org)",
-            "Nikto/2.1.6",
+            "sqlmap/1.7.8#stable (https://sqlmap.org)", "Nikto/2.1.6",
             "masscan/1.3 (https://github.com/robertdavidgraham/masscan)",
-            "zgrab/0.x",
-            "curl/7.68.0",
-            "python-requests/2.28.1",
-            "Go-http-client/1.1",
-            "Wget/1.21.2"
+            "zgrab/0.x", "curl/7.68.0", "python-requests/2.28.1",
+            "Go-http-client/1.1", "Wget/1.21.2"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
         },
@@ -608,7 +547,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_hacker",
-      "delay": {"type": "exponential", "mean": 0.01},
+      "cardinality_distribution": {"type": "exponential", "mean": 0.01},
       "next": "emit_hacker"
     },
     {
@@ -634,79 +573,32 @@
         {
           "type": "enum", "name": "var_uri_path",
           "values": [
-            "/admin",
-            "/login",
-            "/etc/passwd",
-            "/wp-admin",
-            "/sql",
-            "/../../../../etc/shadow",
-            "/cgi-bin/test.cgi",
-            "/.git/config",
-            "/config.php.bak",
-            "/debug.log",
-            "/.env",
-            "/.htaccess",
-            "/.bash_history",
-            "/.ssh/id_rsa",
-            "/private.key",
-            "/backup.sql",
-            "/old/config.php",
-            "/phpinfo.php",
-            "/server-status",
-            "/error.log",
-            "/vulnerable.php",
-            "/admin/login",
-            "/admin/dashboard",
-            "/admin/config",
-            "/admin/settings",
-            "/admin/users",
-            "/admin/backup",
-            "/admin/logs",
-            "/admin/reports",
-            "/admin/test",
-            "/admin/debug",
-            "/admin/hidden",
-            "/admin/secret",
-            "/admin/private",
-            "/admin/passwords",
-            "/admin/keys",
-            "/admin/data",
-            "/admin/files",
-            "/admin/uploads",
-            "/admin/downloads",
-            "/admin/sql",
-            "/admin/db",
-            "/admin/db_backup",
-            "/admin/db_dump",
-            "/admin/db_config",
-            "/admin/db_test",
-            "/admin/db_logs",
-            "/admin/db_debug",
-            "/admin/db_private",
-            "/admin/db_secret",
-            "/admin/db_hidden",
-            "/admin/db_vulnerable",
-            "/admin/db_error",
-            "/admin/db_status",
-            "/admin/db_info",
-            "/admin/db_env",
-            "/admin/db_htaccess",
-            "/admin/db_bash_history",
-            "/admin/db_ssh",
-            "/admin/db_rsa",
-            "/admin/db_key",
-            "/admin/db_backup.sql"
+            "/admin", "/login", "/etc/passwd", "/wp-admin", "/sql",
+            "/../../../../etc/shadow", "/cgi-bin/test.cgi", "/.git/config",
+            "/config.php.bak", "/debug.log", "/.env", "/.htaccess",
+            "/.bash_history", "/.ssh/id_rsa", "/private.key", "/backup.sql",
+            "/old/config.php", "/phpinfo.php", "/server-status", "/error.log",
+            "/vulnerable.php", "/admin/login", "/admin/dashboard",
+            "/admin/config", "/admin/settings", "/admin/users", "/admin/backup",
+            "/admin/logs", "/admin/reports", "/admin/test", "/admin/debug",
+            "/admin/hidden", "/admin/secret", "/admin/private",
+            "/admin/passwords", "/admin/keys", "/admin/data", "/admin/files",
+            "/admin/uploads", "/admin/downloads", "/admin/sql", "/admin/db",
+            "/admin/db_backup", "/admin/db_dump", "/admin/db_config",
+            "/admin/db_test", "/admin/db_logs", "/admin/db_debug",
+            "/admin/db_private", "/admin/db_secret", "/admin/db_hidden",
+            "/admin/db_vulnerable", "/admin/db_error", "/admin/db_status",
+            "/admin/db_info", "/admin/db_env", "/admin/db_htaccess",
+            "/admin/db_bash_history", "/admin/db_ssh", "/admin/db_rsa",
+            "/admin/db_key", "/admin/db_backup.sql"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 59}
         },
         {
           "type": "enum", "name": "var_uri_query",
           "values": [
-            "",
-            "?user=admin'--",
-            "?query=SELECT%20*%20FROM%20users",
-            "?debug=true",
-            "?cmd=whoami"
+            "", "?user=admin'--", "?query=SELECT%20*%20FROM%20users",
+            "?debug=true", "?cmd=whoami"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
         }
@@ -731,11 +623,8 @@
             "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
             "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
             "Mozilla/5.0 (compatible; Applebot/0.1; +http://www.apple.com/go/applebot)",
-            "SemrushBot/7~bl",
-            "AhrefsBot/7.0; +https://ahrefs.com/robot/",
-            "DotBot/1.2",
-            "python-requests/2.28.1",
-            "curl/7.68.0",
+            "SemrushBot/7~bl", "AhrefsBot/7.0; +https://ahrefs.com/robot/",
+            "DotBot/1.2", "python-requests/2.28.1", "curl/7.68.0",
             "Scrapy/2.11.0 (+https://scrapy.org)"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 8}
@@ -755,7 +644,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_bot",
-      "delay": {"type": "exponential", "mean": 1.0},
+      "cardinality_distribution": {"type": "exponential", "mean": 1.0},
       "next": "emit_bot"
     },
     {
@@ -775,13 +664,9 @@
         {
           "type": "enum", "name": "var_uri_path",
           "values": [
-            "/robots.txt",
-            "/sitemap.xml",
-            "/products",
-            "/categories/living-room",
-            "/categories/bedroom",
-            "/categories/dining-room",
-            "/categories/home-office",
+            "/robots.txt", "/sitemap.xml", "/products",
+            "/categories/living-room", "/categories/bedroom",
+            "/categories/dining-room", "/categories/home-office",
             "/categories/outdoor-furniture",
             "/categories/living-room/hampton-sectional-sofa",
             "/categories/living-room/oslo-leather-armchair",

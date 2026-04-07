@@ -69,8 +69,8 @@ def validate_config(config, template_name=None):
             logger.error("Config has multiple event:start:timer states — only one is allowed")
             valid = False
         else:
-            timer_desc = start_states[0].get('timer')
-            if timer_desc and not validate_distribution_desc(timer_desc, "event:start:timer.timer"):
+            timer_desc = start_states[0].get('cardinality_distribution')
+            if timer_desc and not validate_distribution_desc(timer_desc, "event:start:timer.cardinality_distribution"):
                 valid = False
 
         # Cross-cutting: at least one event:end
@@ -91,11 +91,11 @@ def validate_config(config, template_name=None):
             if not State.validate_desc(state, emitter_names, ctx):
                 valid = False
             state_type = state.get('type')
-            if state_type == 'event:intermediate:timer' and 'delay' in state:
-                if not validate_distribution_desc(state['delay'], f"{ctx} delay"):
+            if state_type == 'event:intermediate:timer' and 'cardinality_distribution' in state:
+                if not validate_distribution_desc(state['cardinality_distribution'], f"{ctx} cardinality_distribution"):
                     valid = False
-            if state_type == 'event:start:timer' and 'timer' in state:
-                if not validate_distribution_desc(state['timer'], f"{ctx} timer"):
+            if state_type == 'event:start:timer' and 'cardinality_distribution' in state:
+                if not validate_distribution_desc(state['cardinality_distribution'], f"{ctx} cardinality_distribution"):
                     valid = False
             for var in state.get('variables', []):
                 vctx = f"{ctx}, variable '{var.get('name', '?')}'"

@@ -55,7 +55,7 @@
   "states": [
     {
       "type": "event:start:timer", "name": "connection_start",
-      "timer": {
+      "cardinality_distribution": {
         "type": "exponential",
         "mean": 0.5,
         "_comment": "New connections initiated every ~0.5 seconds on average"
@@ -75,12 +75,9 @@
         {
           "type": "enum", "name": "var_interface_id",
           "values": [
-            "eni-0a1b2c3d4e5f60001",
-            "eni-0a1b2c3d4e5f60002",
-            "eni-0a1b2c3d4e5f60003",
-            "eni-0a1b2c3d4e5f60004",
-            "eni-0a1b2c3d4e5f60005",
-            "eni-0a1b2c3d4e5f60006"
+            "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002",
+            "eni-0a1b2c3d4e5f60003", "eni-0a1b2c3d4e5f60004",
+            "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
           ],
           "cardinality_distribution": {"type": "exponential", "mean": 2},
           "_comment": "ENI selected once per connection - all flow records use same interface"
@@ -155,7 +152,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_web_traffic_syn",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_web_traffic_syn"
     },
     {
@@ -203,7 +200,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_web_traffic_data",
-      "delay": {"type": "uniform", "min": 1.0, "max": 10.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 10.0},
       "next": "emit_web_traffic_data"
     },
     {
@@ -258,7 +255,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_web_traffic_fin",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_web_traffic_fin"
     },
     {
@@ -298,7 +295,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_web_traffic_rst",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_web_traffic_rst"
     },
     {
@@ -383,7 +380,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_database_traffic_syn",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_database_traffic_syn"
     },
     {
@@ -431,7 +428,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_database_traffic_data",
-      "delay": {"type": "uniform", "min": 1.0, "max": 3.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 3.0},
       "next": "emit_database_traffic_data"
     },
     {
@@ -485,7 +482,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_database_traffic_fin",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_database_traffic_fin"
     },
     {
@@ -525,7 +522,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_database_traffic_rst",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_database_traffic_rst"
     },
     {
@@ -612,7 +609,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_ssh_traffic_syn",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_ssh_traffic_syn"
     },
     {
@@ -660,7 +657,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_ssh_traffic_data",
-      "delay": {"type": "uniform", "min": 1.0, "max": 40.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 40.0},
       "next": "emit_ssh_traffic_data"
     },
     {
@@ -714,7 +711,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_ssh_traffic_fin",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_ssh_traffic_fin"
     },
     {
@@ -754,7 +751,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_ssh_traffic_rst",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_ssh_traffic_rst"
     },
     {
@@ -837,7 +834,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_internal_api_syn",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_internal_api_syn"
     },
     {
@@ -885,7 +882,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_internal_api_data",
-      "delay": {"type": "uniform", "min": 1.0, "max": 3.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 3.0},
       "next": "emit_internal_api_data"
     },
     {
@@ -939,7 +936,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_internal_api_fin",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_internal_api_fin"
     },
     {
@@ -979,7 +976,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_internal_api_rst",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_internal_api_rst"
     },
     {
@@ -1069,7 +1066,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_port_scan",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_port_scan"
     },
     {
@@ -1139,7 +1136,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_port_scan_closed_activity",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_port_scan_closed_response"
     },
     {
@@ -1180,7 +1177,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_port_scan_honeypot_activity",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_port_scan_honeypot_response"
     },
     {
@@ -1268,7 +1265,7 @@
     },
     {
       "type": "event:intermediate:timer", "name": "pause_dns_traffic",
-      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_dns_traffic"
     },
     {

@@ -40,7 +40,7 @@
   "states": [
     {
       "type": "event:start:timer", "name": "connection_start",
-      "timer": {
+      "cardinality_distribution": {
         "type": "exponential",
         "mean": 0.3,
         "_comment": "Internet-facing host sees ~3 connection attempts per second on average"

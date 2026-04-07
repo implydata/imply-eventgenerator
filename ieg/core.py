@@ -309,7 +309,7 @@ class DataDriver:
                 delay = parse_distribution(_zero, clock=self.global_clock)
                 transitions = [Transition(state['next'], 1.0)]
             elif state_type == 'event:intermediate:timer':
-                delay = parse_distribution(state['delay'], clock=self.global_clock)
+                delay = parse_distribution(state['cardinality_distribution'], clock=self.global_clock)
                 transitions = [Transition(state['next'], 1.0)]
             elif state_type == 'activity':
                 delay = parse_distribution(_zero, clock=self.global_clock)
@@ -328,9 +328,9 @@ class DataDriver:
         if self.initial_state is None:
             raise RuntimeError("Config has no event:start:timer state.")
 
-        # Interarrival rate comes from the event:start:timer state's timer field
+        # Interarrival rate comes from the event:start:timer state's cardinality_distribution field
         timer_desc = next(s for s in state_desc if s.get('type') == 'event:start:timer')
-        self.rate_delay = parse_distribution(timer_desc['timer'], clock=self.global_clock)
+        self.rate_delay = parse_distribution(timer_desc['cardinality_distribution'], clock=self.global_clock)
 
 
     @staticmethod

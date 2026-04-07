@@ -31,8 +31,8 @@ STATE_TYPES = {
 # Canonical field order for each state type.
 # Any fields not listed here are appended at the end in their original order.
 STATE_FIELD_ORDER = {
-    'event:start:timer':        ['type', 'name', '_comment', 'timer', 'next'],
-    'event:intermediate:timer': ['type', 'name', '_comment', 'delay', 'next'],
+    'event:start:timer':        ['type', 'name', '_comment', 'cardinality_distribution', 'next'],
+    'event:intermediate:timer': ['type', 'name', '_comment', 'cardinality_distribution', 'next'],
     'activity':                 ['type', 'name', '_comment', 'emitter', 'variables', 'next'],
     'activity:multi:seq':       ['type', 'name', '_comment', 'emitter', 'variables', 'next'],
     'gateway:exclusive':        ['type', 'name', '_comment', 'transitions'],
@@ -85,7 +85,7 @@ def _dim_sort_key(item):
 # Distribution-valued keys that are always rendered on one line.
 _ALWAYS_INLINE_KEYS = frozenset({'cardinality_distribution'})
 # Distribution-valued keys that are inlined when they are simple (all-scalar).
-_INLINE_IF_SIMPLE_KEYS = frozenset({'delay', 'timer', 'length_distribution'})
+_INLINE_IF_SIMPLE_KEYS = frozenset({'length_distribution'})
 
 
 # ---------------------------------------------------------------------------
@@ -189,11 +189,24 @@ def fmt(value, depth: int = 0, key: str = None) -> str:
         if all(_is_transition(item) for item in value):
             parts = [f'{inner}{_inline(item)}' for item in value]
             return '[\n' + ',\n'.join(parts) + '\n' + pad + ']'
-        # values array → single line if the array content itself is ≤ 80 chars
+        # values array → single line if fits, else pack multiple items per line
         if key == 'values':
             single = json.dumps(value, ensure_ascii=False)
             if len(single) <= 80:
                 return single
+            # Fill-pack: accumulate items onto a line until it would exceed 80 chars
+            lines = []
+            current = []
+            for item in value:
+                current.append(json.dumps(item, ensure_ascii=False))
+                line_content = ', '.join(current)
+                if len(inner) + len(line_content) > 80 and len(current) > 1:
+                    current.pop()
+                    lines.append(inner + ', '.join(current))
+                    current = [json.dumps(item, ensure_ascii=False)]
+            if current:
+                lines.append(inner + ', '.join(current))
+            return '[\n' + ',\n'.join(lines) + '\n' + pad + ']'
         # Normal list — one item per line
         parts = [f'{inner}{fmt(item, depth + 1)}' for item in value]
         return '[\n' + ',\n'.join(parts) + '\n' + pad + ']'
