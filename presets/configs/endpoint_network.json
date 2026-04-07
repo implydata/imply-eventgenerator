@@ -10,36 +10,36 @@
       "name": "inbound_log",
       "_comment": "Inbound traffic: internet IP is src, local host IP is dest",
       "dimensions": [
-        {"type": "clock", "name": "time"},
-        {"type": "string:static", "name": "direction", "value": "RECEIVE"},
-        {"type": "variable", "name": "dest", "variable": "var_local_ip"},
-        {"type": "variable", "name": "dest_port", "variable": "var_dest_port"},
-        {"type": "variable", "name": "size", "variable": "var_size"},
-        {"type": "variable", "name": "src", "variable": "var_internet_ip"},
-        {"type": "variable", "name": "src_port", "variable": "var_src_port"},
-        {"type": "variable", "name": "transport", "variable": "var_transport"},
-        {"type": "variable", "name": "win_action", "variable": "var_win_action"}
+        {"name": "time", "type": "clock"},
+        {"name": "direction", "type": "string:static", "value": "RECEIVE"},
+        {"name": "dest", "type": "variable", "variable": "var_local_ip"},
+        {"name": "dest_port", "type": "variable", "variable": "var_dest_port"},
+        {"name": "size", "type": "variable", "variable": "var_size"},
+        {"name": "src", "type": "variable", "variable": "var_internet_ip"},
+        {"name": "src_port", "type": "variable", "variable": "var_src_port"},
+        {"name": "transport", "type": "variable", "variable": "var_transport"},
+        {"name": "win_action", "type": "variable", "variable": "var_win_action"}
       ]
     },
     {
       "name": "outbound_log",
       "_comment": "Outbound traffic: local host IP is src, internet IP is dest",
       "dimensions": [
-        {"type": "clock", "name": "time"},
-        {"type": "string:static", "name": "direction", "value": "SEND"},
-        {"type": "variable", "name": "dest", "variable": "var_internet_ip"},
-        {"type": "variable", "name": "dest_port", "variable": "var_dest_port"},
-        {"type": "variable", "name": "size", "variable": "var_size"},
-        {"type": "variable", "name": "src", "variable": "var_local_ip"},
-        {"type": "variable", "name": "src_port", "variable": "var_src_port"},
-        {"type": "variable", "name": "transport", "variable": "var_transport"},
-        {"type": "variable", "name": "win_action", "variable": "var_win_action"}
+        {"name": "time", "type": "clock"},
+        {"name": "direction", "type": "string:static", "value": "SEND"},
+        {"name": "dest", "type": "variable", "variable": "var_internet_ip"},
+        {"name": "dest_port", "type": "variable", "variable": "var_dest_port"},
+        {"name": "size", "type": "variable", "variable": "var_size"},
+        {"name": "src", "type": "variable", "variable": "var_local_ip"},
+        {"name": "src_port", "type": "variable", "variable": "var_src_port"},
+        {"name": "transport", "type": "variable", "variable": "var_transport"},
+        {"name": "win_action", "type": "variable", "variable": "var_win_action"}
       ]
     }
   ],
   "states": [
     {
-      "type": "event:start:timer", "name": "connection_start",
+      "name": "connection_start", "type": "event:start:timer",
       "cardinality_distribution": {
         "type": "exponential",
         "mean": 0.3,
@@ -48,10 +48,10 @@
       "next": "setup_connection"
     },
     {
-      "type": "activity", "name": "setup_connection",
+      "name": "setup_connection", "type": "activity",
       "variables": [
         {
-          "type": "ipaddress", "name": "var_local_ip",
+          "name": "var_local_ip", "type": "ipaddress",
           "cardinality": 5,
           "distribution": {
             "type": "uniform",
@@ -65,7 +65,7 @@
       "next": "route_initial"
     },
     {
-      "type": "gateway:exclusive", "name": "route_initial",
+      "name": "route_initial", "type": "gateway:exclusive",
       "transitions": [
         {"next": "emit_inbound_https", "probability": 0.255},
         {"next": "emit_inbound_https_drop", "probability": 0.045},
@@ -82,14 +82,13 @@
       ]
     },
     {
-      "type": "activity", "name": "emit_inbound_https",
+      "name": "emit_inbound_https", "type": "activity",
       "_comment": "HTTPS (443) inbound — ALLOW (85% of HTTPS traffic).",
-      "emitter": "inbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_transport", "value": "TCP"},
-        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
+        {"name": "var_transport", "type": "string:static", "value": "TCP"},
+        {"name": "var_win_action", "type": "string:static", "value": "ALLOW"},
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -97,7 +96,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -106,7 +105,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -115,7 +114,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 500,
           "distribution": {
             "type": "uniform",
@@ -125,17 +124,17 @@
           "cardinality_distribution": {"type": "exponential", "mean": 100}
         }
       ],
+      "emitter": "inbound_log",
       "next": "connection_end"
     },
     {
-      "type": "activity", "name": "emit_inbound_https_drop",
+      "name": "emit_inbound_https_drop", "type": "activity",
       "_comment": "HTTPS (443) inbound — DROP (15% of HTTPS traffic).",
-      "emitter": "inbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_transport", "value": "TCP"},
-        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
+        {"name": "var_transport", "type": "string:static", "value": "TCP"},
+        {"name": "var_win_action", "type": "string:static", "value": "DROP"},
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -143,7 +142,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -152,7 +151,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -161,7 +160,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 500,
           "distribution": {
             "type": "uniform",
@@ -171,17 +170,17 @@
           "cardinality_distribution": {"type": "exponential", "mean": 100}
         }
       ],
+      "emitter": "inbound_log",
       "next": "connection_end"
     },
     {
-      "type": "activity", "name": "emit_inbound_http",
+      "name": "emit_inbound_http", "type": "activity",
       "_comment": "HTTP (80) inbound — ALLOW (80% of HTTP traffic).",
-      "emitter": "inbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_transport", "value": "TCP"},
-        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
+        {"name": "var_transport", "type": "string:static", "value": "TCP"},
+        {"name": "var_win_action", "type": "string:static", "value": "ALLOW"},
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -189,7 +188,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -198,7 +197,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -207,7 +206,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 500,
           "distribution": {
             "type": "uniform",
@@ -217,17 +216,17 @@
           "cardinality_distribution": {"type": "exponential", "mean": 100}
         }
       ],
+      "emitter": "inbound_log",
       "next": "connection_end"
     },
     {
-      "type": "activity", "name": "emit_inbound_http_drop",
+      "name": "emit_inbound_http_drop", "type": "activity",
       "_comment": "HTTP (80) inbound — DROP (20% of HTTP traffic).",
-      "emitter": "inbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_transport", "value": "TCP"},
-        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
+        {"name": "var_transport", "type": "string:static", "value": "TCP"},
+        {"name": "var_win_action", "type": "string:static", "value": "DROP"},
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -235,7 +234,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -244,7 +243,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -253,7 +252,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 500,
           "distribution": {
             "type": "uniform",
@@ -263,17 +262,17 @@
           "cardinality_distribution": {"type": "exponential", "mean": 100}
         }
       ],
+      "emitter": "inbound_log",
       "next": "connection_end"
     },
     {
-      "type": "activity", "name": "emit_inbound_rdp",
+      "name": "emit_inbound_rdp", "type": "activity",
       "_comment": "RDP (3389) inbound — ALLOW. Authorised remote desktop (25% of RDP traffic).",
-      "emitter": "inbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_transport", "value": "TCP"},
-        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
+        {"name": "var_transport", "type": "string:static", "value": "TCP"},
+        {"name": "var_win_action", "type": "string:static", "value": "ALLOW"},
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -281,7 +280,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -290,7 +289,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -299,7 +298,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 20,
           "distribution": {
             "type": "uniform",
@@ -309,17 +308,17 @@
           "cardinality_distribution": {"type": "exponential", "mean": 5}
         }
       ],
+      "emitter": "inbound_log",
       "next": "connection_end"
     },
     {
-      "type": "activity", "name": "emit_inbound_rdp_drop",
+      "name": "emit_inbound_rdp_drop", "type": "activity",
       "_comment": "RDP (3389) inbound — DROP. Brute-force/scanning from internet (75% of RDP traffic).",
-      "emitter": "inbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_transport", "value": "TCP"},
-        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
+        {"name": "var_transport", "type": "string:static", "value": "TCP"},
+        {"name": "var_win_action", "type": "string:static", "value": "DROP"},
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -327,7 +326,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -336,7 +335,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -345,7 +344,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 300,
           "distribution": {
             "type": "uniform",
@@ -355,17 +354,17 @@
           "cardinality_distribution": {"type": "exponential", "mean": 30}
         }
       ],
+      "emitter": "inbound_log",
       "next": "connection_end"
     },
     {
-      "type": "activity", "name": "emit_inbound_smb_drop",
+      "name": "emit_inbound_smb_drop", "type": "activity",
       "_comment": "SMB (445) inbound — DROP. Should never be open to the internet; all attempts blocked.",
-      "emitter": "inbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_transport", "value": "TCP"},
-        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
+        {"name": "var_transport", "type": "string:static", "value": "TCP"},
+        {"name": "var_win_action", "type": "string:static", "value": "DROP"},
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -373,7 +372,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -382,7 +381,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -391,7 +390,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 200,
           "distribution": {
             "type": "uniform",
@@ -401,17 +400,17 @@
           "cardinality_distribution": {"type": "exponential", "mean": 20}
         }
       ],
+      "emitter": "inbound_log",
       "next": "connection_end"
     },
     {
-      "type": "activity", "name": "emit_inbound_smtp",
+      "name": "emit_inbound_smtp", "type": "activity",
       "_comment": "SMTP (25) inbound — ALLOW. Legitimate email delivery (60% of SMTP traffic).",
-      "emitter": "inbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_transport", "value": "TCP"},
-        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
+        {"name": "var_transport", "type": "string:static", "value": "TCP"},
+        {"name": "var_win_action", "type": "string:static", "value": "ALLOW"},
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -419,7 +418,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -428,7 +427,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -437,7 +436,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 400,
           "distribution": {
             "type": "uniform",
@@ -447,17 +446,17 @@
           "cardinality_distribution": {"type": "exponential", "mean": 80}
         }
       ],
+      "emitter": "inbound_log",
       "next": "connection_end"
     },
     {
-      "type": "activity", "name": "emit_inbound_smtp_drop",
+      "name": "emit_inbound_smtp_drop", "type": "activity",
       "_comment": "SMTP (25) inbound — DROP. Spam/relay attempts blocked by policy (40% of SMTP traffic).",
-      "emitter": "inbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_transport", "value": "TCP"},
-        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
+        {"name": "var_transport", "type": "string:static", "value": "TCP"},
+        {"name": "var_win_action", "type": "string:static", "value": "DROP"},
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -465,7 +464,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -474,7 +473,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -483,7 +482,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 400,
           "distribution": {
             "type": "uniform",
@@ -493,21 +492,21 @@
           "cardinality_distribution": {"type": "exponential", "mean": 80}
         }
       ],
+      "emitter": "inbound_log",
       "next": "connection_end"
     },
     {
-      "type": "activity", "name": "emit_inbound_scan",
+      "name": "emit_inbound_scan", "type": "activity",
       "_comment": "Port scan — random destination port, always DROPped. 3% of traffic.",
-      "emitter": "inbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
+        {"name": "var_win_action", "type": "string:static", "value": "DROP"},
         {
-          "type": "enum", "name": "var_transport",
+          "name": "var_transport", "type": "enum",
           "values": ["TCP", "UDP"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
         },
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -516,7 +515,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -525,7 +524,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -534,7 +533,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 100,
           "distribution": {
             "type": "uniform",
@@ -544,17 +543,17 @@
           "cardinality_distribution": {"type": "exponential", "mean": 10}
         }
       ],
+      "emitter": "inbound_log",
       "next": "connection_end"
     },
     {
-      "type": "activity", "name": "emit_outbound_dns",
+      "name": "emit_outbound_dns", "type": "activity",
       "_comment": "DNS (53) outbound — ALLOW. Host resolving names.",
-      "emitter": "outbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_transport", "value": "UDP"},
-        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
+        {"name": "var_transport", "type": "string:static", "value": "UDP"},
+        {"name": "var_win_action", "type": "string:static", "value": "ALLOW"},
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -562,7 +561,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -571,7 +570,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -580,7 +579,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 4,
           "distribution": {
             "type": "uniform",
@@ -591,17 +590,17 @@
           "_comment": "Small pool of DNS resolvers"
         }
       ],
+      "emitter": "outbound_log",
       "next": "connection_end"
     },
     {
-      "type": "activity", "name": "emit_outbound_update",
+      "name": "emit_outbound_update", "type": "activity",
       "_comment": "HTTPS (443) outbound — ALLOW. Windows Update, telemetry, cloud agent traffic.",
-      "emitter": "outbound_log",
       "variables": [
-        {"type": "string:static", "name": "var_transport", "value": "TCP"},
-        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
+        {"name": "var_transport", "type": "string:static", "value": "TCP"},
+        {"name": "var_win_action", "type": "string:static", "value": "ALLOW"},
         {
-          "type": "int", "name": "var_dest_port",
+          "name": "var_dest_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -609,7 +608,7 @@
           }
         },
         {
-          "type": "int", "name": "var_size",
+          "name": "var_size", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -618,7 +617,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -627,7 +626,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_internet_ip",
+          "name": "var_internet_ip", "type": "ipaddress",
           "cardinality": 20,
           "distribution": {
             "type": "uniform",
@@ -638,8 +637,9 @@
           "_comment": "Microsoft CDN and update endpoints"
         }
       ],
+      "emitter": "outbound_log",
       "next": "connection_end"
     },
-    {"type": "event:end", "name": "connection_end"}
+    {"name": "connection_end", "type": "event:end"}
   ]
 }

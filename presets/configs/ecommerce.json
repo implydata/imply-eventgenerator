@@ -27,31 +27,31 @@
     {
       "name": "web_log",
       "dimensions": [
-        {"type": "clock", "name": "time"},
-        {"type": "string:static", "name": "cookie", "value": "-"},
-        {"type": "string:static", "name": "ident", "value": "-"},
-        {"type": "variable", "name": "client", "variable": "var_client"},
-        {"type": "variable", "name": "http_content_type", "variable": "var_http_content_type"},
-        {"type": "variable", "name": "http_method", "variable": "var_http_method"},
-        {"type": "variable", "name": "http_referrer", "variable": "var_http_referrer"},
-        {"type": "variable", "name": "http_user_agent", "variable": "var_http_user_agent"},
-        {"type": "variable", "name": "http_version", "variable": "var_http_version"},
-        {"type": "variable", "name": "status", "variable": "var_status"},
-        {"type": "variable", "name": "uri_path", "variable": "var_uri_path"},
-        {"type": "variable", "name": "uri_query", "variable": "var_uri_query"},
-        {"type": "variable", "name": "user", "variable": "var_user"},
+        {"name": "time", "type": "clock"},
+        {"name": "cookie", "type": "string:static", "value": "-"},
+        {"name": "ident", "type": "string:static", "value": "-"},
+        {"name": "client", "type": "variable", "variable": "var_client"},
+        {"name": "http_content_type", "type": "variable", "variable": "var_http_content_type"},
+        {"name": "http_method", "type": "variable", "variable": "var_http_method"},
+        {"name": "http_referrer", "type": "variable", "variable": "var_http_referrer"},
+        {"name": "http_user_agent", "type": "variable", "variable": "var_http_user_agent"},
+        {"name": "http_version", "type": "variable", "variable": "var_http_version"},
+        {"name": "status", "type": "variable", "variable": "var_status"},
+        {"name": "uri_path", "type": "variable", "variable": "var_uri_path"},
+        {"name": "uri_query", "type": "variable", "variable": "var_uri_query"},
+        {"name": "user", "type": "variable", "variable": "var_user"},
         {
-          "type": "enum", "name": "dest_port",
+          "name": "dest_port", "type": "enum",
           "values": ["443", "80", "8080"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "type": "enum", "name": "server",
+          "name": "server", "type": "enum",
           "values": ["10.0.1.15", "10.0.1.16", "10.0.1.17", "10.0.1.18", "10.0.1.19"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
         },
         {
-          "type": "int", "name": "bytes_in",
+          "name": "bytes_in", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -60,7 +60,7 @@
           }
         },
         {
-          "type": "int", "name": "bytes_out",
+          "name": "bytes_out", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -69,7 +69,7 @@
           }
         },
         {
-          "type": "int", "name": "response_time_microseconds",
+          "name": "response_time_microseconds", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "exponential",
@@ -81,12 +81,12 @@
   ],
   "states": [
     {
-      "type": "event:start:timer", "name": "session_start",
+      "name": "session_start", "type": "event:start:timer",
       "cardinality_distribution": {"type": "exponential", "mean": 1.0},
       "next": "route_global_init"
     },
     {
-      "type": "gateway:exclusive", "name": "route_global_init",
+      "name": "route_global_init", "type": "gateway:exclusive",
       "transitions": [
         {"next": "setup_initial_human", "probability": 0.997},
         {"next": "setup_hacker", "probability": 0.001},
@@ -94,10 +94,10 @@
       ]
     },
     {
-      "type": "activity", "name": "setup_initial_human",
+      "name": "setup_initial_human", "type": "activity",
       "variables": [
         {
-          "type": "enum", "name": "var_http_referrer",
+          "name": "var_http_referrer", "type": "enum",
           "values": [
             "https://www.google.com/", "https://www.bing.com/",
             "https://search.yahoo.com/", "https://duckduckgo.com/",
@@ -116,7 +116,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
         },
         {
-          "type": "enum", "name": "var_http_user_agent",
+          "name": "var_http_user_agent", "type": "enum",
           "values": [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -147,12 +147,12 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
         },
         {
-          "type": "enum", "name": "var_http_version",
+          "name": "var_http_version", "type": "enum",
           "values": ["HTTP/1.0", "HTTP/1.1", "HTTP/2"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "type": "enum", "name": "var_user",
+          "name": "var_user", "type": "enum",
           "values": [
             "natalie38", "herbertdixon", "-", "gusosborne", "sallyosborne",
             "willowlim", "mialim", "miltonle", "bambismith", "rocketsmith",
@@ -171,7 +171,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 58}
         },
         {
-          "type": "ipaddress", "name": "var_client",
+          "name": "var_client", "type": "ipaddress",
           "cardinality": 3000,
           "distribution": {
             "type": "uniform",
@@ -184,33 +184,33 @@
       "next": "emit_initial_human"
     },
     {
-      "type": "activity", "name": "emit_initial_human",
-      "emitter": "web_log",
+      "name": "emit_initial_human", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_http_content_type", "value": "-"},
-        {"type": "string:static", "name": "var_http_method", "value": "GET"},
-        {"type": "string:static", "name": "var_uri_path", "value": "/"},
-        {"type": "string:static", "name": "var_uri_query", "value": ""},
-        {"type": "int:static", "name": "var_status", "value": 200}
+        {"name": "var_http_content_type", "type": "string:static", "value": "-"},
+        {"name": "var_http_method", "type": "string:static", "value": "GET"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/"},
+        {"name": "var_uri_query", "type": "string:static", "value": ""},
+        {"name": "var_status", "type": "int:static", "value": 200}
       ],
+      "emitter": "web_log",
       "next": "pause_browse_products"
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_browse_products",
+      "name": "pause_browse_products", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 30.0, "max": 120.0},
       "next": "emit_browse_products"
     },
     {
-      "type": "activity", "name": "emit_browse_products",
-      "emitter": "web_log",
+      "name": "emit_browse_products", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_http_referrer", "value": "-"},
-        {"type": "string:static", "name": "var_uri_path", "value": "/products"}
+        {"name": "var_http_referrer", "type": "string:static", "value": "-"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/products"}
       ],
+      "emitter": "web_log",
       "next": "route_browse_products"
     },
     {
-      "type": "gateway:exclusive", "name": "route_browse_products",
+      "name": "route_browse_products", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_browse_cat_electronics", "probability": 0.3},
         {"next": "pause_browse_cat_clothing", "probability": 0.25},
@@ -222,16 +222,15 @@
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_browse_cat_electronics",
+      "name": "pause_browse_cat_electronics", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 90.0, "max": 300.0},
       "next": "emit_browse_cat_electronics"
     },
     {
-      "type": "activity", "name": "emit_browse_cat_electronics",
-      "emitter": "web_log",
+      "name": "emit_browse_cat_electronics", "type": "activity",
       "variables": [
         {
-          "type": "enum", "name": "var_uri_path",
+          "name": "var_uri_path", "type": "enum",
           "values": [
             "/categories/electronics/laptop",
             "/categories/electronics/smartphone",
@@ -247,10 +246,11 @@
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
         }
       ],
+      "emitter": "web_log",
       "next": "route_browse_cat_electronics"
     },
     {
-      "type": "gateway:exclusive", "name": "route_browse_cat_electronics",
+      "name": "route_browse_cat_electronics", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_add_to_cart", "probability": 0.25},
         {"next": "pause_browse_cat_electronics", "probability": 0.4},
@@ -259,16 +259,15 @@
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_browse_cat_clothing",
+      "name": "pause_browse_cat_clothing", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 60.0, "max": 240.0},
       "next": "emit_browse_cat_clothing"
     },
     {
-      "type": "activity", "name": "emit_browse_cat_clothing",
-      "emitter": "web_log",
+      "name": "emit_browse_cat_clothing", "type": "activity",
       "variables": [
         {
-          "type": "enum", "name": "var_uri_path",
+          "name": "var_uri_path", "type": "enum",
           "values": [
             "/categories/clothing/mens-jacket",
             "/categories/clothing/womens-dress",
@@ -284,10 +283,11 @@
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
         }
       ],
+      "emitter": "web_log",
       "next": "route_browse_cat_clothing"
     },
     {
-      "type": "gateway:exclusive", "name": "route_browse_cat_clothing",
+      "name": "route_browse_cat_clothing", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_add_to_cart", "probability": 0.25},
         {"next": "pause_browse_cat_clothing", "probability": 0.4},
@@ -296,16 +296,15 @@
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_browse_cat_home_garden",
+      "name": "pause_browse_cat_home_garden", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 60.0, "max": 240.0},
       "next": "emit_browse_cat_home_garden"
     },
     {
-      "type": "activity", "name": "emit_browse_cat_home_garden",
-      "emitter": "web_log",
+      "name": "emit_browse_cat_home_garden", "type": "activity",
       "variables": [
         {
-          "type": "enum", "name": "var_uri_path",
+          "name": "var_uri_path", "type": "enum",
           "values": [
             "/categories/home-garden/coffee-maker",
             "/categories/home-garden/air-purifier",
@@ -321,10 +320,11 @@
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
         }
       ],
+      "emitter": "web_log",
       "next": "route_browse_cat_home_garden"
     },
     {
-      "type": "gateway:exclusive", "name": "route_browse_cat_home_garden",
+      "name": "route_browse_cat_home_garden", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_add_to_cart", "probability": 0.25},
         {"next": "pause_browse_cat_home_garden", "probability": 0.4},
@@ -333,16 +333,15 @@
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_browse_cat_kitchen",
+      "name": "pause_browse_cat_kitchen", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 60.0, "max": 240.0},
       "next": "emit_browse_cat_kitchen"
     },
     {
-      "type": "activity", "name": "emit_browse_cat_kitchen",
-      "emitter": "web_log",
+      "name": "emit_browse_cat_kitchen", "type": "activity",
       "variables": [
         {
-          "type": "enum", "name": "var_uri_path",
+          "name": "var_uri_path", "type": "enum",
           "values": [
             "/categories/kitchen/chef-knife",
             "/categories/kitchen/cutting-board",
@@ -356,10 +355,11 @@
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
         }
       ],
+      "emitter": "web_log",
       "next": "route_browse_cat_kitchen"
     },
     {
-      "type": "gateway:exclusive", "name": "route_browse_cat_kitchen",
+      "name": "route_browse_cat_kitchen", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_add_to_cart", "probability": 0.25},
         {"next": "pause_browse_cat_kitchen", "probability": 0.4},
@@ -368,16 +368,15 @@
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_browse_cat_sports",
+      "name": "pause_browse_cat_sports", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 60.0, "max": 180.0},
       "next": "emit_browse_cat_sports"
     },
     {
-      "type": "activity", "name": "emit_browse_cat_sports",
-      "emitter": "web_log",
+      "name": "emit_browse_cat_sports", "type": "activity",
       "variables": [
         {
-          "type": "enum", "name": "var_uri_path",
+          "name": "var_uri_path", "type": "enum",
           "values": [
             "/categories/sports/yoga-mat", "/categories/sports/resistance-bands",
             "/categories/sports/dumbbells", "/categories/sports/water-bottle",
@@ -390,10 +389,11 @@
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
         }
       ],
+      "emitter": "web_log",
       "next": "route_browse_cat_sports"
     },
     {
-      "type": "gateway:exclusive", "name": "route_browse_cat_sports",
+      "name": "route_browse_cat_sports", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_add_to_cart", "probability": 0.25},
         {"next": "pause_browse_cat_sports", "probability": 0.4},
@@ -402,16 +402,15 @@
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_browse_cat_beauty",
+      "name": "pause_browse_cat_beauty", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 60.0, "max": 180.0},
       "next": "emit_browse_cat_beauty"
     },
     {
-      "type": "activity", "name": "emit_browse_cat_beauty",
-      "emitter": "web_log",
+      "name": "emit_browse_cat_beauty", "type": "activity",
       "variables": [
         {
-          "type": "enum", "name": "var_uri_path",
+          "name": "var_uri_path", "type": "enum",
           "values": [
             "/categories/beauty/face-moisturiser",
             "/categories/beauty/hair-dryer", "/categories/beauty/nail-polish",
@@ -423,10 +422,11 @@
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
         }
       ],
+      "emitter": "web_log",
       "next": "route_browse_cat_beauty"
     },
     {
-      "type": "gateway:exclusive", "name": "route_browse_cat_beauty",
+      "name": "route_browse_cat_beauty", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_add_to_cart", "probability": 0.25},
         {"next": "pause_browse_cat_beauty", "probability": 0.4},
@@ -435,20 +435,20 @@
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_add_to_cart",
+      "name": "pause_add_to_cart", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 10.0, "max": 30.0},
       "next": "emit_add_to_cart"
     },
     {
-      "type": "activity", "name": "emit_add_to_cart",
-      "emitter": "web_log",
+      "name": "emit_add_to_cart", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_uri_path", "value": "/cart"}
+        {"name": "var_uri_path", "type": "string:static", "value": "/cart"}
       ],
+      "emitter": "web_log",
       "next": "route_add_to_cart"
     },
     {
-      "type": "gateway:exclusive", "name": "route_add_to_cart",
+      "name": "route_add_to_cart", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_checkout", "probability": 0.35},
         {"next": "pause_browse_products", "probability": 0.5},
@@ -456,22 +456,22 @@
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_checkout",
+      "name": "pause_checkout", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 120.0, "max": 300.0},
       "next": "emit_checkout"
     },
     {
-      "type": "activity", "name": "emit_checkout",
-      "emitter": "web_log",
+      "name": "emit_checkout", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_http_content_type", "value": "application/x-www-form-urlencoded"},
-        {"type": "string:static", "name": "var_http_method", "value": "POST"},
-        {"type": "string:static", "name": "var_uri_path", "value": "/checkout"}
+        {"name": "var_http_content_type", "type": "string:static", "value": "application/x-www-form-urlencoded"},
+        {"name": "var_http_method", "type": "string:static", "value": "POST"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/checkout"}
       ],
+      "emitter": "web_log",
       "next": "route_checkout"
     },
     {
-      "type": "gateway:exclusive", "name": "route_checkout",
+      "name": "route_checkout", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_thank_you", "probability": 0.65},
         {"next": "pause_try_again", "probability": 0.1},
@@ -479,53 +479,52 @@
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_thank_you",
+      "name": "pause_thank_you", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 5.0, "max": 15.0},
       "next": "emit_thank_you"
     },
     {
-      "type": "activity", "name": "emit_thank_you",
-      "emitter": "web_log",
+      "name": "emit_thank_you", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_http_content_type", "value": "-"},
-        {"type": "string:static", "name": "var_http_method", "value": "GET"},
-        {"type": "string:static", "name": "var_uri_path", "value": "/thank-you"}
+        {"name": "var_http_content_type", "type": "string:static", "value": "-"},
+        {"name": "var_http_method", "type": "string:static", "value": "GET"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/thank-you"}
       ],
+      "emitter": "web_log",
       "next": "session_end"
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_try_again",
+      "name": "pause_try_again", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 30.0, "max": 90.0},
       "next": "emit_try_again"
     },
     {
-      "type": "activity", "name": "emit_try_again",
-      "emitter": "web_log",
+      "name": "emit_try_again", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_uri_path", "value": "/try-again"},
-        {"type": "int:static", "name": "var_status", "value": 400}
+        {"name": "var_uri_path", "type": "string:static", "value": "/try-again"},
+        {"name": "var_status", "type": "int:static", "value": 400}
       ],
+      "emitter": "web_log",
       "next": "route_try_again"
     },
     {
-      "type": "gateway:exclusive", "name": "route_try_again",
+      "name": "route_try_again", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_checkout", "probability": 0.9},
         {"next": "session_end", "probability": 0.1}
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_not_found",
+      "name": "pause_not_found", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 5.0, "max": 15.0},
       "next": "emit_not_found"
     },
     {
-      "type": "activity", "name": "emit_not_found",
-      "emitter": "web_log",
+      "name": "emit_not_found", "type": "activity",
       "variables": [
-        {"type": "int:static", "name": "var_status", "value": 404},
+        {"name": "var_status", "type": "int:static", "value": 404},
         {
-          "type": "enum", "name": "var_uri_path",
+          "name": "var_uri_path", "type": "enum",
           "values": [
             "/categories/furniture/modern-sofa",
             "/categories/automotive/car-vacuum", "/categories/pets/dog-bed",
@@ -537,15 +536,16 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 9}
         }
       ],
+      "emitter": "web_log",
       "next": "pause_browse_products"
     },
     {
-      "type": "activity", "name": "setup_hacker",
+      "name": "setup_hacker", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_http_version", "value": "HTTP/1.1"},
-        {"type": "string:static", "name": "var_user", "value": "-"},
+        {"name": "var_http_version", "type": "string:static", "value": "HTTP/1.1"},
+        {"name": "var_user", "type": "string:static", "value": "-"},
         {
-          "type": "enum", "name": "var_http_user_agent",
+          "name": "var_http_user_agent", "type": "enum",
           "values": [
             "sqlmap/1.7.8#stable (https://sqlmap.org)", "Nikto/2.1.6",
             "masscan/1.3 (https://github.com/robertdavidgraham/masscan)",
@@ -555,7 +555,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
         },
         {
-          "type": "ipaddress", "name": "var_client",
+          "name": "var_client", "type": "ipaddress",
           "cardinality": 3,
           "distribution": {
             "type": "uniform",
@@ -568,32 +568,31 @@
       "next": "pause_hacker"
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_hacker",
+      "name": "pause_hacker", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "exponential", "mean": 0.01},
       "next": "emit_hacker"
     },
     {
-      "type": "activity", "name": "emit_hacker",
-      "emitter": "web_log",
+      "name": "emit_hacker", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_http_referrer", "value": "-"},
+        {"name": "var_http_referrer", "type": "string:static", "value": "-"},
         {
-          "type": "enum", "name": "var_http_content_type",
+          "name": "var_http_content_type", "type": "enum",
           "values": ["-", "application/json", "application/x-www-form-urlencoded"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "type": "enum", "name": "var_http_method",
+          "name": "var_http_method", "type": "enum",
           "values": ["GET", "POST", "PUT", "DELETE"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "type": "enum", "name": "var_status",
+          "name": "var_status", "type": "enum",
           "values": [403, 404, 500, 401, 400, 502, 503],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 6}
         },
         {
-          "type": "enum", "name": "var_uri_path",
+          "name": "var_uri_path", "type": "enum",
           "values": [
             "/admin", "/login", "/etc/passwd", "/wp-admin", "/sql",
             "/../../../../etc/shadow", "/.git/config", "/.env", "/.htaccess",
@@ -603,7 +602,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 16}
         },
         {
-          "type": "enum", "name": "var_uri_query",
+          "name": "var_uri_query", "type": "enum",
           "values": [
             "", "?user=admin'--", "?query=SELECT%20*%20FROM%20users",
             "?debug=true", "?cmd=whoami"
@@ -611,22 +610,23 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
         }
       ],
+      "emitter": "web_log",
       "next": "route_hacker"
     },
     {
-      "type": "gateway:exclusive", "name": "route_hacker",
+      "name": "route_hacker", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_hacker", "probability": 0.99},
         {"next": "session_end", "probability": 0.01}
       ]
     },
     {
-      "type": "activity", "name": "setup_bot",
+      "name": "setup_bot", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_http_version", "value": "HTTP/1.1"},
-        {"type": "string:static", "name": "var_user", "value": "-"},
+        {"name": "var_http_version", "type": "string:static", "value": "HTTP/1.1"},
+        {"name": "var_user", "type": "string:static", "value": "-"},
         {
-          "type": "enum", "name": "var_http_user_agent",
+          "name": "var_http_user_agent", "type": "enum",
           "values": [
             "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
             "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
@@ -638,7 +638,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 8}
         },
         {
-          "type": "ipaddress", "name": "var_client",
+          "name": "var_client", "type": "ipaddress",
           "cardinality": 5,
           "distribution": {
             "type": "uniform",
@@ -651,26 +651,25 @@
       "next": "pause_bot"
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_bot",
+      "name": "pause_bot", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "exponential", "mean": 1.0},
       "next": "emit_bot"
     },
     {
-      "type": "activity", "name": "emit_bot",
-      "emitter": "web_log",
+      "name": "emit_bot", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_http_content_type", "value": "-"},
-        {"type": "string:static", "name": "var_http_method", "value": "GET"},
-        {"type": "string:static", "name": "var_http_referrer", "value": "-"},
-        {"type": "string:static", "name": "var_uri_query", "value": ""},
-        {"type": "string:static", "name": "var_user", "value": "-"},
+        {"name": "var_http_content_type", "type": "string:static", "value": "-"},
+        {"name": "var_http_method", "type": "string:static", "value": "GET"},
+        {"name": "var_http_referrer", "type": "string:static", "value": "-"},
+        {"name": "var_uri_query", "type": "string:static", "value": ""},
+        {"name": "var_user", "type": "string:static", "value": "-"},
         {
-          "type": "enum", "name": "var_status",
+          "name": "var_status", "type": "enum",
           "values": [200, 200, 200, 200, 200, 200, 301, 301, 404],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 8}
         },
         {
-          "type": "enum", "name": "var_uri_path",
+          "name": "var_uri_path", "type": "enum",
           "values": [
             "/robots.txt", "/sitemap.xml", "/products",
             "/categories/electronics", "/categories/clothing",
@@ -686,15 +685,16 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 14}
         }
       ],
+      "emitter": "web_log",
       "next": "route_bot"
     },
     {
-      "type": "gateway:exclusive", "name": "route_bot",
+      "name": "route_bot", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_bot", "probability": 0.98},
         {"next": "session_end", "probability": 0.02}
       ]
     },
-    {"type": "event:end", "name": "session_end"}
+    {"name": "session_end", "type": "event:end"}
   ]
 }

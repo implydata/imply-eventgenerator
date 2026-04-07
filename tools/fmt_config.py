@@ -31,17 +31,17 @@ STATE_TYPES = {
 # Canonical field order for each state type.
 # Any fields not listed here are appended at the end in their original order.
 STATE_FIELD_ORDER = {
-    'event:start:timer':        ['type', 'name', '_comment', 'cardinality_distribution', 'next'],
-    'event:intermediate:timer': ['type', 'name', '_comment', 'cardinality_distribution', 'next'],
-    'activity':                 ['type', 'name', '_comment', 'emitter', 'variables', 'next'],
-    'activity:multi:seq':       ['type', 'name', '_comment', 'emitter', 'variables', 'next'],
-    'gateway:exclusive':        ['type', 'name', '_comment', 'transitions'],
-    'event:end':                ['type', 'name'],
+    'event:start:timer':        ['name', 'type', '_comment', 'cardinality_distribution', 'next'],
+    'event:intermediate:timer': ['name', 'type', '_comment', 'cardinality_distribution', 'next'],
+    'activity':                 ['name', 'type', '_comment', 'variables', 'emitter', 'next'],
+    'activity:multi:seq':       ['name', 'type', '_comment', 'variables', 'emitter', 'next'],
+    'gateway:exclusive':        ['name', 'type', '_comment', 'transitions'],
+    'event:end':                ['name', 'type'],
 }
 
 # Canonical field order for variable / dimension objects.
 VAR_FIELD_ORDER = [
-    'type', 'name', 'variable',
+    'name', 'type', 'variable',
     'values', 'chars',
     'cardinality', 'length_distribution', 'distribution', 'cardinality_distribution',
     '_comment',
@@ -160,7 +160,7 @@ def transform(obj):
 
     if _is_state(obj):
         stype = obj.get('type', '')
-        obj = _reorder(obj, STATE_FIELD_ORDER.get(stype, ['type', 'name', '_comment']))
+        obj = _reorder(obj, STATE_FIELD_ORDER.get(stype, ['name', 'type', '_comment']))
     elif _is_variable_or_dimension(obj):
         obj = _reorder(obj, VAR_FIELD_ORDER)
     elif _is_simple_distribution(obj):
@@ -228,21 +228,21 @@ def fmt(value, depth: int = 0, key: str = None) -> str:
         if _is_variable_or_dimension(value):
             if value.get('type') in ('variable', 'clock', 'string:static', 'int:static') or _fits_one_line(value):
                 return _inline(value)
-            # type and name share the opening line; remaining fields expand below
+            # name and type share the opening line; remaining fields expand below
             type_name = (
-                f'{inner}{json.dumps("type")}: {json.dumps(value["type"])}, '
-                f'{json.dumps("name")}: {json.dumps(value["name"])}'
+                f'{inner}{json.dumps("name")}: {json.dumps(value["name"])}, '
+                f'{json.dumps("type")}: {json.dumps(value["type"])}'
             )
             rest = [
                 f'{inner}{json.dumps(k)}: {fmt(v, depth + 1, key=k)}'
                 for k, v in value.items() if k not in ('type', 'name')
             ]
             return '{\n' + ',\n'.join([type_name] + rest) + '\n' + pad + '}'
-        # state objects → type and name share the opening line
+        # state objects → name and type share the opening line
         if _is_state(value) and 'name' in value:
             type_name = (
-                f'{inner}{json.dumps("type")}: {json.dumps(value["type"])}, '
-                f'{json.dumps("name")}: {json.dumps(value["name"])}'
+                f'{inner}{json.dumps("name")}: {json.dumps(value["name"])}, '
+                f'{json.dumps("type")}: {json.dumps(value["type"])}'
             )
             rest = [
                 f'{inner}{json.dumps(k)}: {fmt(v, depth + 1, key=k)}'

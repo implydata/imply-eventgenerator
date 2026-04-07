@@ -9,38 +9,38 @@
     {
       "name": "ssh_log",
       "dimensions": [
-        {"type": "clock", "name": "time"},
-        {"type": "variable", "name": "action", "variable": "var_action"},
-        {"type": "variable", "name": "hostname", "variable": "var_hostname"},
-        {"type": "variable", "name": "line_type", "variable": "var_line_type"},
-        {"type": "variable", "name": "pid", "variable": "var_pid"},
-        {"type": "variable", "name": "src_ip", "variable": "var_src_ip"},
-        {"type": "variable", "name": "src_port", "variable": "var_src_port"},
-        {"type": "variable", "name": "user", "variable": "var_user"}
+        {"name": "time", "type": "clock"},
+        {"name": "action", "type": "variable", "variable": "var_action"},
+        {"name": "hostname", "type": "variable", "variable": "var_hostname"},
+        {"name": "line_type", "type": "variable", "variable": "var_line_type"},
+        {"name": "pid", "type": "variable", "variable": "var_pid"},
+        {"name": "src_ip", "type": "variable", "variable": "var_src_ip"},
+        {"name": "src_port", "type": "variable", "variable": "var_src_port"},
+        {"name": "user", "type": "variable", "variable": "var_user"}
       ]
     }
   ],
   "states": [
     {
-      "type": "event:start:timer", "name": "session_start",
+      "name": "session_start", "type": "event:start:timer",
       "cardinality_distribution": {"type": "exponential", "mean": 10.0},
       "next": "setup_session"
     },
     {
-      "type": "activity", "name": "setup_session",
+      "name": "setup_session", "type": "activity",
       "variables": [
         {
-          "type": "enum", "name": "var_hostname",
+          "name": "var_hostname", "type": "enum",
           "values": ["web01", "web02", "db01", "app01", "bastion"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
         },
         {
-          "type": "enum", "name": "var_user",
+          "name": "var_user", "type": "enum",
           "values": ["root", "admin", "deploy", "ubuntu", "ec2-user", "git", "jenkins", "ansible"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
         },
         {
-          "type": "int", "name": "var_pid",
+          "name": "var_pid", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -49,7 +49,7 @@
           }
         },
         {
-          "type": "int", "name": "var_src_port",
+          "name": "var_src_port", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -58,7 +58,7 @@
           }
         },
         {
-          "type": "ipaddress", "name": "var_src_ip",
+          "name": "var_src_ip", "type": "ipaddress",
           "cardinality": 200,
           "distribution": {
             "type": "uniform",
@@ -71,28 +71,28 @@
       "next": "route_initial"
     },
     {
-      "type": "gateway:exclusive", "name": "route_initial",
+      "name": "route_initial", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_failed_password", "probability": 0.4},
         {"next": "pause_accepted", "probability": 0.6}
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_failed_password",
+      "name": "pause_failed_password", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "exponential", "mean": 3.0},
       "next": "emit_failed_password"
     },
     {
-      "type": "activity", "name": "emit_failed_password",
-      "emitter": "ssh_log",
+      "name": "emit_failed_password", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_action", "value": "Failed password"},
-        {"type": "string:static", "name": "var_line_type", "value": "auth"}
+        {"name": "var_action", "type": "string:static", "value": "Failed password"},
+        {"name": "var_line_type", "type": "string:static", "value": "auth"}
       ],
+      "emitter": "ssh_log",
       "next": "route_failed_password"
     },
     {
-      "type": "gateway:exclusive", "name": "route_failed_password",
+      "name": "route_failed_password", "type": "gateway:exclusive",
       "transitions": [
         {"next": "pause_failed_password", "probability": 0.35},
         {"next": "pause_accepted", "probability": 0.05},
@@ -100,47 +100,47 @@
       ]
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_accepted",
+      "name": "pause_accepted", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 0.1, "max": 1.0},
       "next": "emit_accepted"
     },
     {
-      "type": "activity", "name": "emit_accepted",
-      "emitter": "ssh_log",
+      "name": "emit_accepted", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_action", "value": "Accepted password"},
-        {"type": "string:static", "name": "var_line_type", "value": "auth"}
+        {"name": "var_action", "type": "string:static", "value": "Accepted password"},
+        {"name": "var_line_type", "type": "string:static", "value": "auth"}
       ],
+      "emitter": "ssh_log",
       "next": "pause_session_opened"
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_session_opened",
+      "name": "pause_session_opened", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "exponential", "mean": 600.0},
       "next": "emit_session_opened"
     },
     {
-      "type": "activity", "name": "emit_session_opened",
-      "emitter": "ssh_log",
+      "name": "emit_session_opened", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_action", "value": "session opened"},
-        {"type": "string:static", "name": "var_line_type", "value": "session"}
+        {"name": "var_action", "type": "string:static", "value": "session opened"},
+        {"name": "var_line_type", "type": "string:static", "value": "session"}
       ],
+      "emitter": "ssh_log",
       "next": "pause_session_closed"
     },
     {
-      "type": "event:intermediate:timer", "name": "pause_session_closed",
+      "name": "pause_session_closed", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 0.1, "max": 0.5},
       "next": "emit_session_closed"
     },
     {
-      "type": "activity", "name": "emit_session_closed",
-      "emitter": "ssh_log",
+      "name": "emit_session_closed", "type": "activity",
       "variables": [
-        {"type": "string:static", "name": "var_action", "value": "session closed"},
-        {"type": "string:static", "name": "var_line_type", "value": "session"}
+        {"name": "var_action", "type": "string:static", "value": "session closed"},
+        {"name": "var_line_type", "type": "string:static", "value": "session"}
       ],
+      "emitter": "ssh_log",
       "next": "session_end"
     },
-    {"type": "event:end", "name": "session_end"}
+    {"name": "session_end", "type": "event:end"}
   ]
 }
