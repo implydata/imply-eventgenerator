@@ -14,9 +14,9 @@ python generator.py -c presets/configs/ecommerce.json --template apache:access:j
 # CSV
 python generator.py -c presets/configs/ecommerce.json --template csv -n 1000 -s "2025-01-01T00:00"
 
-# With time-of-day variation
+# With time-of-day variation (schedule modulates the -m cap)
 python generator.py -c presets/configs/ecommerce.json --template access_combined \
-  -m 300 --schedule presets/schedules/ecommerce.json
+  -m 300 -s "2025-01-01T00:00" --schedule presets/schedules/ecommerce.json
 ```
 
 ## Templates
@@ -42,7 +42,7 @@ python generator.py -c presets/configs/ecommerce.json --template access_combined
 | `http_method` | HTTP method (`GET`, `POST`, etc.) |
 | `uri_path` | Request path |
 | `uri_query` | Query string (empty if none) |
-| `http_version` | Protocol version (`HTTP/1.1`, `HTTP/2.0`) |
+| `http_version` | Protocol version (`HTTP/1.0`, `HTTP/1.1`, `HTTP/2`) |
 | `status` | HTTP response status code |
 | `bytes_out` | Response bytes |
 | `bytes_in` | Request bytes |
