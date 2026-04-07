@@ -339,10 +339,6 @@ class DataDriver:
         # Remove type validation and default to generator
         self.type = 'generator'
 
-        # Set up the interarrival rate
-        rate = self.config['interarrival']
-        self.rate_delay = parse_distribution(rate, clock=self.global_clock)
-
         # Set up emitters list
         self.emitters = {}
         for emitter in self.config['emitters']:
@@ -358,6 +354,9 @@ class DataDriver:
         self.states = {}
         for state in state_desc:
             name = state['name']
+            state_type = state.get('type')
+            if state_type is None:
+                raise RuntimeError(f"State '{state.get('name', '?')}' is missing required field 'type'.")
             # Make emitter optional - handle both missing field and explicit null
             emitter_name = state.get('emitter')  # Returns None if not present
             if emitter_name is not None:
@@ -373,12 +372,36 @@ class DataDriver:
                 variables_on_entry = []
             else:
                 variables_on_entry = get_variables(state['variables_on_entry'], self.global_clock)
-            delay = parse_distribution(state['delay'], clock=self.global_clock)
-            transitions = Transition.parse_transitions(state['transitions'])
-            this_state = State(name, dimensions, delay, transitions, variables, variables_on_entry)
+            _zero = {'type': 'constant', 'value': 0}
+            if state_type == 'event:end':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = []
+            elif state_type == 'event:start:timer':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = [Transition(state['next'], 1.0)]
+            elif state_type == 'event:intermediate:timer':
+                delay = parse_distribution(state['delay'], clock=self.global_clock)
+                transitions = [Transition(state['next'], 1.0)]
+            elif state_type == 'activity':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = [Transition(state['next'], 1.0)]
+            elif state_type == 'gateway:exclusive':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = Transition.parse_transitions(state['transitions'])
+            else:
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = Transition.parse_transitions(state.get('transitions', []))
+            this_state = State(name, state_type, dimensions, delay, transitions, variables, variables_on_entry)
             self.states[name] = this_state
-            if self.initial_state is None:
+            if state_type == 'event:start:timer':
                 self.initial_state = this_state
+
+        if self.initial_state is None:
+            raise RuntimeError("Config has no event:start:timer state.")
+
+        # Interarrival rate comes from the event:start:timer state's timer field
+        timer_desc = next(s for s in state_desc if s.get('type') == 'event:start:timer')
+        self.rate_delay = parse_distribution(timer_desc['timer'], clock=self.global_clock)
 
 
     @staticmethod
@@ -462,18 +485,18 @@ class DataDriver:
 
     def worker_thread(self):
         """Process the state machine, generating records and sending them to the output target."""
-        logger.debug("Thread %s starting...", threading.current_thread().name)
         self.global_clock.activate_thread()
         current_state = self.initial_state
         variables = {}
         while True:
             if current_state is None:
                 raise RuntimeError("Unexpected error: current state of the state machine is None.")
+            if current_state.type == 'event:start:timer':
+                logger.debug("Thread %s starting process instance", threading.current_thread().name)
             # Process variables_on_entry BEFORE delay
             self.set_variable_values(variables, current_state.variables_on_entry)
             # Process delay
             delta = float(current_state.delay.get_sample())
-            #self.status_msg=f"Thread sleeping {delta} seconds. Sim Clock: {self.global_clock.now()}"
             self.global_clock.sleep(delta)
             self.status_msg=f"Running, Sim Clock: {self.global_clock.now()}"
             # Process regular variables AFTER delay
@@ -481,19 +504,20 @@ class DataDriver:
             # Only emit record if state has dimensions (emitter was specified)
             if current_state.dimensions is not None:
                 record = self.create_record(current_state.dimensions, variables)
-                formatted_record = self.render_record(record)  # Format the record here
-                self.target_printer.print(formatted_record)  # Pass the formatted record to the target printer
+                formatted_record = self.render_record(record)
+                self.target_printer.print(formatted_record)
                 self.sim_control.inc_rec_count()
             if self.sim_control.is_done():
                 break
-            if self.sim_control.is_done():
-                break
             next_state_name = current_state.get_next_state_name()
-            if next_state_name.lower() == 'stop':
+            if next_state_name is None:
                 break
-            current_state = self.states.get(next_state_name)
+            next_state = self.states.get(next_state_name)
+            if next_state is None or next_state.type == 'event:end':
+                logger.debug("Thread %s reached event:end", threading.current_thread().name)
+                break
+            current_state = next_state
 
-        logger.debug("Thread %s done!", threading.current_thread().name)
         self.global_clock.end_thread()
         self.sim_control.remove_entity()
 

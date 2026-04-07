@@ -49,21 +49,24 @@ class Transition:
             transitions.append(Transition(next_state, probability))
         return transitions
 
+VALID_TYPES = {'activity', 'activity:multi:seq', 'gateway:exclusive', 'event:start:timer', 'event:intermediate:timer', 'event:end'}
+
 class State:
     # Represents a state in the state machine.
     # Defines dimensions, delay, transitions, and variables for the state.
-    def __init__(self, name, dimensions, delay, transitions, variables, variables_on_entry=None):
+    def __init__(self, name, state_type, dimensions, delay, transitions, variables, variables_on_entry=None):
         self.name = name
+        self.type = state_type
         self.dimensions = dimensions
         self.delay = delay
         self.transitions = transitions
-        self.transistion_states = [t.next_state for t in transitions]
-        self.transistion_probabilities = [t.probability for t in transitions]
+        self.transition_states = [t.next_state for t in transitions]
+        self.transition_probabilities = [t.probability for t in transitions]
         self.variables = variables
         self.variables_on_entry = variables_on_entry if variables_on_entry is not None else []
 
     def __str__(self):
-        return 'State(name='+self.name+', dimensions='+str([str(d) for d in self.dimensions])+', delay='+str(self.delay)+', transistion_states='+str(self.transistion_states)+', transistion_probabilities='+str(self.transistion_probabilities)+'variables='+str([str(v) for v in self.variables])+')'
+        return 'State(name='+self.name+', type='+self.type+', dimensions='+str([str(d) for d in self.dimensions])+', delay='+str(self.delay)+', transition_states='+str(self.transition_states)+', transition_probabilities='+str(self.transition_probabilities)+'variables='+str([str(v) for v in self.variables])+')'
 
     @staticmethod
     def validate_desc(desc, emitter_names, context):
@@ -72,38 +75,114 @@ class State:
         if 'name' not in desc:
             logger.error("%s: missing required field 'name'", context)
             valid = False
-        if 'delay' not in desc:
-            logger.error("%s: missing required field 'delay'", context)
-            valid = False
-        transitions = desc.get('transitions')
-        if not transitions or not isinstance(transitions, list):
-            logger.error("%s: 'transitions' required and must be a non-empty list", context)
-            valid = False
-        else:
-            total_prob = 0.0
-            for i, trans in enumerate(transitions):
-                trans_ctx = f"{context}, transition [{i}]"
-                if not Transition.validate_desc(trans, trans_ctx):
-                    valid = False
-                try:
-                    total_prob += float(trans.get('probability', 0))
-                except (TypeError, ValueError):
-                    pass
-            if abs(total_prob - 1.0) > 0.01:
-                logger.warning(
-                    "%s: transition probabilities sum to %.4f, not 1.0"
-                    " — random.choices will normalise but this is likely a mistake",
-                    context, total_prob
-                )
-                # do NOT set valid = False — this is non-fatal
-        emitter = desc.get('emitter')
-        if emitter is not None and emitter not in emitter_names:
-            logger.error("%s: references emitter '%s' which is not defined in 'emitters'", context, emitter)
-            valid = False
+
+        state_type = desc.get('type')
+        if state_type is None:
+            logger.error("%s: missing required field 'type'", context)
+            return False
+        if state_type not in VALID_TYPES:
+            logger.error("%s: unknown state type '%s'", context, state_type)
+            return False  # nothing else meaningful to check
+
+        if state_type == 'event:end':
+            if desc.get('emitter') is not None:
+                logger.error("%s: event:end must not have an emitter", context)
+                valid = False
+            return valid
+
+        if state_type == 'event:start:timer':
+            if 'timer' not in desc:
+                logger.error("%s: event:start:timer missing required field 'timer'", context)
+                valid = False
+            if desc.get('emitter') is not None:
+                logger.error("%s: event:start:timer must not have an emitter", context)
+                valid = False
+            if 'next' not in desc:
+                logger.error("%s: event:start:timer missing required field 'next'", context)
+                valid = False
+            elif not isinstance(desc['next'], str):
+                logger.error("%s: event:start:timer 'next' must be a string", context)
+                valid = False
+            if 'transitions' in desc:
+                logger.error("%s: event:start:timer uses 'next', not 'transitions'", context)
+                valid = False
+            return valid
+
+        if state_type == 'event:intermediate:timer':
+            if 'delay' not in desc:
+                logger.error("%s: event:intermediate:timer missing required field 'delay'", context)
+                valid = False
+            if 'next' not in desc:
+                logger.error("%s: event:intermediate:timer missing required field 'next'", context)
+                valid = False
+            elif not isinstance(desc['next'], str):
+                logger.error("%s: event:intermediate:timer 'next' must be a string", context)
+                valid = False
+            if desc.get('emitter') is not None:
+                logger.error("%s: event:intermediate:timer must not have an emitter", context)
+                valid = False
+            if 'transitions' in desc:
+                logger.error("%s: event:intermediate:timer uses 'next', not 'transitions'", context)
+                valid = False
+            return valid
+
+        if state_type == 'activity':
+            if 'delay' in desc:
+                logger.error("%s: activity must not have 'delay' — precede it with event:intermediate:timer", context)
+                valid = False
+            if 'transitions' in desc:
+                logger.error("%s: activity uses 'next', not 'transitions' — add a gateway:exclusive for routing", context)
+                valid = False
+            if 'next' not in desc:
+                logger.error("%s: activity missing required field 'next'", context)
+                valid = False
+            elif not isinstance(desc['next'], str):
+                logger.error("%s: activity 'next' must be a string", context)
+                valid = False
+            emitter = desc.get('emitter')
+            if emitter is not None and emitter not in emitter_names:
+                logger.error("%s: references emitter '%s' which is not defined in 'emitters'", context, emitter)
+                valid = False
+            return valid
+
+        if state_type == 'gateway:exclusive':
+            if desc.get('emitter') is not None:
+                logger.error("%s: gateway:exclusive must not have an emitter", context)
+                valid = False
+            if 'delay' in desc:
+                logger.error("%s: gateway:exclusive must not have 'delay'", context)
+                valid = False
+            if 'next' in desc:
+                logger.error("%s: gateway:exclusive uses 'transitions', not 'next'", context)
+                valid = False
+            transitions = desc.get('transitions')
+            if not transitions or not isinstance(transitions, list):
+                logger.error("%s: gateway:exclusive missing required field 'transitions'", context)
+                valid = False
+            else:
+                total_prob = 0.0
+                for i, trans in enumerate(transitions):
+                    trans_ctx = f"{context}, transition [{i}]"
+                    if not Transition.validate_desc(trans, trans_ctx):
+                        valid = False
+                    try:
+                        total_prob += float(trans.get('probability', 0))
+                    except (TypeError, ValueError):
+                        pass
+                if abs(total_prob - 1.0) > 0.01:
+                    logger.warning(
+                        "%s: transition probabilities sum to %.4f, not 1.0"
+                        " — random.choices will normalise but this is likely a mistake",
+                        context, total_prob
+                    )
+            return valid
+
         return valid
 
     def get_next_state_name(self):
-        return random.choices(self.transistion_states, weights=self.transistion_probabilities, k=1)[0]
+        if not self.transition_states:
+            return None
+        return random.choices(self.transition_states, weights=self.transition_probabilities, k=1)[0]
 
 class Controller:
     # Manages the simulation end conditions.
