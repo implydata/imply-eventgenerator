@@ -118,12 +118,14 @@ Use descriptive names that indicate purpose:
 
 #### Common State Name Patterns
 
-- **Setup states**: `{pattern}_setup`, `{pattern}_connection_setup`
+- **Setup states**: `setup_*` — activity states that only set variables (no emitter). E.g. `setup_session`, `setup_connection`.
+- **Emit states**: `emit_*` — activity states that emit a record. E.g. `emit_pageview`, `emit_request`.
 - **Activity/delay states**: `{pattern}_activity`, `{pattern}_{phase}_activity`
-- **Emission states**: `{pattern}_emit`, `{pattern}_{phase}_emit`
 - **Routing states**: `initial`, `route_by_{criteria}`
 - **Continue states**: `{pattern}_continue`, `continue_{pattern}`
 - **Termination states**: `close`, `end`, `{pattern}_close`
+
+Both `setup_*` and `emit_*` states use `"type": "activity"` — the name prefix carries the intent. A `setup_*` state has no `emitter` field; an `emit_*` state always has one.
 
 #### Good Examples
 
@@ -225,37 +227,18 @@ Add comments to explain non-obvious logic:
 }
 ```
 
-### README Files
+### Preset docs
 
-For each generator configuration, create a companion README named `<config>_README.md` in the `conf/` directory. This allows the README to cover the generator config, format files, and target files together. Use the following standard structure:
+Each preset has a companion doc at `docs/presets/<name>.md`. Every preset doc must follow the standard structure described in [CLAUDE.md](../CLAUDE.md):
 
-```text
-# <Config Name> Generator
+1. Title + one-paragraph description
+2. **Quick start** — copy-paste commands covering common output formats
+3. **Templates** — table of available `--template` values and their output
+4. **Output fields** — table of emitted fields and descriptions
+5. Preset-specific sections (product categories, session routing, per-Actor flow diagrams, etc.)
+6. **Concurrency (`-m`)** — Little's Law table showing the upper limit on useful concurrency
 
-## Quick Start
-One-liner commands to get output immediately — one for JSON
-(gen only) and one with a format file (gen + form), if available.
-
-## Overview
-What real-world scenario this config simulates.
-
-## Output fields
-Table of dimensions and what they represent.
-
-## State machine
-The flow of states and transitions, ideally with a simple
-text diagram showing the path a worker takes.
-
-## Usage examples
-Copy-paste commands to run the config with common options.
-
-## Use cases
-What this data is good for (testing, demos, analytics, etc.).
-
-## Additional information
-Any domain-specific content such as query examples, detection
-scenarios, or detailed architecture notes.
-```
+Config JSON files live in `presets/configs/`.
 
 ## When to Use Optional Emitters
 
@@ -280,20 +263,20 @@ States that only choose the next path:
 
 **No emitter needed** - just routing logic.
 
-#### 2. Delay/Activity States
+#### 2. Timer States
 
-States that only advance time:
+States that only advance time use `event:intermediate:timer` with `cardinality_distribution`:
 
 ```json
 {
-  "name": "flow_activity",
-  "variables": [],
-  "delay": {"type": "exponential", "mean": 5.0},
-  "transitions": [{"next": "flow_emit", "probability": 1.0}]
+  "name": "flow_timer",
+  "type": "event:intermediate:timer",
+  "cardinality_distribution": {"type": "exponential", "mean": 5.0},
+  "transitions": [{"next": "emit_flow", "probability": 1.0}]
 }
 ```
 
-**No emitter needed** - just delay for flow duration.
+**No emitter needed** — just advances the clock for flow duration.
 
 #### 3. Setup States
 
@@ -452,21 +435,21 @@ Each state should have a single clear purpose:
 ```json
 {
   "states": [
-    {"name": "setup", "variables": [...]},      // Setup only
-    {"name": "activity", "delay": {...}},       // Delay only
-    {"name": "emit", "emitter": "log"}          // Emit only
+    {"name": "setup_session", "type": "activity", "variables": [...]},           // Setup only
+    {"name": "page_timer", "type": "event:intermediate:timer", "cardinality_distribution": {...}},  // Advance clock only
+    {"name": "emit_pageview", "type": "activity", "emitter": "log"}              // Emit only
   ]
 }
 ```
 
-❌ **Bad** (multi-purpose state):
+❌ **Bad** (mixed concerns):
 
 ```json
 {
   "name": "do_everything",
+  "type": "activity",
   "emitter": "log",
-  "variables": [...],  // Too much happening
-  "delay": {...}       // Hard to understand/maintain
+  "variables": [...]  // Hard to understand/maintain when combined with a separate timer state
 }
 ```
 
@@ -533,16 +516,16 @@ Don't redefine variables unnecessarily:
 
 ### Model Realistic Lifecycles
 
-Use Start→Activity→Emit for time-windowed data:
+Use Setup→Timer→Emit for time-windowed data:
 
 ✅ **Good** (realistic duration):
 
 ```json
 {
   "states": [
-    {"name": "start", "variables": [{"name": "var_start", "type": "clock"}]},
-    {"name": "activity", "delay": {"type": "exponential", "mean": 5.0}},
-    {"name": "emit", "emitter": "log", "variables": [{"name": "var_end", "type": "clock"}]}
+    {"name": "setup_flow", "type": "activity", "variables": [{"name": "var_start", "type": "clock"}]},
+    {"name": "flow_timer", "type": "event:intermediate:timer", "cardinality_distribution": {"type": "exponential", "mean": 5.0}},
+    {"name": "emit_flow", "type": "activity", "emitter": "log", "variables": [{"name": "var_end", "type": "clock"}]}
   ]
 }
 ```
@@ -553,7 +536,8 @@ Use Start→Activity→Emit for time-windowed data:
 
 ```json
 {
-  "name": "emit",
+  "name": "emit_flow",
+  "type": "activity",
   "emitter": "log",
   "variables": [
     {"name": "var_start", "type": "clock"},

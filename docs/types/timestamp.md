@@ -63,14 +63,14 @@ The emitter for `state_2` is `example_event_2` which also emits a simple string 
       "name": "example_event_1",
       "dimensions": [
         {
-          "type": "string",
           "name": "emitter_number",
+          "type": "string",
           "chars": "1",
           "length_distribution": { "type": "constant", "value": 1 }, "cardinality": 0
         },
         {
-          "type": "timestamp",
           "name": "timestamp",
+          "type": "timestamp",
           "percent_nulls": 25,
           "cardinality": 0,
           "distribution": {
@@ -85,14 +85,14 @@ The emitter for `state_2` is `example_event_2` which also emits a simple string 
       "name": "example_event_2",
       "dimensions": [
         {
-          "type": "string",
           "name": "emitter_number",
+          "type": "string",
           "chars": "2",
           "length_distribution": { "type": "constant", "value": 1 }, "cardinality": 0
         },
         {
-          "type": "timestamp",
           "name": "timestamp",
+          "type": "timestamp",
           "percent_nulls": 25,
           "cardinality": 0,
           "distribution": {

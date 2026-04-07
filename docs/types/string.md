@@ -76,14 +76,14 @@ The emitter for `state_3` is `example_event_3`, and here only upper-case charact
       "name": "example_event_1",
       "dimensions": [
         {
-          "type": "string",
           "name": "account_id",
+          "type": "string",
           "chars": "1234567890",
           "length_distribution": { "type": "constant", "value": 5 }, "cardinality": 0
         },
         {
-          "type": "string",
           "name": "silly_name",
+          "type": "string",
           "length_distribution": { "type": "uniform", "min": 1, "max": 40 }, "cardinality": 0
         }
       ]
@@ -92,14 +92,14 @@ The emitter for `state_3` is `example_event_3`, and here only upper-case charact
       "name": "example_event_2",
       "dimensions": [
         {
-          "type": "string",
           "name": "account_id",
+          "type": "string",
           "chars": "1234567890",
           "length_distribution": { "type": "constant", "value": 5 }, "cardinality": 0
         },
         {
-          "type": "string",
           "name": "silly_name",
+          "type": "string",
           "chars": "abcdefghijklmnopqrstuvwxyz",
           "length_distribution": { "type": "uniform", "min": 1, "max": 15 }, "cardinality": 0
         }
@@ -109,14 +109,14 @@ The emitter for `state_3` is `example_event_3`, and here only upper-case charact
       "name": "example_event_3",
       "dimensions": [
         {
-          "type": "string",
           "name": "account_id",
+          "type": "string",
           "chars": "1234567890",
           "length_distribution": { "type": "constant", "value": 5 }, "cardinality": 0
         },
         {
-          "type": "string",
           "name": "silly_name",
+          "type": "string",
           "chars": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
           "length_distribution": { "type": "uniform", "min": 1, "max": 15 }, "cardinality": 0
         }

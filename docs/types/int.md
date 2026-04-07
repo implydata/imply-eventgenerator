@@ -43,19 +43,19 @@ The emitter for `state_1` is `example_event_1`, which emits the following dimens
       "name": "example_event_1",
       "dimensions": [
         {
-          "type": "enum",
           "name": "user",
+          "type": "enum",
           "values": ["Aisha", "Mateo", "Chen", "Fatima", "Liam", "Kwame", "Elena", "Noah", "Tenzing", "Keisha"],
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 9 }
         },
         {
-          "type": "int",
           "name": "whiteboard_pen_delta",
+          "type": "int",
           "distribution": { "type": "normal", "mean": 0, "stddev": 4 }, "cardinality": 0
         },
         {
-          "type": "int",
           "name": "cups_of_coffee_consumed",
+          "type": "int",
           "distribution": { "type": "exponential", "mean": 25 }, "cardinality": 0
         }
       ]

@@ -13,6 +13,7 @@ Available field generator types are:
 * [`clock`](#clock) generates a datetime using the simulated clock.
 * [`timestamp`](./types/timestamp.md) generates a datetime between a range.
 * [`string:static`](./types/string_static.md) emits a fixed literal string — the same value every time.
+* [`int:static`](./types/int_static.md) emits a fixed literal integer — the same value every time.
 * [`string`](./types/string.md) creates a synthetic string, optionally limited to a specific list of characters.
 * [`int`](./types/int.md) generates whole numbers.
 * [`float`](./types/float.md) generates floating point numbers.
@@ -41,10 +42,20 @@ Clock dimensions have the following structure:
 
 ```json
 {
-  "type": "clock",
-  "name": "<dimension name>"
+  "name": "<dimension name>",
+  "type": "clock"
 }
 ```
+
+### `int:static`
+
+Use the `int:static`-type field generator to emit a fixed integer — the same value every time. See [`int:static`](./types/int_static.md) for full field reference.
+
+```json
+{"name": "status", "type": "int:static", "value": 200}
+```
+
+Use this instead of the `int` type when you need a constant integer value in every record.
 
 ### `enum`
 
@@ -54,8 +65,8 @@ Enums have the following format:
 
 ```json
 {
-  "type": "enum",
   "name": "<dimension name>",
+  "type": "enum",
   "values": [...],
   "cardinality_distribution": <distribution descriptor object>,
   "percent_missing": <percentage value>,
@@ -89,103 +100,103 @@ Object field generators create nested data.
       "name": "example_record_1",
       "dimensions": [
         {
-          "type": "object",
           "name": "Obj1",
+          "type": "object",
           "cardinality": 0,
           "dimensions": [
             {
-              "type": "clock",
-              "name": "__time"
+              "name": "__time",
+              "type": "clock"
             },
             {
-              "type": "enum",
               "name": "enum_dim",
+              "type": "enum",
               "values": ["A", "B", "C"],
               "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
             },
             {
-              "type": "string",
               "name": "string_dim",
+              "type": "string",
               "length_distribution": { "type": "constant", "value": 5 },
               "cardinality": 0,
               "chars": "ABC123"
             },
             {
-              "type": "int",
               "name": "int_dim",
+              "type": "int",
               "distribution": { "type": "uniform", "min": 0, "max": 1000 },
               "cardinality": 10,
               "cardinality_distribution": { "type": "exponential", "mean": 5 }
             },
             {
-              "type": "float",
               "name": "dim_float",
+              "type": "float",
               "distribution": { "type": "uniform", "min": 0, "max": 1000 },
               "cardinality": 10,
               "cardinality_distribution": { "type": "normal", "mean": 5, "stddev": 2 },
               "precision": 3
             },
             {
-              "type": "timestamp",
               "name": "dim_timestamp",
+              "type": "timestamp",
               "distribution": { "type": "uniform", "min": "2008-09-03T10:00:00.0Z", "max": "2008-09-03T20:00:00.0Z" },
               "cardinality": 0
             },
             {
-              "type": "ipaddress",
               "name": "dim_ip",
+              "type": "ipaddress",
               "distribution": { "type": "uniform", "min": 2130706433, "max": 2130706440 },
               "cardinality": 0
             }
           ]
         },
         {
-          "type": "object",
           "name": "Obj2",
+          "type": "object",
           "cardinality": 3,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 },
           "dimensions": [
             {
-              "type": "clock",
-              "name": "__time"
+              "name": "__time",
+              "type": "clock"
             },
             {
-              "type": "enum",
               "name": "enum_dim",
+              "type": "enum",
               "values": ["A", "B", "C"],
               "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
             },
             {
-              "type": "string",
               "name": "string_dim",
+              "type": "string",
               "length_distribution": { "type": "constant", "value": 5 },
               "cardinality": 0,
               "chars": "ABC123"
             },
             {
-              "type": "int",
               "name": "int_dim",
+              "type": "int",
               "distribution": { "type": "uniform", "min": 0, "max": 1000 },
               "cardinality": 10,
               "cardinality_distribution": { "type": "exponential", "mean": 5 }
             },
             {
-              "type": "float",
               "name": "dim_float",
+              "type": "float",
               "distribution": { "type": "uniform", "min": 0, "max": 1000 },
               "cardinality": 10,
               "cardinality_distribution": { "type": "normal", "mean": 5, "stddev": 2 },
               "precision": 3
             },
             {
-              "type": "timestamp",
               "name": "dim_timestamp",
+              "type": "timestamp",
               "distribution": { "type": "uniform", "min": "2008-09-03T10:00:00.0Z", "max": "2008-09-03T20:00:00.0Z" },
               "cardinality": 0
             },
             {
-              "type": "ipaddress",
               "name": "dim_ip",
+              "type": "ipaddress",
               "distribution": { "type": "uniform", "min": 2130706433, "max": 2130706440 },
               "cardinality": 0
             }
@@ -232,99 +243,99 @@ The other field values (e.g., __cardinality__, __percent_nulls__, etc.) operate 
       "name": "example_record_1",
       "dimensions": [
         {
-          "type": "list",
           "name": "List1",
+          "type": "list",
           "length_distribution": { "type": "uniform", "min": 1, "max": 3 },
           "selection_distribution": { "type": "uniform", "min": 0, "max": 5 },
           "cardinality": 0,
           "elements": [
             {
-              "type": "enum",
               "name": "enum_dim",
+              "type": "enum",
               "values": ["A", "B", "C"],
               "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
             },
             {
-              "type": "string",
               "name": "string_dim",
+              "type": "string",
               "length_distribution": { "type": "constant", "value": 5 },
               "cardinality": 0,
               "chars": "ABC123"
             },
             {
-              "type": "int",
               "name": "int_dim",
+              "type": "int",
               "distribution": { "type": "uniform", "min": 0, "max": 1000 },
               "cardinality": 10,
               "cardinality_distribution": { "type": "exponential", "mean": 5 }
             },
             {
-              "type": "float",
               "name": "dim_float",
+              "type": "float",
               "distribution": { "type": "uniform", "min": 0, "max": 1000 },
               "cardinality": 10,
               "cardinality_distribution": { "type": "normal", "mean": 5, "stddev": 2 },
               "precision": 3
             },
             {
-              "type": "timestamp",
               "name": "dim_timestamp",
+              "type": "timestamp",
               "distribution": { "type": "uniform", "min": "2008-09-03T10:00:00.0Z", "max": "2008-09-03T20:00:00.0Z" },
               "cardinality": 0
             },
             {
-              "type": "ipaddress",
               "name": "dim_ip",
+              "type": "ipaddress",
               "distribution": { "type": "uniform", "min": 2130706433, "max": 2130706440 },
               "cardinality": 0
             }
           ]
         },
         {
-          "type": "list",
           "name": "List2",
+          "type": "list",
           "length_distribution": { "type": "uniform", "min": 1, "max": 3 },
           "selection_distribution": { "type": "uniform", "min": 0, "max": 5 },
           "cardinality": 3,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 },
           "elements": [
             {
-              "type": "enum",
               "name": "enum_dim",
+              "type": "enum",
               "values": ["A", "B", "C"],
               "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
             },
             {
-              "type": "string",
               "name": "string_dim",
+              "type": "string",
               "length_distribution": { "type": "constant", "value": 5 },
               "cardinality": 0,
               "chars": "ABC123"
             },
             {
-              "type": "int",
               "name": "int_dim",
+              "type": "int",
               "distribution": { "type": "uniform", "min": 0, "max": 1000 },
               "cardinality": 10,
               "cardinality_distribution": { "type": "exponential", "mean": 5 }
             },
             {
-              "type": "float",
               "name": "dim_float",
+              "type": "float",
               "distribution": { "type": "uniform", "min": 0, "max": 1000 },
               "cardinality": 10,
               "cardinality_distribution": { "type": "normal", "mean": 5, "stddev": 2 },
               "precision": 3
             },
             {
-              "type": "timestamp",
               "name": "dim_timestamp",
+              "type": "timestamp",
               "distribution": { "type": "uniform", "min": "2008-09-03T10:00:00.0Z", "max": "2008-09-03T20:00:00.0Z" },
               "cardinality": 0
             },
             {
-              "type": "ipaddress",
               "name": "dim_ip",
+              "type": "ipaddress",
               "distribution": { "type": "uniform", "min": 2130706433, "max": 2130706440 },
               "cardinality": 0
             }

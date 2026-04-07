@@ -24,8 +24,8 @@ Both states use the `click` emitter, which contains:
       "emitter": "click",
       "variables": [
         {
-          "type": "ipaddress",
           "name": "var_client_ip",
+          "type": "ipaddress",
           "cardinality": 5,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 5 },
           "distribution": {
@@ -35,8 +35,8 @@ Both states use the `click` emitter, which contains:
           }
         },
         {
-          "type": "string",
           "name": "var_account_code",
+          "type": "string",
           "length_distribution": { "type": "constant", "value": 5 },
           "cardinality": 0,
           "chars": "ABC123"
@@ -59,11 +59,11 @@ Both states use the `click` emitter, which contains:
     {
       "name": "click",
       "dimensions": [
-        { "type": "variable", "name": "client_ip", "variable": "var_client_ip" },
-        { "type": "variable", "name": "account_code", "variable": "var_account_code" },
+        { "name": "client_ip", "type": "variable", "variable": "var_client_ip" },
+        { "name": "account_code", "type": "variable", "variable": "var_account_code" },
         {
-          "type": "enum",
           "name": "request",
+          "type": "enum",
           "values": [
             "GET /api/articles",
             "GET /api/articles/42",

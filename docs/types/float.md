@@ -46,26 +46,26 @@ The emitter for `state_1` is `example_event_1`, which emits the following dimens
       "name": "example_event_1",
       "dimensions": [
         {
-          "type": "enum",
           "name": "service",
+          "type": "enum",
           "values": ["/api/deposit","/api/withdraw"],
           "cardinality_distribution": { "type": "normal", "mean": 1, "stddev": 0.5 }
         },
         {
-          "type": "string",
           "name": "account_id",
+          "type": "string",
           "chars": "0123456789",
           "length_distribution": { "type": "constant", "value": 16 }, "cardinality": 0
         },
         {
-          "type": "float",
           "name": "amt",
+          "type": "float",
           "distribution": { "type": "exponential", "mean":50000 }, "cardinality": 0,
           "precision": 2
         },
         {
-          "type": "enum",
           "name": "result",
+          "type": "enum",
           "values": ["fail","success"],
           "cardinality_distribution": { "type": "normal", "mean": 2, "stddev": 1 }
         }

@@ -11,7 +11,7 @@ Use `string:static` to emit a fixed literal string — the same value every time
 | `percent_missing` | No | Frequency (0–100) for omitting the field entirely. Default `0`. |
 
 ```json
-{"type": "string:static", "name": "ident", "value": "-"}
+{"name": "ident", "type": "string:static", "value": "-"}
 ```
 
 Use this instead of the `string` type with `chars`, `length_distribution: constant(1)`, and `cardinality: 0` — that combination is a workaround for the same outcome.

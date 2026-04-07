@@ -2,7 +2,7 @@
 
 Control the behavior of the data generator using a JSON configuration object known as the "Generator Configuration". See the `config_file` folder for [examples](../config_file/examples).
 
-Workers traverse a number of [`states`](./states.md) and generate events as they go using [`emitters`](./emitters.md). States may optionally omit an emitter to create non-emitting states useful for routing, delays, or variable setup. Workers are created periodically, according to the `interarrival` time.
+Workers traverse a number of [`states`](./states.md) and generate events as they go using [`emitters`](./emitters.md). Activity states emit records; `event:intermediate:timer` states advance the clock without emitting. States may optionally omit an emitter to create non-emitting states useful for routing or variable setup. Workers are created periodically, according to the `interarrival` time.
 
 | Object | Description | Options | Required? |
 | --- | --- | --- | --- |
@@ -10,9 +10,9 @@ Workers traverse a number of [`states`](./states.md) and generate events as they
 | [`emitters`](./emitters.md) | A list of emitters. | See [`emitters`](./emitters.md) | Yes |
 | `interarrival` | The period of time that elapses before the next worker is started. | A [distribution](./distributions.md) object. | Yes |
 
-In this example, there is just one state: `state_1`. When each worker reaches that state, it uses the `example_record_1` emitter to produce an event with one field called `enum_dim`, where the possible values of that field are selected using a uniform distribution from a list of characters. Output is written to stdout.
+In this example, there are two states: a timer `wait_5s` and an activity `state_1`. When each worker reaches `state_1`, it uses the `example_record_1` emitter to produce an event with one field called `enum_dim`, where the possible values of that field are selected using a uniform distribution from a list of characters. Output is written to stdout.
 
-There is then a `delay` of 5 seconds before a worker picks the next state from a list of possible `transitions`. In this configuration, because the `next` state is the same as the current state, the worker repeatedly enters this state until the generator itself stops.
+The `wait_5s` timer pauses for 5 seconds before transitioning back to `state_1`, so the worker cycles: emit → wait 5 s → emit → wait 5 s → … until the generator stops.
 
 The `interarrival` distribution is a `constant`, causing new workers to be spawned once every second.
 
@@ -21,8 +21,19 @@ The `interarrival` distribution is a `constant`, causing new workers to be spawn
   "states": [
     {
       "name": "state_1",
+      "type": "activity",
       "emitter": "example_record_1",
-      "delay": {
+      "transitions": [
+        {
+          "next": "wait_5s",
+          "probability": 1
+        }
+      ]
+    },
+    {
+      "name": "wait_5s",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": {
         "type": "constant",
         "value": 5
       },
@@ -39,8 +50,8 @@ The `interarrival` distribution is a `constant`, causing new workers to be spawn
       "name": "example_record_1",
       "dimensions": [
         {
-          "type": "enum",
           "name": "enum_dim",
+          "type": "enum",
           "values": [
             "A",
             "B",

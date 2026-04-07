@@ -53,19 +53,19 @@ The second emitter, `example_event_2`, mirrors the same configuration, using dif
     {
       "name": "example_event_1",
       "dimensions": [
-        { "type": "counter", "name": "default_counter1" },
-        { "type": "counter", "name": "start_counter1", "start": 100 },
-        { "type": "counter", "name": "increment_counter1", "increment": 10000 },
-        { "type": "counter", "name": "both_counter1", "start": 250, "increment": 50 }
+        { "name": "default_counter1", "type": "counter" },
+        { "name": "start_counter1", "type": "counter", "start": 100 },
+        { "name": "increment_counter1", "type": "counter", "increment": 10000 },
+        { "name": "both_counter1", "type": "counter", "start": 250, "increment": 50 }
       ]
     },
     {
       "name": "example_event_2",
       "dimensions": [
-        { "type": "counter", "name": "default_counter2" },
-        { "type": "counter", "name": "start_counter2", "start": 500 },
-        { "type": "counter", "name": "increment_counter2", "increment": 50000 },
-        { "type": "counter", "name": "both_counter2", "start": 750, "increment": 50 }
+        { "name": "default_counter2", "type": "counter" },
+        { "name": "start_counter2", "type": "counter", "start": 500 },
+        { "name": "increment_counter2", "type": "counter", "increment": 50000 },
+        { "name": "both_counter2", "type": "counter", "start": 750, "increment": 50 }
       ]
     }
   ],

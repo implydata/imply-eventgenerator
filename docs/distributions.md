@@ -119,7 +119,7 @@ For the same pattern every day, define a single day key:
 }
 ```
 
-> **Note**: `gmm_temporal` can be used for `interarrival` and state `delay` distributions. It is not currently supported for dimension value or cardinality distributions.
+> **Note**: `gmm_temporal` can be used for `interarrival` and `cardinality_distribution` in `event:start:timer` and `event:intermediate:timer` states. It is not currently supported for dimension value or cardinality distributions.
 
 ## Cardinality
 
@@ -134,8 +134,8 @@ In this example, a `string`-type dimension has no `cardinality` constraint.
 
 ```json
 {
-  "type": "string",
   "name": "Str1",
+  "type": "string",
   "length_distribution": {"type": "uniform", "min": 3, "max": 6},
   "chars": "abcdefg",
   "cardinality": 0
@@ -146,8 +146,8 @@ In this example, `cardinality` of 5 requires that there only be a maximum of 5 d
 
 ```json
 {
-  "type": "string",
   "name": "Str1",
+  "type": "string",
   "length_distribution": {"type": "uniform", "min": 3, "max": 6},
   "cardinality": 5,
   "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4},

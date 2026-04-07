@@ -53,7 +53,7 @@ They then both generate an `endpoint` and `response_time_ms`, but the list of `v
       "transitions": [
         { "next": "getting", "probability": 0.6 },
         { "next": "posting", "probability": 0.4 }
-        ]
+      ]
     },
     {
       "name": "posting",
@@ -66,7 +66,7 @@ They then both generate an `endpoint` and `response_time_ms`, but the list of `v
       "transitions": [
         { "next": "getting", "probability": 0.8 },
         { "next": "posting", "probability": 0.2 }
-        ]
+      ]
     }
   ],
   "interarrival": {
@@ -79,8 +79,8 @@ They then both generate an `endpoint` and `response_time_ms`, but the list of `v
       "name": "example_event_1",
       "dimensions": [
         {
-          "type": "ipaddress",
           "name": "server",
+          "type": "ipaddress",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -89,8 +89,8 @@ They then both generate an `endpoint` and `response_time_ms`, but the list of `v
           }
         },
         {
-          "type": "ipaddress",
           "name": "client",
+          "type": "ipaddress",
           "cardinality": 5,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 5 },
           "distribution": {
@@ -100,8 +100,8 @@ They then both generate an `endpoint` and `response_time_ms`, but the list of `v
           }
         },
         {
-          "type": "enum",
           "name": "endpoint",
+          "type": "enum",
           "values": [
             "GET /api/articles",
             "GET /api/articles/42",
@@ -117,8 +117,8 @@ They then both generate an `endpoint` and `response_time_ms`, but the list of `v
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 9 }
         },
         {
-          "type": "int",
           "name": "response_time_ms",
+          "type": "int",
           "distribution": { "type": "uniform", "min": 10, "max": 500 },
           "cardinality": 0
         }
@@ -128,8 +128,8 @@ They then both generate an `endpoint` and `response_time_ms`, but the list of `v
       "name": "example_event_2",
       "dimensions": [
         {
-          "type": "ipaddress",
           "name": "server",
+          "type": "ipaddress",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -138,8 +138,8 @@ They then both generate an `endpoint` and `response_time_ms`, but the list of `v
           }
         },
         {
-          "type": "ipaddress",
           "name": "client",
+          "type": "ipaddress",
           "cardinality": 5,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 5 },
           "distribution": {
@@ -149,8 +149,8 @@ They then both generate an `endpoint` and `response_time_ms`, but the list of `v
           }
         },
         {
-          "type": "enum",
           "name": "endpoint",
+          "type": "enum",
           "values": [
             "POST /api/articles",
             "POST /api/articles/99/edit",
@@ -165,8 +165,8 @@ They then both generate an `endpoint` and `response_time_ms`, but the list of `v
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 9 }
         },
         {
-          "type": "int",
           "name": "response_time_ms",
+          "type": "int",
           "distribution": { "type": "exponential", "mean": 50000},
           "cardinality": 0
         }
