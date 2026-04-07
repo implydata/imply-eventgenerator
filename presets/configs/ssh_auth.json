@@ -59,8 +59,12 @@
         "type": "exponential",
         "mean": 10.0
       },
-      "next": "route_initial",
-      "variables_on_entry": [
+      "next": "setup_session"
+    },
+    {
+      "name": "setup_session",
+      "type": "activity",
+      "variables": [
         {
           "name": "var_hostname",
           "type": "enum",
@@ -130,7 +134,8 @@
             "max": 65535
           }
         }
-      ]
+      ],
+      "next": "route_initial"
     },
     {
       "name": "route_initial",

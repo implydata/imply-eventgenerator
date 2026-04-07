@@ -178,41 +178,36 @@
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "pause_web_traffic_syn",
+          "next": "setup_web_traffic_syn",
           "probability": 0.4
         },
         {
-          "next": "pause_database_traffic_syn",
+          "next": "setup_database_traffic_syn",
           "probability": 0.25
         },
         {
-          "next": "pause_ssh_traffic_syn",
+          "next": "setup_ssh_traffic_syn",
           "probability": 0.1
         },
         {
-          "next": "pause_internal_api_syn",
+          "next": "setup_internal_api_syn",
           "probability": 0.2
         },
         {
-          "next": "pause_port_scan",
+          "next": "setup_port_scan",
           "probability": 0.03
         },
         {
-          "next": "pause_dns_traffic",
+          "next": "setup_dns_traffic",
           "probability": 0.02
         }
       ]
     },
     {
-      "name": "pause_web_traffic_syn",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
-      "next": "emit_web_traffic_syn",
-      "variables_on_entry": [
+      "name": "setup_web_traffic_syn",
+      "type": "activity",
+      "_comment": "Setup web SYN: capture connection 5-tuple and var_start before timer delay",
+      "variables": [
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -283,7 +278,18 @@
           "type": "clock",
           "_comment": "Capture SYN flow start time before delay"
         }
-      ]
+      ],
+      "next": "pause_web_traffic_syn"
+    },
+    {
+      "name": "pause_web_traffic_syn",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 1.0,
+        "max": 2.0
+      },
+      "next": "emit_web_traffic_syn"
     },
     {
       "name": "emit_web_traffic_syn",
@@ -325,14 +331,26 @@
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "pause_web_traffic_data",
+          "next": "setup_web_traffic_data",
           "probability": 0.95
         },
         {
-          "next": "pause_web_traffic_rst",
+          "next": "setup_web_traffic_rst",
           "probability": 0.05
         }
       ]
+    },
+    {
+      "name": "setup_web_traffic_data",
+      "type": "activity",
+      "_comment": "Setup web data: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_web_traffic_data"
     },
     {
       "name": "pause_web_traffic_data",
@@ -342,13 +360,7 @@
         "min": 1.0,
         "max": 10.0
       },
-      "next": "emit_web_traffic_data",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_web_traffic_data"
     },
     {
       "name": "emit_web_traffic_data",
@@ -394,7 +406,7 @@
           "probability": 0.25
         },
         {
-          "next": "pause_web_traffic_fin",
+          "next": "setup_web_traffic_fin",
           "probability": 0.75
         }
       ]
@@ -402,14 +414,25 @@
     {
       "name": "route_web_traffic_continue",
       "_comment": "Web traffic - Continue: Loop back for next data window",
-      "variables": [],
-      "transitions": [
+            "transitions": [
         {
-          "next": "pause_web_traffic_data",
+          "next": "setup_web_traffic_data",
           "probability": 1.0
         }
       ],
       "type": "gateway:exclusive"
+    },
+    {
+      "name": "setup_web_traffic_fin",
+      "type": "activity",
+      "_comment": "Setup web FIN: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_web_traffic_fin"
     },
     {
       "name": "pause_web_traffic_fin",
@@ -419,13 +442,7 @@
         "min": 1.0,
         "max": 2.0
       },
-      "next": "emit_web_traffic_fin",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_web_traffic_fin"
     },
     {
       "name": "emit_web_traffic_fin",
@@ -461,6 +478,18 @@
       "next": "connection_end"
     },
     {
+      "name": "setup_web_traffic_rst",
+      "type": "activity",
+      "_comment": "Setup web RST: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_web_traffic_rst"
+    },
+    {
       "name": "pause_web_traffic_rst",
       "type": "event:intermediate:timer",
       "delay": {
@@ -468,13 +497,7 @@
         "min": 1.0,
         "max": 2.0
       },
-      "next": "emit_web_traffic_rst",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_web_traffic_rst"
     },
     {
       "name": "emit_web_traffic_rst",
@@ -510,15 +533,10 @@
       "next": "connection_end"
     },
     {
-      "name": "pause_database_traffic_syn",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
-      "next": "emit_database_traffic_syn",
-      "variables_on_entry": [
+      "name": "setup_database_traffic_syn",
+      "type": "activity",
+      "_comment": "Setup database SYN: capture connection 5-tuple and var_start before timer delay",
+      "variables": [
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -590,7 +608,18 @@
           "name": "var_start",
           "type": "clock"
         }
-      ]
+      ],
+      "next": "pause_database_traffic_syn"
+    },
+    {
+      "name": "pause_database_traffic_syn",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 1.0,
+        "max": 2.0
+      },
+      "next": "emit_database_traffic_syn"
     },
     {
       "name": "emit_database_traffic_syn",
@@ -632,14 +661,26 @@
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "pause_database_traffic_data",
+          "next": "setup_database_traffic_data",
           "probability": 0.95
         },
         {
-          "next": "pause_database_traffic_rst",
+          "next": "setup_database_traffic_rst",
           "probability": 0.05
         }
       ]
+    },
+    {
+      "name": "setup_database_traffic_data",
+      "type": "activity",
+      "_comment": "Setup database data: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_database_traffic_data"
     },
     {
       "name": "pause_database_traffic_data",
@@ -649,13 +690,7 @@
         "min": 1.0,
         "max": 3.0
       },
-      "next": "emit_database_traffic_data",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_database_traffic_data"
     },
     {
       "name": "emit_database_traffic_data",
@@ -699,7 +734,7 @@
           "probability": 0.6
         },
         {
-          "next": "pause_database_traffic_fin",
+          "next": "setup_database_traffic_fin",
           "probability": 0.4
         }
       ]
@@ -707,14 +742,25 @@
     {
       "name": "route_database_traffic_continue",
       "_comment": "Database traffic - Continue: Loop back for next query",
-      "variables": [],
-      "transitions": [
+            "transitions": [
         {
-          "next": "pause_database_traffic_data",
+          "next": "setup_database_traffic_data",
           "probability": 1.0
         }
       ],
       "type": "gateway:exclusive"
+    },
+    {
+      "name": "setup_database_traffic_fin",
+      "type": "activity",
+      "_comment": "Setup database FIN: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_database_traffic_fin"
     },
     {
       "name": "pause_database_traffic_fin",
@@ -724,13 +770,7 @@
         "min": 1.0,
         "max": 2.0
       },
-      "next": "emit_database_traffic_fin",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_database_traffic_fin"
     },
     {
       "name": "emit_database_traffic_fin",
@@ -766,6 +806,18 @@
       "next": "connection_end"
     },
     {
+      "name": "setup_database_traffic_rst",
+      "type": "activity",
+      "_comment": "Setup database RST: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_database_traffic_rst"
+    },
+    {
       "name": "pause_database_traffic_rst",
       "type": "event:intermediate:timer",
       "delay": {
@@ -773,13 +825,7 @@
         "min": 1.0,
         "max": 2.0
       },
-      "next": "emit_database_traffic_rst",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_database_traffic_rst"
     },
     {
       "name": "emit_database_traffic_rst",
@@ -815,15 +861,10 @@
       "next": "connection_end"
     },
     {
-      "name": "pause_ssh_traffic_syn",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
-      "next": "emit_ssh_traffic_syn",
-      "variables_on_entry": [
+      "name": "setup_ssh_traffic_syn",
+      "type": "activity",
+      "_comment": "Setup SSH SYN: capture connection 5-tuple and var_start before timer delay",
+      "variables": [
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -887,7 +928,18 @@
           "name": "var_start",
           "type": "clock"
         }
-      ]
+      ],
+      "next": "pause_ssh_traffic_syn"
+    },
+    {
+      "name": "pause_ssh_traffic_syn",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 1.0,
+        "max": 2.0
+      },
+      "next": "emit_ssh_traffic_syn"
     },
     {
       "name": "emit_ssh_traffic_syn",
@@ -929,14 +981,26 @@
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "pause_ssh_traffic_data",
+          "next": "setup_ssh_traffic_data",
           "probability": 0.95
         },
         {
-          "next": "pause_ssh_traffic_rst",
+          "next": "setup_ssh_traffic_rst",
           "probability": 0.05
         }
       ]
+    },
+    {
+      "name": "setup_ssh_traffic_data",
+      "type": "activity",
+      "_comment": "Setup SSH data: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_ssh_traffic_data"
     },
     {
       "name": "pause_ssh_traffic_data",
@@ -946,13 +1010,7 @@
         "min": 1.0,
         "max": 40.0
       },
-      "next": "emit_ssh_traffic_data",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_ssh_traffic_data"
     },
     {
       "name": "emit_ssh_traffic_data",
@@ -996,7 +1054,7 @@
           "probability": 0.4
         },
         {
-          "next": "pause_ssh_traffic_fin",
+          "next": "setup_ssh_traffic_fin",
           "probability": 0.6
         }
       ]
@@ -1004,14 +1062,25 @@
     {
       "name": "route_ssh_traffic_continue",
       "_comment": "SSH traffic - Continue: Loop back for next session window",
-      "variables": [],
-      "transitions": [
+            "transitions": [
         {
-          "next": "pause_ssh_traffic_data",
+          "next": "setup_ssh_traffic_data",
           "probability": 1.0
         }
       ],
       "type": "gateway:exclusive"
+    },
+    {
+      "name": "setup_ssh_traffic_fin",
+      "type": "activity",
+      "_comment": "Setup SSH FIN: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_ssh_traffic_fin"
     },
     {
       "name": "pause_ssh_traffic_fin",
@@ -1021,13 +1090,7 @@
         "min": 1.0,
         "max": 2.0
       },
-      "next": "emit_ssh_traffic_fin",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_ssh_traffic_fin"
     },
     {
       "name": "emit_ssh_traffic_fin",
@@ -1063,6 +1126,18 @@
       "next": "connection_end"
     },
     {
+      "name": "setup_ssh_traffic_rst",
+      "type": "activity",
+      "_comment": "Setup SSH RST: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_ssh_traffic_rst"
+    },
+    {
       "name": "pause_ssh_traffic_rst",
       "type": "event:intermediate:timer",
       "delay": {
@@ -1070,13 +1145,7 @@
         "min": 1.0,
         "max": 2.0
       },
-      "next": "emit_ssh_traffic_rst",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_ssh_traffic_rst"
     },
     {
       "name": "emit_ssh_traffic_rst",
@@ -1112,15 +1181,10 @@
       "next": "connection_end"
     },
     {
-      "name": "pause_internal_api_syn",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
-      "next": "emit_internal_api_syn",
-      "variables_on_entry": [
+      "name": "setup_internal_api_syn",
+      "type": "activity",
+      "_comment": "Setup internal API SYN: capture connection 5-tuple and var_start before timer delay",
+      "variables": [
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -1192,7 +1256,18 @@
           "name": "var_start",
           "type": "clock"
         }
-      ]
+      ],
+      "next": "pause_internal_api_syn"
+    },
+    {
+      "name": "pause_internal_api_syn",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 1.0,
+        "max": 2.0
+      },
+      "next": "emit_internal_api_syn"
     },
     {
       "name": "emit_internal_api_syn",
@@ -1234,14 +1309,26 @@
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "pause_internal_api_data",
+          "next": "setup_internal_api_data",
           "probability": 0.95
         },
         {
-          "next": "pause_internal_api_rst",
+          "next": "setup_internal_api_rst",
           "probability": 0.05
         }
       ]
+    },
+    {
+      "name": "setup_internal_api_data",
+      "type": "activity",
+      "_comment": "Setup internal API data: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_internal_api_data"
     },
     {
       "name": "pause_internal_api_data",
@@ -1251,13 +1338,7 @@
         "min": 1.0,
         "max": 3.0
       },
-      "next": "emit_internal_api_data",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_internal_api_data"
     },
     {
       "name": "emit_internal_api_data",
@@ -1301,7 +1382,7 @@
           "probability": 0.7
         },
         {
-          "next": "pause_internal_api_fin",
+          "next": "setup_internal_api_fin",
           "probability": 0.3
         }
       ]
@@ -1309,14 +1390,25 @@
     {
       "name": "route_internal_api_continue",
       "_comment": "Internal API traffic - Continue: Loop back for next API call",
-      "variables": [],
-      "transitions": [
+            "transitions": [
         {
-          "next": "pause_internal_api_data",
+          "next": "setup_internal_api_data",
           "probability": 1.0
         }
       ],
       "type": "gateway:exclusive"
+    },
+    {
+      "name": "setup_internal_api_fin",
+      "type": "activity",
+      "_comment": "Setup internal API FIN: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_internal_api_fin"
     },
     {
       "name": "pause_internal_api_fin",
@@ -1326,13 +1418,7 @@
         "min": 1.0,
         "max": 2.0
       },
-      "next": "emit_internal_api_fin",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_internal_api_fin"
     },
     {
       "name": "emit_internal_api_fin",
@@ -1368,6 +1454,18 @@
       "next": "connection_end"
     },
     {
+      "name": "setup_internal_api_rst",
+      "type": "activity",
+      "_comment": "Setup internal API RST: capture var_start before timer delay",
+      "variables": [
+        {
+          "name": "var_start",
+          "type": "clock"
+        }
+      ],
+      "next": "pause_internal_api_rst"
+    },
+    {
       "name": "pause_internal_api_rst",
       "type": "event:intermediate:timer",
       "delay": {
@@ -1375,13 +1473,7 @@
         "min": 1.0,
         "max": 2.0
       },
-      "next": "emit_internal_api_rst",
-      "variables_on_entry": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
-      ]
+      "next": "emit_internal_api_rst"
     },
     {
       "name": "emit_internal_api_rst",
@@ -1417,15 +1509,10 @@
       "next": "connection_end"
     },
     {
-      "name": "pause_port_scan",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
-      "next": "emit_port_scan",
-      "variables_on_entry": [
+      "name": "setup_port_scan",
+      "type": "activity",
+      "_comment": "Setup port scan: capture 5-tuple, var_action REJECT, and var_start before timer delay",
+      "variables": [
         {
           "name": "var_action",
           "type": "enum",
@@ -1503,7 +1590,18 @@
           "name": "var_start",
           "type": "clock"
         }
-      ]
+      ],
+      "next": "pause_port_scan"
+    },
+    {
+      "name": "pause_port_scan",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 1.0,
+        "max": 2.0
+      },
+      "next": "emit_port_scan"
     },
     {
       "name": "emit_port_scan",
@@ -1541,8 +1639,7 @@
     {
       "name": "route_port_scan_response",
       "_comment": "Decide how firewall/service responds to scan",
-      "variables": [],
-      "transitions": [
+            "transitions": [
         {
           "next": "route_port_scan_next_or_stop",
           "probability": 0.7,
@@ -1564,10 +1661,9 @@
     {
       "name": "route_port_scan_next_or_stop",
       "_comment": "Continue scanning or stop",
-      "variables": [],
-      "transitions": [
+            "transitions": [
         {
-          "next": "pause_port_scan",
+          "next": "setup_port_scan",
           "probability": 0.95
         },
         {
@@ -1717,15 +1813,10 @@
       "next": "route_port_scan_next_or_stop"
     },
     {
-      "name": "pause_dns_traffic",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
-      "next": "emit_dns_traffic",
-      "variables_on_entry": [
+      "name": "setup_dns_traffic",
+      "type": "activity",
+      "_comment": "Setup DNS: capture 5-tuple and var_start before timer delay",
+      "variables": [
         {
           "name": "var_srcaddr",
           "type": "ipaddress",
@@ -1790,7 +1881,18 @@
           "name": "var_start",
           "type": "clock"
         }
-      ]
+      ],
+      "next": "pause_dns_traffic"
+    },
+    {
+      "name": "pause_dns_traffic",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 1.0,
+        "max": 2.0
+      },
+      "next": "emit_dns_traffic"
     },
     {
       "name": "emit_dns_traffic",
@@ -1830,7 +1932,7 @@
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "pause_dns_traffic",
+          "next": "setup_dns_traffic",
           "probability": 0.3
         },
         {

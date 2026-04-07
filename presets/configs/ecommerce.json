@@ -240,7 +240,7 @@
       "name": "route_global_init",
       "transitions": [
         {
-          "next": "pause_initial_human",
+          "next": "setup_initial_human",
           "probability": 0.997
         },
         {
@@ -255,15 +255,9 @@
       "type": "gateway:exclusive"
     },
     {
-      "name": "pause_initial_human",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 0.3,
-        "max": 1.2
-      },
-      "next": "emit_initial_human",
-      "variables_on_entry": [
+      "name": "setup_initial_human",
+      "type": "activity",
+      "variables": [
         {
           "name": "var_client",
           "type": "ipaddress",
@@ -434,7 +428,18 @@
             "max": 2
           }
         }
-      ]
+      ],
+      "next": "pause_initial_human"
+    },
+    {
+      "name": "pause_initial_human",
+      "type": "event:intermediate:timer",
+      "delay": {
+        "type": "uniform",
+        "min": 0.3,
+        "max": 1.2
+      },
+      "next": "emit_initial_human"
     },
     {
       "name": "emit_initial_human",
@@ -1224,7 +1229,7 @@
     {
       "name": "setup_hacker",
       "type": "activity",
-      "variables_on_entry": [
+      "variables": [
         {
           "name": "var_client",
           "type": "ipaddress",
@@ -1423,7 +1428,7 @@
     {
       "name": "setup_bot",
       "type": "activity",
-      "variables_on_entry": [
+      "variables": [
         {
           "name": "var_client",
           "type": "ipaddress",

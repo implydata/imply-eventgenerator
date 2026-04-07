@@ -128,8 +128,12 @@
         "mean": 0.3,
         "_comment": "Internet-facing host sees ~3 connection attempts per second on average"
       },
-      "next": "route_initial",
-      "variables_on_entry": [
+      "next": "setup_connection"
+    },
+    {
+      "name": "setup_connection",
+      "type": "activity",
+      "variables": [
         {
           "name": "var_local_ip",
           "type": "ipaddress",
@@ -144,9 +148,10 @@
             "min": 167772160,
             "max": 167772415
           },
-          "_comment": "10.0.0.0/24 \u2014 small pool of local Windows hosts"
+          "_comment": "10.0.0.0/24 — small pool of local Windows hosts"
         }
-      ]
+      ],
+      "next": "route_initial"
     },
     {
       "name": "route_initial",

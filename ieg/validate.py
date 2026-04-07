@@ -78,13 +78,10 @@ def validate_config(config, template_name=None):
             logger.error("Config has no event:end state")
             valid = False
 
-        # Collect all variable names set by any state
+        # Collect all variable names set by any state (activities only)
         all_set_variables = set()
         for state in config['states']:
             for var in state.get('variables', []):
-                if 'name' in var:
-                    all_set_variables.add(var['name'])
-            for var in state.get('variables_on_entry', []):
                 if 'name' in var:
                     all_set_variables.add(var['name'])
 
@@ -104,13 +101,6 @@ def validate_config(config, template_name=None):
                 vctx = f"{ctx}, variable '{var.get('name', '?')}'"
                 if var.get('type', '').lower() == 'variable':
                     logger.error("%s: type 'variable' is not valid in a state's 'variables' block — it can only be used in emitter dimensions", vctx)
-                    valid = False
-                elif not validate_dimension_desc(var, vctx):
-                    valid = False
-            for var in state.get('variables_on_entry', []):
-                vctx = f"{ctx}, variables_on_entry '{var.get('name', '?')}'"
-                if var.get('type', '').lower() == 'variable':
-                    logger.error("%s: type 'variable' is not valid in a state's 'variables_on_entry' block — it can only be used in emitter dimensions", vctx)
                     valid = False
                 elif not validate_dimension_desc(var, vctx):
                     valid = False

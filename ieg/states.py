@@ -54,7 +54,7 @@ VALID_TYPES = {'activity', 'activity:multi:seq', 'gateway:exclusive', 'event:sta
 class State:
     # Represents a state in the state machine.
     # Defines dimensions, delay, transitions, and variables for the state.
-    def __init__(self, name, state_type, dimensions, delay, transitions, variables, variables_on_entry=None):
+    def __init__(self, name, state_type, dimensions, delay, transitions, variables):
         self.name = name
         self.type = state_type
         self.dimensions = dimensions
@@ -63,7 +63,6 @@ class State:
         self.transition_states = [t.next_state for t in transitions]
         self.transition_probabilities = [t.probability for t in transitions]
         self.variables = variables
-        self.variables_on_entry = variables_on_entry if variables_on_entry is not None else []
 
     def __str__(self):
         return 'State(name='+self.name+', type='+self.type+', dimensions='+str([str(d) for d in self.dimensions])+', delay='+str(self.delay)+', transition_states='+str(self.transition_states)+', transition_probabilities='+str(self.transition_probabilities)+'variables='+str([str(v) for v in self.variables])+')'
@@ -88,6 +87,9 @@ class State:
             if desc.get('emitter') is not None:
                 logger.error("%s: event:end must not have an emitter", context)
                 valid = False
+            if 'variables' in desc or 'variables_on_entry' in desc:
+                logger.error("%s: event:end must not have variables — only activities can set variables", context)
+                valid = False
             return valid
 
         if state_type == 'event:start:timer':
@@ -105,6 +107,9 @@ class State:
                 valid = False
             if 'transitions' in desc:
                 logger.error("%s: event:start:timer uses 'next', not 'transitions'", context)
+                valid = False
+            if 'variables' in desc or 'variables_on_entry' in desc:
+                logger.error("%s: event:start:timer must not have variables — only activities can set variables", context)
                 valid = False
             return valid
 
@@ -124,6 +129,9 @@ class State:
             if 'transitions' in desc:
                 logger.error("%s: event:intermediate:timer uses 'next', not 'transitions'", context)
                 valid = False
+            if 'variables' in desc or 'variables_on_entry' in desc:
+                logger.error("%s: event:intermediate:timer must not have variables — only activities can set variables", context)
+                valid = False
             return valid
 
         if state_type == 'activity':
@@ -138,6 +146,9 @@ class State:
                 valid = False
             elif not isinstance(desc['next'], str):
                 logger.error("%s: activity 'next' must be a string", context)
+                valid = False
+            if 'variables_on_entry' in desc:
+                logger.error("%s: 'variables_on_entry' is not supported — use 'variables' in an activity", context)
                 valid = False
             emitter = desc.get('emitter')
             if emitter is not None and emitter not in emitter_names:
@@ -154,6 +165,9 @@ class State:
                 valid = False
             if 'next' in desc:
                 logger.error("%s: gateway:exclusive uses 'transitions', not 'next'", context)
+                valid = False
+            if 'variables' in desc or 'variables_on_entry' in desc:
+                logger.error("%s: gateway:exclusive must not have variables — only activities can set variables", context)
                 valid = False
             transitions = desc.get('transitions')
             if not transitions or not isinstance(transitions, list):

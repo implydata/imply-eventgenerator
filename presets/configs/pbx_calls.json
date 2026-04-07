@@ -64,8 +64,12 @@
         "type": "exponential",
         "mean": 30.0
       },
-      "next": "route_busy_check",
-      "variables_on_entry": [
+      "next": "setup_call"
+    },
+    {
+      "name": "setup_call",
+      "type": "activity",
+      "variables": [
         {
           "name": "var_accountcode",
           "type": "enum",
@@ -110,7 +114,8 @@
             "max": 9999
           }
         }
-      ]
+      ],
+      "next": "route_busy_check"
     },
     {
       "name": "route_busy_check",

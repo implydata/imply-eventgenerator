@@ -301,11 +301,6 @@ class DataDriver:
                 variables = []
             else:
                 variables = get_variables(state['variables'], self.global_clock)
-            # Parse variables_on_entry (captured before delay)
-            if 'variables_on_entry' not in state.keys():
-                variables_on_entry = []
-            else:
-                variables_on_entry = get_variables(state['variables_on_entry'], self.global_clock)
             _zero = {'type': 'constant', 'value': 0}
             if state_type == 'event:end':
                 delay = parse_distribution(_zero, clock=self.global_clock)
@@ -325,7 +320,7 @@ class DataDriver:
             else:
                 delay = parse_distribution(_zero, clock=self.global_clock)
                 transitions = Transition.parse_transitions(state.get('transitions', []))
-            this_state = State(name, state_type, dimensions, delay, transitions, variables, variables_on_entry)
+            this_state = State(name, state_type, dimensions, delay, transitions, variables)
             self.states[name] = this_state
             if state_type == 'event:start:timer':
                 self.initial_state = this_state
@@ -427,13 +422,11 @@ class DataDriver:
                 raise RuntimeError("Unexpected error: current state of the state machine is None.")
             if current_state.type == 'event:start:timer':
                 logger.debug("Thread %s starting process instance", threading.current_thread().name)
-            # Process variables_on_entry BEFORE delay
-            self.set_variable_values(variables, current_state.variables_on_entry)
             # Process delay
             delta = float(current_state.delay.get_sample())
             self.global_clock.sleep(delta)
             self.status_msg=f"Running, Sim Clock: {self.global_clock.now()}"
-            # Process regular variables AFTER delay
+            # Set variables (activities only; evaluated before emission)
             self.set_variable_values(variables, current_state.variables)
             # Only emit record if state has dimensions (emitter was specified)
             if current_state.dimensions is not None:
