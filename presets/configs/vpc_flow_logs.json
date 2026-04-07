@@ -121,10 +121,10 @@
         "mean": 0.5,
         "_comment": "New connections initiated every ~0.5 seconds on average"
       },
-      "next": "initial"
+      "next": "setup_initial"
     },
     {
-      "name": "initial",
+      "name": "setup_initial",
       "type": "activity",
       "_comment": "Entry point - routes to specific traffic patterns (no output emitted)",
       "variables": [
@@ -171,47 +171,47 @@
           "_comment": "ENI selected once per connection - all flow records use same interface"
         }
       ],
-      "next": "initial_route"
+      "next": "route_initial"
     },
     {
-      "name": "initial_route",
+      "name": "route_initial",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "web_traffic_syn_wait",
+          "next": "pause_web_traffic_syn",
           "probability": 0.4
         },
         {
-          "next": "database_traffic_syn_wait",
+          "next": "pause_database_traffic_syn",
           "probability": 0.25
         },
         {
-          "next": "ssh_traffic_syn_wait",
+          "next": "pause_ssh_traffic_syn",
           "probability": 0.1
         },
         {
-          "next": "internal_api_syn_wait",
+          "next": "pause_internal_api_syn",
           "probability": 0.2
         },
         {
-          "next": "port_scan_wait",
+          "next": "pause_port_scan",
           "probability": 0.03
         },
         {
-          "next": "dns_traffic_wait",
+          "next": "pause_dns_traffic",
           "probability": 0.02
         }
       ]
     },
     {
-      "name": "web_traffic_syn_wait",
+      "name": "pause_web_traffic_syn",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "web_traffic_syn",
+      "next": "emit_web_traffic_syn",
       "variables_on_entry": [
         {
           "name": "var_srcaddr",
@@ -286,7 +286,7 @@
       ]
     },
     {
-      "name": "web_traffic_syn",
+      "name": "emit_web_traffic_syn",
       "type": "activity",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "emitter": "vpc_flow_log",
@@ -318,31 +318,31 @@
           "_comment": "Capture end time after handshake delay"
         }
       ],
-      "next": "web_traffic_syn_route"
+      "next": "route_web_traffic_syn"
     },
     {
-      "name": "web_traffic_syn_route",
+      "name": "route_web_traffic_syn",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "web_traffic_data_wait",
+          "next": "pause_web_traffic_data",
           "probability": 0.95
         },
         {
-          "next": "web_traffic_rst_wait",
+          "next": "pause_web_traffic_rst",
           "probability": 0.05
         }
       ]
     },
     {
-      "name": "web_traffic_data_wait",
+      "name": "pause_web_traffic_data",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 10.0
       },
-      "next": "web_traffic_data",
+      "next": "emit_web_traffic_data",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -351,7 +351,7 @@
       ]
     },
     {
-      "name": "web_traffic_data",
+      "name": "emit_web_traffic_data",
       "type": "activity",
       "_comment": "Data transfer - Capture var_start, delay for data transfer (1-10s), emit flow record",
       "emitter": "vpc_flow_log",
@@ -383,43 +383,43 @@
           "_comment": "Capture flow window end time (after activity delay)"
         }
       ],
-      "next": "web_traffic_data_route"
+      "next": "route_web_traffic_data"
     },
     {
-      "name": "web_traffic_data_route",
+      "name": "route_web_traffic_data",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "web_traffic_continue",
+          "next": "route_web_traffic_continue",
           "probability": 0.25
         },
         {
-          "next": "web_traffic_fin_wait",
+          "next": "pause_web_traffic_fin",
           "probability": 0.75
         }
       ]
     },
     {
-      "name": "web_traffic_continue",
+      "name": "route_web_traffic_continue",
       "_comment": "Web traffic - Continue: Loop back for next data window",
       "variables": [],
       "transitions": [
         {
-          "next": "web_traffic_data_wait",
+          "next": "pause_web_traffic_data",
           "probability": 1.0
         }
       ],
       "type": "gateway:exclusive"
     },
     {
-      "name": "web_traffic_fin_wait",
+      "name": "pause_web_traffic_fin",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "web_traffic_fin",
+      "next": "emit_web_traffic_fin",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -428,7 +428,7 @@
       ]
     },
     {
-      "name": "web_traffic_fin",
+      "name": "emit_web_traffic_fin",
       "type": "activity",
       "_comment": "TCP FIN - Capture var_start, delay for FIN handshake (1-2s), emit close record",
       "emitter": "vpc_flow_log",
@@ -461,14 +461,14 @@
       "next": "connection_end"
     },
     {
-      "name": "web_traffic_rst_wait",
+      "name": "pause_web_traffic_rst",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "web_traffic_rst",
+      "next": "emit_web_traffic_rst",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -477,7 +477,7 @@
       ]
     },
     {
-      "name": "web_traffic_rst",
+      "name": "emit_web_traffic_rst",
       "type": "activity",
       "_comment": "TCP RST - Capture var_start, delay for RST (1-2s), emit reset record",
       "emitter": "vpc_flow_log",
@@ -510,14 +510,14 @@
       "next": "connection_end"
     },
     {
-      "name": "database_traffic_syn_wait",
+      "name": "pause_database_traffic_syn",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "database_traffic_syn",
+      "next": "emit_database_traffic_syn",
       "variables_on_entry": [
         {
           "name": "var_srcaddr",
@@ -593,7 +593,7 @@
       ]
     },
     {
-      "name": "database_traffic_syn",
+      "name": "emit_database_traffic_syn",
       "type": "activity",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "emitter": "vpc_flow_log",
@@ -625,31 +625,31 @@
           "_comment": "Capture end time after handshake delay"
         }
       ],
-      "next": "database_traffic_syn_route"
+      "next": "route_database_traffic_syn"
     },
     {
-      "name": "database_traffic_syn_route",
+      "name": "route_database_traffic_syn",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "database_traffic_data_wait",
+          "next": "pause_database_traffic_data",
           "probability": 0.95
         },
         {
-          "next": "database_traffic_rst_wait",
+          "next": "pause_database_traffic_rst",
           "probability": 0.05
         }
       ]
     },
     {
-      "name": "database_traffic_data_wait",
+      "name": "pause_database_traffic_data",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 3.0
       },
-      "next": "database_traffic_data",
+      "next": "emit_database_traffic_data",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -658,7 +658,7 @@
       ]
     },
     {
-      "name": "database_traffic_data",
+      "name": "emit_database_traffic_data",
       "type": "activity",
       "_comment": "Database traffic - Data: Query execution with flow record",
       "emitter": "vpc_flow_log",
@@ -688,43 +688,43 @@
           "type": "clock"
         }
       ],
-      "next": "database_traffic_data_route"
+      "next": "route_database_traffic_data"
     },
     {
-      "name": "database_traffic_data_route",
+      "name": "route_database_traffic_data",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "database_traffic_continue",
+          "next": "route_database_traffic_continue",
           "probability": 0.6
         },
         {
-          "next": "database_traffic_fin_wait",
+          "next": "pause_database_traffic_fin",
           "probability": 0.4
         }
       ]
     },
     {
-      "name": "database_traffic_continue",
+      "name": "route_database_traffic_continue",
       "_comment": "Database traffic - Continue: Loop back for next query",
       "variables": [],
       "transitions": [
         {
-          "next": "database_traffic_data_wait",
+          "next": "pause_database_traffic_data",
           "probability": 1.0
         }
       ],
       "type": "gateway:exclusive"
     },
     {
-      "name": "database_traffic_fin_wait",
+      "name": "pause_database_traffic_fin",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "database_traffic_fin",
+      "next": "emit_database_traffic_fin",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -733,7 +733,7 @@
       ]
     },
     {
-      "name": "database_traffic_fin",
+      "name": "emit_database_traffic_fin",
       "type": "activity",
       "_comment": "TCP FIN - Graceful connection close",
       "emitter": "vpc_flow_log",
@@ -766,14 +766,14 @@
       "next": "connection_end"
     },
     {
-      "name": "database_traffic_rst_wait",
+      "name": "pause_database_traffic_rst",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "database_traffic_rst",
+      "next": "emit_database_traffic_rst",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -782,7 +782,7 @@
       ]
     },
     {
-      "name": "database_traffic_rst",
+      "name": "emit_database_traffic_rst",
       "type": "activity",
       "_comment": "TCP RST - Connection reset/refused",
       "emitter": "vpc_flow_log",
@@ -815,14 +815,14 @@
       "next": "connection_end"
     },
     {
-      "name": "ssh_traffic_syn_wait",
+      "name": "pause_ssh_traffic_syn",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "ssh_traffic_syn",
+      "next": "emit_ssh_traffic_syn",
       "variables_on_entry": [
         {
           "name": "var_srcaddr",
@@ -890,7 +890,7 @@
       ]
     },
     {
-      "name": "ssh_traffic_syn",
+      "name": "emit_ssh_traffic_syn",
       "type": "activity",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "emitter": "vpc_flow_log",
@@ -922,31 +922,31 @@
           "_comment": "Capture end time after handshake delay"
         }
       ],
-      "next": "ssh_traffic_syn_route"
+      "next": "route_ssh_traffic_syn"
     },
     {
-      "name": "ssh_traffic_syn_route",
+      "name": "route_ssh_traffic_syn",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "ssh_traffic_data_wait",
+          "next": "pause_ssh_traffic_data",
           "probability": 0.95
         },
         {
-          "next": "ssh_traffic_rst_wait",
+          "next": "pause_ssh_traffic_rst",
           "probability": 0.05
         }
       ]
     },
     {
-      "name": "ssh_traffic_data_wait",
+      "name": "pause_ssh_traffic_data",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 40.0
       },
-      "next": "ssh_traffic_data",
+      "next": "emit_ssh_traffic_data",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -955,7 +955,7 @@
       ]
     },
     {
-      "name": "ssh_traffic_data",
+      "name": "emit_ssh_traffic_data",
       "type": "activity",
       "_comment": "SSH traffic - Data: Session activity with flow record",
       "emitter": "vpc_flow_log",
@@ -985,43 +985,43 @@
           "type": "clock"
         }
       ],
-      "next": "ssh_traffic_data_route"
+      "next": "route_ssh_traffic_data"
     },
     {
-      "name": "ssh_traffic_data_route",
+      "name": "route_ssh_traffic_data",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "ssh_traffic_continue",
+          "next": "route_ssh_traffic_continue",
           "probability": 0.4
         },
         {
-          "next": "ssh_traffic_fin_wait",
+          "next": "pause_ssh_traffic_fin",
           "probability": 0.6
         }
       ]
     },
     {
-      "name": "ssh_traffic_continue",
+      "name": "route_ssh_traffic_continue",
       "_comment": "SSH traffic - Continue: Loop back for next session window",
       "variables": [],
       "transitions": [
         {
-          "next": "ssh_traffic_data_wait",
+          "next": "pause_ssh_traffic_data",
           "probability": 1.0
         }
       ],
       "type": "gateway:exclusive"
     },
     {
-      "name": "ssh_traffic_fin_wait",
+      "name": "pause_ssh_traffic_fin",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "ssh_traffic_fin",
+      "next": "emit_ssh_traffic_fin",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -1030,7 +1030,7 @@
       ]
     },
     {
-      "name": "ssh_traffic_fin",
+      "name": "emit_ssh_traffic_fin",
       "type": "activity",
       "_comment": "TCP FIN - Graceful connection close",
       "emitter": "vpc_flow_log",
@@ -1063,14 +1063,14 @@
       "next": "connection_end"
     },
     {
-      "name": "ssh_traffic_rst_wait",
+      "name": "pause_ssh_traffic_rst",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "ssh_traffic_rst",
+      "next": "emit_ssh_traffic_rst",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -1079,7 +1079,7 @@
       ]
     },
     {
-      "name": "ssh_traffic_rst",
+      "name": "emit_ssh_traffic_rst",
       "type": "activity",
       "_comment": "TCP RST - Connection reset/refused",
       "emitter": "vpc_flow_log",
@@ -1112,14 +1112,14 @@
       "next": "connection_end"
     },
     {
-      "name": "internal_api_syn_wait",
+      "name": "pause_internal_api_syn",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "internal_api_syn",
+      "next": "emit_internal_api_syn",
       "variables_on_entry": [
         {
           "name": "var_srcaddr",
@@ -1195,7 +1195,7 @@
       ]
     },
     {
-      "name": "internal_api_syn",
+      "name": "emit_internal_api_syn",
       "type": "activity",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "emitter": "vpc_flow_log",
@@ -1227,31 +1227,31 @@
           "_comment": "Capture end time after handshake delay"
         }
       ],
-      "next": "internal_api_syn_route"
+      "next": "route_internal_api_syn"
     },
     {
-      "name": "internal_api_syn_route",
+      "name": "route_internal_api_syn",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "internal_api_data_wait",
+          "next": "pause_internal_api_data",
           "probability": 0.95
         },
         {
-          "next": "internal_api_rst_wait",
+          "next": "pause_internal_api_rst",
           "probability": 0.05
         }
       ]
     },
     {
-      "name": "internal_api_data_wait",
+      "name": "pause_internal_api_data",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 3.0
       },
-      "next": "internal_api_data",
+      "next": "emit_internal_api_data",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -1260,7 +1260,7 @@
       ]
     },
     {
-      "name": "internal_api_data",
+      "name": "emit_internal_api_data",
       "type": "activity",
       "_comment": "Internal API traffic - Data: API call with flow record",
       "emitter": "vpc_flow_log",
@@ -1290,43 +1290,43 @@
           "type": "clock"
         }
       ],
-      "next": "internal_api_data_route"
+      "next": "route_internal_api_data"
     },
     {
-      "name": "internal_api_data_route",
+      "name": "route_internal_api_data",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "internal_api_continue",
+          "next": "route_internal_api_continue",
           "probability": 0.7
         },
         {
-          "next": "internal_api_fin_wait",
+          "next": "pause_internal_api_fin",
           "probability": 0.3
         }
       ]
     },
     {
-      "name": "internal_api_continue",
+      "name": "route_internal_api_continue",
       "_comment": "Internal API traffic - Continue: Loop back for next API call",
       "variables": [],
       "transitions": [
         {
-          "next": "internal_api_data_wait",
+          "next": "pause_internal_api_data",
           "probability": 1.0
         }
       ],
       "type": "gateway:exclusive"
     },
     {
-      "name": "internal_api_fin_wait",
+      "name": "pause_internal_api_fin",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "internal_api_fin",
+      "next": "emit_internal_api_fin",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -1335,7 +1335,7 @@
       ]
     },
     {
-      "name": "internal_api_fin",
+      "name": "emit_internal_api_fin",
       "type": "activity",
       "_comment": "TCP FIN - Graceful connection close",
       "emitter": "vpc_flow_log",
@@ -1368,14 +1368,14 @@
       "next": "connection_end"
     },
     {
-      "name": "internal_api_rst_wait",
+      "name": "pause_internal_api_rst",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "internal_api_rst",
+      "next": "emit_internal_api_rst",
       "variables_on_entry": [
         {
           "name": "var_start",
@@ -1384,7 +1384,7 @@
       ]
     },
     {
-      "name": "internal_api_rst",
+      "name": "emit_internal_api_rst",
       "type": "activity",
       "_comment": "TCP RST - Connection reset/refused",
       "emitter": "vpc_flow_log",
@@ -1417,14 +1417,14 @@
       "next": "connection_end"
     },
     {
-      "name": "port_scan_wait",
+      "name": "pause_port_scan",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "port_scan",
+      "next": "emit_port_scan",
       "variables_on_entry": [
         {
           "name": "var_action",
@@ -1506,7 +1506,7 @@
       ]
     },
     {
-      "name": "port_scan",
+      "name": "emit_port_scan",
       "type": "activity",
       "_comment": "Port scan - Capture 5-tuple & var_start, delay for probe (1-2s), emit rejected scan",
       "emitter": "vpc_flow_log",
@@ -1536,25 +1536,25 @@
           "type": "clock"
         }
       ],
-      "next": "port_scan_response_route"
+      "next": "route_port_scan_response"
     },
     {
-      "name": "port_scan_response_route",
+      "name": "route_port_scan_response",
       "_comment": "Decide how firewall/service responds to scan",
       "variables": [],
       "transitions": [
         {
-          "next": "port_scan_next_or_stop",
+          "next": "route_port_scan_next_or_stop",
           "probability": 0.7,
           "_comment": "Filtered - no response"
         },
         {
-          "next": "port_scan_closed_setup",
+          "next": "setup_port_scan_closed",
           "probability": 0.2,
           "_comment": "Port closed - RST"
         },
         {
-          "next": "port_scan_honeypot_setup",
+          "next": "setup_port_scan_honeypot",
           "probability": 0.1,
           "_comment": "Honeypot - SYN-ACK"
         }
@@ -1562,12 +1562,12 @@
       "type": "gateway:exclusive"
     },
     {
-      "name": "port_scan_next_or_stop",
+      "name": "route_port_scan_next_or_stop",
       "_comment": "Continue scanning or stop",
       "variables": [],
       "transitions": [
         {
-          "next": "port_scan_wait",
+          "next": "pause_port_scan",
           "probability": 0.95
         },
         {
@@ -1578,7 +1578,7 @@
       "type": "gateway:exclusive"
     },
     {
-      "name": "port_scan_closed_setup",
+      "name": "setup_port_scan_closed",
       "type": "activity",
       "_comment": "Port closed response - Setup: Capture var_start for RST",
       "variables": [
@@ -1599,20 +1599,20 @@
           "type": "clock"
         }
       ],
-      "next": "port_scan_closed_activity_wait"
+      "next": "pause_port_scan_closed_activity"
     },
     {
-      "name": "port_scan_closed_activity_wait",
+      "name": "pause_port_scan_closed_activity",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "port_scan_closed_response"
+      "next": "emit_port_scan_closed_response"
     },
     {
-      "name": "port_scan_closed_response",
+      "name": "emit_port_scan_closed_response",
       "type": "activity",
       "_comment": "Port closed response - Emit: Service sends RST",
       "emitter": "vpc_flow_log",
@@ -1645,10 +1645,10 @@
           "type": "clock"
         }
       ],
-      "next": "port_scan_next_or_stop"
+      "next": "route_port_scan_next_or_stop"
     },
     {
-      "name": "port_scan_honeypot_setup",
+      "name": "setup_port_scan_honeypot",
       "type": "activity",
       "_comment": "Honeypot response - Setup: Capture var_start for SYN-ACK",
       "variables": [
@@ -1668,20 +1668,20 @@
           "type": "clock"
         }
       ],
-      "next": "port_scan_honeypot_activity_wait"
+      "next": "pause_port_scan_honeypot_activity"
     },
     {
-      "name": "port_scan_honeypot_activity_wait",
+      "name": "pause_port_scan_honeypot_activity",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "port_scan_honeypot_response"
+      "next": "emit_port_scan_honeypot_response"
     },
     {
-      "name": "port_scan_honeypot_response",
+      "name": "emit_port_scan_honeypot_response",
       "type": "activity",
       "_comment": "Honeypot response - Emit: Port appears open to trap attacker",
       "emitter": "vpc_flow_log",
@@ -1714,17 +1714,17 @@
           "type": "clock"
         }
       ],
-      "next": "port_scan_next_or_stop"
+      "next": "route_port_scan_next_or_stop"
     },
     {
-      "name": "dns_traffic_wait",
+      "name": "pause_dns_traffic",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 1.0,
         "max": 2.0
       },
-      "next": "dns_traffic",
+      "next": "emit_dns_traffic",
       "variables_on_entry": [
         {
           "name": "var_srcaddr",
@@ -1793,7 +1793,7 @@
       ]
     },
     {
-      "name": "dns_traffic",
+      "name": "emit_dns_traffic",
       "type": "activity",
       "_comment": "DNS traffic - Capture 5-tuple & var_start, delay for query/response (1-2s), emit flow record",
       "emitter": "vpc_flow_log",
@@ -1823,14 +1823,14 @@
           "type": "clock"
         }
       ],
-      "next": "dns_traffic_route"
+      "next": "route_dns_traffic"
     },
     {
-      "name": "dns_traffic_route",
+      "name": "route_dns_traffic",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "dns_traffic_wait",
+          "next": "pause_dns_traffic",
           "probability": 0.3
         },
         {

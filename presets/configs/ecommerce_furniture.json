@@ -171,35 +171,35 @@
         "type": "exponential",
         "mean": 3.0
       },
-      "next": "global_init"
+      "next": "route_global_init"
     },
     {
-      "name": "global_init",
+      "name": "route_global_init",
       "transitions": [
         {
-          "next": "initial_human_wait",
+          "next": "pause_initial_human",
           "probability": 0.997
         },
         {
-          "next": "hacker_start",
+          "next": "setup_hacker",
           "probability": 0.001
         },
         {
-          "next": "bot_start",
+          "next": "setup_bot",
           "probability": 0.002
         }
       ],
       "type": "gateway:exclusive"
     },
     {
-      "name": "initial_human_wait",
+      "name": "pause_initial_human",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 10,
         "max": 30
       },
-      "next": "initial_human",
+      "next": "emit_initial_human",
       "variables_on_entry": [
         {
           "name": "var_http_version",
@@ -218,7 +218,7 @@
       ]
     },
     {
-      "name": "initial_human",
+      "name": "emit_initial_human",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -439,20 +439,20 @@
           }
         }
       ],
-      "next": "browse_products_wait"
+      "next": "pause_browse_products"
     },
     {
-      "name": "browse_products_wait",
+      "name": "pause_browse_products",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 30,
         "max": 90
       },
-      "next": "browse_products"
+      "next": "emit_browse_products"
     },
     {
-      "name": "browse_products",
+      "name": "emit_browse_products",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -481,34 +481,34 @@
           }
         }
       ],
-      "next": "browse_products_route"
+      "next": "route_browse_products"
     },
     {
-      "name": "browse_products_route",
+      "name": "route_browse_products",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "browse_cat_living_room_wait",
+          "next": "pause_browse_cat_living_room",
           "probability": 0.31
         },
         {
-          "next": "browse_cat_bedroom_wait",
+          "next": "pause_browse_cat_bedroom",
           "probability": 0.22
         },
         {
-          "next": "browse_cat_dining_room_wait",
+          "next": "pause_browse_cat_dining_room",
           "probability": 0.13
         },
         {
-          "next": "browse_cat_office_wait",
+          "next": "pause_browse_cat_office",
           "probability": 0.11
         },
         {
-          "next": "browse_cat_outdoor_wait",
+          "next": "pause_browse_cat_outdoor",
           "probability": 0.09
         },
         {
-          "next": "not_found_wait",
+          "next": "pause_not_found",
           "probability": 0.02
         },
         {
@@ -518,17 +518,17 @@
       ]
     },
     {
-      "name": "browse_cat_living_room_wait",
+      "name": "pause_browse_cat_living_room",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 90,
         "max": 300
       },
-      "next": "browse_cat_living_room"
+      "next": "emit_browse_cat_living_room"
     },
     {
-      "name": "browse_cat_living_room",
+      "name": "emit_browse_cat_living_room",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -553,22 +553,22 @@
           }
         }
       ],
-      "next": "browse_cat_living_room_route"
+      "next": "route_browse_cat_living_room"
     },
     {
-      "name": "browse_cat_living_room_route",
+      "name": "route_browse_cat_living_room",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart_wait",
+          "next": "pause_add_to_cart",
           "probability": 0.3
         },
         {
-          "next": "browse_cat_living_room_wait",
+          "next": "pause_browse_cat_living_room",
           "probability": 0.4
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.28
         },
         {
@@ -578,17 +578,17 @@
       ]
     },
     {
-      "name": "browse_cat_bedroom_wait",
+      "name": "pause_browse_cat_bedroom",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 90,
         "max": 300
       },
-      "next": "browse_cat_bedroom"
+      "next": "emit_browse_cat_bedroom"
     },
     {
-      "name": "browse_cat_bedroom",
+      "name": "emit_browse_cat_bedroom",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -613,22 +613,22 @@
           }
         }
       ],
-      "next": "browse_cat_bedroom_route"
+      "next": "route_browse_cat_bedroom"
     },
     {
-      "name": "browse_cat_bedroom_route",
+      "name": "route_browse_cat_bedroom",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart_wait",
+          "next": "pause_add_to_cart",
           "probability": 0.3
         },
         {
-          "next": "browse_cat_bedroom_wait",
+          "next": "pause_browse_cat_bedroom",
           "probability": 0.4
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.28
         },
         {
@@ -638,17 +638,17 @@
       ]
     },
     {
-      "name": "browse_cat_dining_room_wait",
+      "name": "pause_browse_cat_dining_room",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 90,
         "max": 300
       },
-      "next": "browse_cat_dining_room"
+      "next": "emit_browse_cat_dining_room"
     },
     {
-      "name": "browse_cat_dining_room",
+      "name": "emit_browse_cat_dining_room",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -673,22 +673,22 @@
           }
         }
       ],
-      "next": "browse_cat_dining_room_route"
+      "next": "route_browse_cat_dining_room"
     },
     {
-      "name": "browse_cat_dining_room_route",
+      "name": "route_browse_cat_dining_room",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart_wait",
+          "next": "pause_add_to_cart",
           "probability": 0.3
         },
         {
-          "next": "browse_cat_dining_room_wait",
+          "next": "pause_browse_cat_dining_room",
           "probability": 0.4
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.28
         },
         {
@@ -698,17 +698,17 @@
       ]
     },
     {
-      "name": "browse_cat_office_wait",
+      "name": "pause_browse_cat_office",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 90,
         "max": 300
       },
-      "next": "browse_cat_office"
+      "next": "emit_browse_cat_office"
     },
     {
-      "name": "browse_cat_office",
+      "name": "emit_browse_cat_office",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -733,22 +733,22 @@
           }
         }
       ],
-      "next": "browse_cat_office_route"
+      "next": "route_browse_cat_office"
     },
     {
-      "name": "browse_cat_office_route",
+      "name": "route_browse_cat_office",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart_wait",
+          "next": "pause_add_to_cart",
           "probability": 0.3
         },
         {
-          "next": "browse_cat_office_wait",
+          "next": "pause_browse_cat_office",
           "probability": 0.4
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.28
         },
         {
@@ -758,17 +758,17 @@
       ]
     },
     {
-      "name": "browse_cat_outdoor_wait",
+      "name": "pause_browse_cat_outdoor",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 90,
         "max": 300
       },
-      "next": "browse_cat_outdoor"
+      "next": "emit_browse_cat_outdoor"
     },
     {
-      "name": "browse_cat_outdoor",
+      "name": "emit_browse_cat_outdoor",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -794,22 +794,22 @@
           }
         }
       ],
-      "next": "browse_cat_outdoor_route"
+      "next": "route_browse_cat_outdoor"
     },
     {
-      "name": "browse_cat_outdoor_route",
+      "name": "route_browse_cat_outdoor",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart_wait",
+          "next": "pause_add_to_cart",
           "probability": 0.3
         },
         {
-          "next": "browse_cat_outdoor_wait",
+          "next": "pause_browse_cat_outdoor",
           "probability": 0.4
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.28
         },
         {
@@ -819,17 +819,17 @@
       ]
     },
     {
-      "name": "add_to_cart_wait",
+      "name": "pause_add_to_cart",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 15,
         "max": 45
       },
-      "next": "add_to_cart"
+      "next": "emit_add_to_cart"
     },
     {
-      "name": "add_to_cart",
+      "name": "emit_add_to_cart",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -846,18 +846,18 @@
           }
         }
       ],
-      "next": "add_to_cart_route"
+      "next": "route_add_to_cart"
     },
     {
-      "name": "add_to_cart_route",
+      "name": "route_add_to_cart",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "checkout_wait",
+          "next": "pause_checkout",
           "probability": 0.3
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.55
         },
         {
@@ -867,17 +867,17 @@
       ]
     },
     {
-      "name": "checkout_wait",
+      "name": "pause_checkout",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 180,
         "max": 420
       },
-      "next": "checkout"
+      "next": "emit_checkout"
     },
     {
-      "name": "checkout",
+      "name": "emit_checkout",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -918,18 +918,18 @@
           }
         }
       ],
-      "next": "checkout_route"
+      "next": "route_checkout"
     },
     {
-      "name": "checkout_route",
+      "name": "route_checkout",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "thank_you_wait",
+          "next": "pause_thank_you",
           "probability": 0.6
         },
         {
-          "next": "try_again_wait",
+          "next": "pause_try_again",
           "probability": 0.1
         },
         {
@@ -939,17 +939,17 @@
       ]
     },
     {
-      "name": "thank_you_wait",
+      "name": "pause_thank_you",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 5,
         "max": 15
       },
-      "next": "thank_you"
+      "next": "emit_thank_you"
     },
     {
-      "name": "thank_you",
+      "name": "emit_thank_you",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -993,17 +993,17 @@
       "next": "session_end"
     },
     {
-      "name": "try_again_wait",
+      "name": "pause_try_again",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 30,
         "max": 90
       },
-      "next": "try_again"
+      "next": "emit_try_again"
     },
     {
-      "name": "try_again",
+      "name": "emit_try_again",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -1032,14 +1032,14 @@
           }
         }
       ],
-      "next": "try_again_route"
+      "next": "route_try_again"
     },
     {
-      "name": "try_again_route",
+      "name": "route_try_again",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "checkout_wait",
+          "next": "pause_checkout",
           "probability": 0.95
         },
         {
@@ -1049,17 +1049,17 @@
       ]
     },
     {
-      "name": "not_found_wait",
+      "name": "pause_not_found",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 2,
         "max": 5
       },
-      "next": "not_found"
+      "next": "emit_not_found"
     },
     {
-      "name": "not_found",
+      "name": "emit_not_found",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -1097,10 +1097,10 @@
           }
         }
       ],
-      "next": "browse_products_wait"
+      "next": "pause_browse_products"
     },
     {
-      "name": "hacker_start",
+      "name": "setup_hacker",
       "type": "activity",
       "variables_on_entry": [
         {
@@ -1162,19 +1162,19 @@
           }
         }
       ],
-      "next": "hacker_wait"
+      "next": "pause_hacker"
     },
     {
-      "name": "hacker_wait",
+      "name": "pause_hacker",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "exponential",
         "mean": 0.01
       },
-      "next": "hacker"
+      "next": "emit_hacker"
     },
     {
-      "name": "hacker",
+      "name": "emit_hacker",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -1327,14 +1327,14 @@
           }
         }
       ],
-      "next": "hacker_route"
+      "next": "route_hacker"
     },
     {
-      "name": "hacker_route",
+      "name": "route_hacker",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "hacker_wait",
+          "next": "pause_hacker",
           "probability": 0.99
         },
         {
@@ -1344,7 +1344,7 @@
       ]
     },
     {
-      "name": "bot_start",
+      "name": "setup_bot",
       "type": "activity",
       "variables_on_entry": [
         {
@@ -1407,19 +1407,19 @@
           }
         }
       ],
-      "next": "bot_wait"
+      "next": "pause_bot"
     },
     {
-      "name": "bot_wait",
+      "name": "pause_bot",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "exponential",
         "mean": 1.0
       },
-      "next": "bot"
+      "next": "emit_bot"
     },
     {
-      "name": "bot",
+      "name": "emit_bot",
       "type": "activity",
       "emitter": "apache_json_log",
       "variables": [
@@ -1531,14 +1531,14 @@
           }
         }
       ],
-      "next": "bot_route"
+      "next": "route_bot"
     },
     {
-      "name": "bot_route",
+      "name": "route_bot",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "bot_wait",
+          "next": "pause_bot",
           "probability": 0.98
         },
         {

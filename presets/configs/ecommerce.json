@@ -234,35 +234,35 @@
           ]
         }
       },
-      "next": "global_init"
+      "next": "route_global_init"
     },
     {
-      "name": "global_init",
+      "name": "route_global_init",
       "transitions": [
         {
-          "next": "initial_human_wait",
+          "next": "pause_initial_human",
           "probability": 0.997
         },
         {
-          "next": "hacker_start",
+          "next": "setup_hacker",
           "probability": 0.001
         },
         {
-          "next": "bot_start",
+          "next": "setup_bot",
           "probability": 0.002
         }
       ],
       "type": "gateway:exclusive"
     },
     {
-      "name": "initial_human_wait",
+      "name": "pause_initial_human",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 0.3,
         "max": 1.2
       },
-      "next": "initial_human",
+      "next": "emit_initial_human",
       "variables_on_entry": [
         {
           "name": "var_client",
@@ -437,7 +437,7 @@
       ]
     },
     {
-      "name": "initial_human",
+      "name": "emit_initial_human",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -502,20 +502,20 @@
           }
         }
       ],
-      "next": "browse_products_wait"
+      "next": "pause_browse_products"
     },
     {
-      "name": "browse_products_wait",
+      "name": "pause_browse_products",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 30.0,
         "max": 120.0
       },
-      "next": "browse_products"
+      "next": "emit_browse_products"
     },
     {
-      "name": "browse_products",
+      "name": "emit_browse_products",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -544,54 +544,54 @@
           }
         }
       ],
-      "next": "browse_products_route"
+      "next": "route_browse_products"
     },
     {
-      "name": "browse_products_route",
+      "name": "route_browse_products",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "browse_cat_electronics_wait",
+          "next": "pause_browse_cat_electronics",
           "probability": 0.3
         },
         {
-          "next": "browse_cat_clothing_wait",
+          "next": "pause_browse_cat_clothing",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_home_garden_wait",
+          "next": "pause_browse_cat_home_garden",
           "probability": 0.15
         },
         {
-          "next": "browse_cat_kitchen_wait",
+          "next": "pause_browse_cat_kitchen",
           "probability": 0.12
         },
         {
-          "next": "browse_cat_sports_wait",
+          "next": "pause_browse_cat_sports",
           "probability": 0.1
         },
         {
-          "next": "browse_cat_beauty_wait",
+          "next": "pause_browse_cat_beauty",
           "probability": 0.06
         },
         {
-          "next": "not_found_wait",
+          "next": "pause_not_found",
           "probability": 0.02
         }
       ]
     },
     {
-      "name": "browse_cat_electronics_wait",
+      "name": "pause_browse_cat_electronics",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 90.0,
         "max": 300.0
       },
-      "next": "browse_cat_electronics"
+      "next": "emit_browse_cat_electronics"
     },
     {
-      "name": "browse_cat_electronics",
+      "name": "emit_browse_cat_electronics",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -616,22 +616,22 @@
           }
         }
       ],
-      "next": "browse_cat_electronics_route"
+      "next": "route_browse_cat_electronics"
     },
     {
-      "name": "browse_cat_electronics_route",
+      "name": "route_browse_cat_electronics",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart_wait",
+          "next": "pause_add_to_cart",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_electronics_wait",
+          "next": "pause_browse_cat_electronics",
           "probability": 0.4
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.3
         },
         {
@@ -641,17 +641,17 @@
       ]
     },
     {
-      "name": "browse_cat_clothing_wait",
+      "name": "pause_browse_cat_clothing",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 60.0,
         "max": 240.0
       },
-      "next": "browse_cat_clothing"
+      "next": "emit_browse_cat_clothing"
     },
     {
-      "name": "browse_cat_clothing",
+      "name": "emit_browse_cat_clothing",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -676,22 +676,22 @@
           }
         }
       ],
-      "next": "browse_cat_clothing_route"
+      "next": "route_browse_cat_clothing"
     },
     {
-      "name": "browse_cat_clothing_route",
+      "name": "route_browse_cat_clothing",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart_wait",
+          "next": "pause_add_to_cart",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_clothing_wait",
+          "next": "pause_browse_cat_clothing",
           "probability": 0.4
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.3
         },
         {
@@ -701,17 +701,17 @@
       ]
     },
     {
-      "name": "browse_cat_home_garden_wait",
+      "name": "pause_browse_cat_home_garden",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 60.0,
         "max": 240.0
       },
-      "next": "browse_cat_home_garden"
+      "next": "emit_browse_cat_home_garden"
     },
     {
-      "name": "browse_cat_home_garden",
+      "name": "emit_browse_cat_home_garden",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -736,22 +736,22 @@
           }
         }
       ],
-      "next": "browse_cat_home_garden_route"
+      "next": "route_browse_cat_home_garden"
     },
     {
-      "name": "browse_cat_home_garden_route",
+      "name": "route_browse_cat_home_garden",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart_wait",
+          "next": "pause_add_to_cart",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_home_garden_wait",
+          "next": "pause_browse_cat_home_garden",
           "probability": 0.4
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.3
         },
         {
@@ -761,17 +761,17 @@
       ]
     },
     {
-      "name": "browse_cat_kitchen_wait",
+      "name": "pause_browse_cat_kitchen",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 60.0,
         "max": 240.0
       },
-      "next": "browse_cat_kitchen"
+      "next": "emit_browse_cat_kitchen"
     },
     {
-      "name": "browse_cat_kitchen",
+      "name": "emit_browse_cat_kitchen",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -796,22 +796,22 @@
           }
         }
       ],
-      "next": "browse_cat_kitchen_route"
+      "next": "route_browse_cat_kitchen"
     },
     {
-      "name": "browse_cat_kitchen_route",
+      "name": "route_browse_cat_kitchen",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart_wait",
+          "next": "pause_add_to_cart",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_kitchen_wait",
+          "next": "pause_browse_cat_kitchen",
           "probability": 0.4
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.3
         },
         {
@@ -821,17 +821,17 @@
       ]
     },
     {
-      "name": "browse_cat_sports_wait",
+      "name": "pause_browse_cat_sports",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 60.0,
         "max": 180.0
       },
-      "next": "browse_cat_sports"
+      "next": "emit_browse_cat_sports"
     },
     {
-      "name": "browse_cat_sports",
+      "name": "emit_browse_cat_sports",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -856,22 +856,22 @@
           }
         }
       ],
-      "next": "browse_cat_sports_route"
+      "next": "route_browse_cat_sports"
     },
     {
-      "name": "browse_cat_sports_route",
+      "name": "route_browse_cat_sports",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart_wait",
+          "next": "pause_add_to_cart",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_sports_wait",
+          "next": "pause_browse_cat_sports",
           "probability": 0.4
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.3
         },
         {
@@ -881,17 +881,17 @@
       ]
     },
     {
-      "name": "browse_cat_beauty_wait",
+      "name": "pause_browse_cat_beauty",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 60.0,
         "max": 180.0
       },
-      "next": "browse_cat_beauty"
+      "next": "emit_browse_cat_beauty"
     },
     {
-      "name": "browse_cat_beauty",
+      "name": "emit_browse_cat_beauty",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -916,22 +916,22 @@
           }
         }
       ],
-      "next": "browse_cat_beauty_route"
+      "next": "route_browse_cat_beauty"
     },
     {
-      "name": "browse_cat_beauty_route",
+      "name": "route_browse_cat_beauty",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "add_to_cart_wait",
+          "next": "pause_add_to_cart",
           "probability": 0.25
         },
         {
-          "next": "browse_cat_beauty_wait",
+          "next": "pause_browse_cat_beauty",
           "probability": 0.4
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.3
         },
         {
@@ -941,17 +941,17 @@
       ]
     },
     {
-      "name": "add_to_cart_wait",
+      "name": "pause_add_to_cart",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 10.0,
         "max": 30.0
       },
-      "next": "add_to_cart"
+      "next": "emit_add_to_cart"
     },
     {
-      "name": "add_to_cart",
+      "name": "emit_add_to_cart",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -968,18 +968,18 @@
           }
         }
       ],
-      "next": "add_to_cart_route"
+      "next": "route_add_to_cart"
     },
     {
-      "name": "add_to_cart_route",
+      "name": "route_add_to_cart",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "checkout_wait",
+          "next": "pause_checkout",
           "probability": 0.35
         },
         {
-          "next": "browse_products_wait",
+          "next": "pause_browse_products",
           "probability": 0.5
         },
         {
@@ -989,17 +989,17 @@
       ]
     },
     {
-      "name": "checkout_wait",
+      "name": "pause_checkout",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 120.0,
         "max": 300.0
       },
-      "next": "checkout"
+      "next": "emit_checkout"
     },
     {
-      "name": "checkout",
+      "name": "emit_checkout",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -1040,18 +1040,18 @@
           }
         }
       ],
-      "next": "checkout_route"
+      "next": "route_checkout"
     },
     {
-      "name": "checkout_route",
+      "name": "route_checkout",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "thank_you_wait",
+          "next": "pause_thank_you",
           "probability": 0.65
         },
         {
-          "next": "try_again_wait",
+          "next": "pause_try_again",
           "probability": 0.1
         },
         {
@@ -1061,17 +1061,17 @@
       ]
     },
     {
-      "name": "thank_you_wait",
+      "name": "pause_thank_you",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 5.0,
         "max": 15.0
       },
-      "next": "thank_you"
+      "next": "emit_thank_you"
     },
     {
-      "name": "thank_you",
+      "name": "emit_thank_you",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -1115,17 +1115,17 @@
       "next": "session_end"
     },
     {
-      "name": "try_again_wait",
+      "name": "pause_try_again",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 30.0,
         "max": 90.0
       },
-      "next": "try_again"
+      "next": "emit_try_again"
     },
     {
-      "name": "try_again",
+      "name": "emit_try_again",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -1154,14 +1154,14 @@
           }
         }
       ],
-      "next": "try_again_route"
+      "next": "route_try_again"
     },
     {
-      "name": "try_again_route",
+      "name": "route_try_again",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "checkout_wait",
+          "next": "pause_checkout",
           "probability": 0.9
         },
         {
@@ -1171,17 +1171,17 @@
       ]
     },
     {
-      "name": "not_found_wait",
+      "name": "pause_not_found",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "uniform",
         "min": 5.0,
         "max": 15.0
       },
-      "next": "not_found"
+      "next": "emit_not_found"
     },
     {
-      "name": "not_found",
+      "name": "emit_not_found",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -1219,10 +1219,10 @@
           }
         }
       ],
-      "next": "browse_products_wait"
+      "next": "pause_browse_products"
     },
     {
-      "name": "hacker_start",
+      "name": "setup_hacker",
       "type": "activity",
       "variables_on_entry": [
         {
@@ -1284,19 +1284,19 @@
           }
         }
       ],
-      "next": "hacker_wait"
+      "next": "pause_hacker"
     },
     {
-      "name": "hacker_wait",
+      "name": "pause_hacker",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "exponential",
         "mean": 0.01
       },
-      "next": "hacker"
+      "next": "emit_hacker"
     },
     {
-      "name": "hacker",
+      "name": "emit_hacker",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -1404,14 +1404,14 @@
           }
         }
       ],
-      "next": "hacker_route"
+      "next": "route_hacker"
     },
     {
-      "name": "hacker_route",
+      "name": "route_hacker",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "hacker_wait",
+          "next": "pause_hacker",
           "probability": 0.99
         },
         {
@@ -1421,7 +1421,7 @@
       ]
     },
     {
-      "name": "bot_start",
+      "name": "setup_bot",
       "type": "activity",
       "variables_on_entry": [
         {
@@ -1484,19 +1484,19 @@
           }
         }
       ],
-      "next": "bot_wait"
+      "next": "pause_bot"
     },
     {
-      "name": "bot_wait",
+      "name": "pause_bot",
       "type": "event:intermediate:timer",
       "delay": {
         "type": "exponential",
         "mean": 1.0
       },
-      "next": "bot"
+      "next": "emit_bot"
     },
     {
-      "name": "bot",
+      "name": "emit_bot",
       "type": "activity",
       "emitter": "web_log",
       "variables": [
@@ -1607,14 +1607,14 @@
           }
         }
       ],
-      "next": "bot_route"
+      "next": "route_bot"
     },
     {
-      "name": "bot_route",
+      "name": "route_bot",
       "type": "gateway:exclusive",
       "transitions": [
         {
-          "next": "bot_wait",
+          "next": "pause_bot",
           "probability": 0.98
         },
         {
