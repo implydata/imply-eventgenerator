@@ -321,6 +321,40 @@ class DimensionStringStatic:
         return random.random() < self.percent_missing
 
 
+class DimensionIntStatic:
+    """Always emits a fixed integer value."""
+    def __init__(self, desc):
+        self.name = desc['name']
+        self.value = int(desc['value'])
+        self.percent_nulls = desc.get('percent_nulls', 0) / 100.0
+        self.percent_missing = desc.get('percent_missing', 0) / 100.0
+
+    @staticmethod
+    def validate_desc(desc, context):
+        valid = True
+        if 'name' not in desc:
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
+        if 'value' not in desc:
+            logger.error("%s: missing required field 'value'", context)
+            valid = False
+        elif not isinstance(desc['value'], int):
+            logger.error("%s: 'value' must be an integer, got %s", context, type(desc['value']).__name__)
+            valid = False
+        return valid
+
+    def get_stochastic_value(self):
+        return self.value
+
+    def get_json_field_string(self):
+        if random.random() < self.percent_nulls:
+            return f'"{self.name}": null'
+        return f'"{self.name}":{self.value}'
+
+    def is_missing(self):
+        return random.random() < self.percent_missing
+
+
 class DimensionString(DimensionBase):
     # Generates random strings based on a length distribution and character set.
     def __init__(self, desc):
@@ -855,6 +889,8 @@ def parse_element(desc, global_clock):
         el = DimensionEnum(desc)
     elif desc['type'].lower() == 'string:static':
         el = DimensionStringStatic(desc)
+    elif desc['type'].lower() == 'int:static':
+        el = DimensionIntStatic(desc)
     elif desc['type'].lower() == 'string':
         el = DimensionString(desc)
     elif desc['type'].lower() == 'int':
@@ -891,7 +927,7 @@ def get_dimensions(desc, global_clock):
     return elements
 
 KNOWN_DIMENSION_TYPES = (
-    'counter', 'enum', 'string', 'string:static', 'int', 'float',
+    'counter', 'enum', 'string', 'string:static', 'int', 'int:static', 'float',
     'timestamp', 'clock', 'ipaddress', 'variable', 'object', 'list'
 )
 
@@ -913,6 +949,8 @@ def validate_dimension_desc(desc, context):
         return DimensionCounter.validate_desc(desc, context)
     elif dim_type == 'string:static':
         return DimensionStringStatic.validate_desc(desc, context)
+    elif dim_type == 'int:static':
+        return DimensionIntStatic.validate_desc(desc, context)
     elif dim_type == 'string':
         return DimensionString.validate_desc(desc, context)
     elif dim_type == 'int':

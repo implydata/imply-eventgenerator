@@ -27,6 +27,7 @@
     {
       "name": "vpc_flow_log",
       "dimensions": [
+        {"type": "string:static", "name": "log_status", "value": "OK"},
         {"type": "variable", "name": "account_id", "variable": "var_account_id"},
         {"type": "variable", "name": "action", "variable": "var_action"},
         {"type": "variable", "name": "bytes", "variable": "var_bytes"},
@@ -39,12 +40,6 @@
         {"type": "variable", "name": "srcaddr", "variable": "var_srcaddr"},
         {"type": "variable", "name": "srcport", "variable": "var_srcport"},
         {"type": "variable", "name": "start", "variable": "var_start"},
-        {
-          "type": "enum", "name": "log_status",
-          "values": ["OK"],
-          "cardinality_distribution": {"type": "constant", "value": 0},
-          "_comment": "Flow log status - OK means logged successfully"
-        },
         {
           "type": "int", "name": "version",
           "cardinality": 0,
@@ -71,15 +66,11 @@
       "type": "activity", "name": "setup_initial",
       "_comment": "Entry point - routes to specific traffic patterns (no output emitted)",
       "variables": [
+        {"type": "string:static", "name": "var_action", "value": "ACCEPT"},
         {
           "type": "enum", "name": "var_account_id",
           "values": ["123456789012", "123456789013", "123456789014"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
-        },
-        {
-          "type": "enum", "name": "var_action",
-          "values": ["ACCEPT"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
         },
         {
           "type": "enum", "name": "var_interface_id",
@@ -1023,11 +1014,7 @@
       "_comment": "Setup port scan: capture 5-tuple, var_action REJECT, and var_start before timer delay",
       "variables": [
         {"type": "clock", "name": "var_start"},
-        {
-          "type": "enum", "name": "var_action",
-          "values": ["REJECT"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_action", "value": "REJECT"},
         {
           "type": "int", "name": "var_dstport",
           "cardinality": 0,
@@ -1146,12 +1133,7 @@
       "_comment": "Port closed response - Setup: Capture var_start for RST",
       "variables": [
         {"type": "clock", "name": "var_start"},
-        {
-          "type": "enum", "name": "var_action",
-          "values": ["ACCEPT"],
-          "cardinality_distribution": {"type": "constant", "value": 0},
-          "_comment": "Response is accepted (RST gets through)"
-        }
+        {"type": "string:static", "name": "var_action", "value": "ACCEPT"}
       ],
       "next": "pause_port_scan_closed_activity"
     },
@@ -1192,11 +1174,7 @@
       "_comment": "Honeypot response - Setup: Capture var_start for SYN-ACK",
       "variables": [
         {"type": "clock", "name": "var_start"},
-        {
-          "type": "enum", "name": "var_action",
-          "values": ["ACCEPT"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        }
+        {"type": "string:static", "name": "var_action", "value": "ACCEPT"}
       ],
       "next": "pause_port_scan_honeypot_activity"
     },

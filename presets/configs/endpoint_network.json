@@ -11,18 +11,14 @@
       "_comment": "Inbound traffic: internet IP is src, local host IP is dest",
       "dimensions": [
         {"type": "clock", "name": "time"},
+        {"type": "string:static", "name": "direction", "value": "RECEIVE"},
         {"type": "variable", "name": "dest", "variable": "var_local_ip"},
         {"type": "variable", "name": "dest_port", "variable": "var_dest_port"},
         {"type": "variable", "name": "size", "variable": "var_size"},
         {"type": "variable", "name": "src", "variable": "var_internet_ip"},
         {"type": "variable", "name": "src_port", "variable": "var_src_port"},
         {"type": "variable", "name": "transport", "variable": "var_transport"},
-        {"type": "variable", "name": "win_action", "variable": "var_win_action"},
-        {
-          "type": "enum", "name": "direction",
-          "values": ["RECEIVE"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        }
+        {"type": "variable", "name": "win_action", "variable": "var_win_action"}
       ]
     },
     {
@@ -30,18 +26,14 @@
       "_comment": "Outbound traffic: local host IP is src, internet IP is dest",
       "dimensions": [
         {"type": "clock", "name": "time"},
+        {"type": "string:static", "name": "direction", "value": "SEND"},
         {"type": "variable", "name": "dest", "variable": "var_internet_ip"},
         {"type": "variable", "name": "dest_port", "variable": "var_dest_port"},
         {"type": "variable", "name": "size", "variable": "var_size"},
         {"type": "variable", "name": "src", "variable": "var_local_ip"},
         {"type": "variable", "name": "src_port", "variable": "var_src_port"},
         {"type": "variable", "name": "transport", "variable": "var_transport"},
-        {"type": "variable", "name": "win_action", "variable": "var_win_action"},
-        {
-          "type": "enum", "name": "direction",
-          "values": ["SEND"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        }
+        {"type": "variable", "name": "win_action", "variable": "var_win_action"}
       ]
     }
   ],
@@ -94,16 +86,8 @@
       "_comment": "HTTPS (443) inbound — ALLOW (85% of HTTPS traffic).",
       "emitter": "inbound_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_transport",
-          "values": ["TCP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["ALLOW"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_transport", "value": "TCP"},
+        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
         {
           "type": "int", "name": "var_dest_port",
           "cardinality": 0,
@@ -148,16 +132,8 @@
       "_comment": "HTTPS (443) inbound — DROP (15% of HTTPS traffic).",
       "emitter": "inbound_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_transport",
-          "values": ["TCP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["DROP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_transport", "value": "TCP"},
+        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
         {
           "type": "int", "name": "var_dest_port",
           "cardinality": 0,
@@ -202,16 +178,8 @@
       "_comment": "HTTP (80) inbound — ALLOW (80% of HTTP traffic).",
       "emitter": "inbound_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_transport",
-          "values": ["TCP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["ALLOW"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_transport", "value": "TCP"},
+        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
         {
           "type": "int", "name": "var_dest_port",
           "cardinality": 0,
@@ -256,16 +224,8 @@
       "_comment": "HTTP (80) inbound — DROP (20% of HTTP traffic).",
       "emitter": "inbound_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_transport",
-          "values": ["TCP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["DROP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_transport", "value": "TCP"},
+        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
         {
           "type": "int", "name": "var_dest_port",
           "cardinality": 0,
@@ -310,16 +270,8 @@
       "_comment": "RDP (3389) inbound — ALLOW. Authorised remote desktop (25% of RDP traffic).",
       "emitter": "inbound_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_transport",
-          "values": ["TCP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["ALLOW"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_transport", "value": "TCP"},
+        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
         {
           "type": "int", "name": "var_dest_port",
           "cardinality": 0,
@@ -364,16 +316,8 @@
       "_comment": "RDP (3389) inbound — DROP. Brute-force/scanning from internet (75% of RDP traffic).",
       "emitter": "inbound_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_transport",
-          "values": ["TCP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["DROP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_transport", "value": "TCP"},
+        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
         {
           "type": "int", "name": "var_dest_port",
           "cardinality": 0,
@@ -418,16 +362,8 @@
       "_comment": "SMB (445) inbound — DROP. Should never be open to the internet; all attempts blocked.",
       "emitter": "inbound_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_transport",
-          "values": ["TCP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["DROP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_transport", "value": "TCP"},
+        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
         {
           "type": "int", "name": "var_dest_port",
           "cardinality": 0,
@@ -472,16 +408,8 @@
       "_comment": "SMTP (25) inbound — ALLOW. Legitimate email delivery (60% of SMTP traffic).",
       "emitter": "inbound_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_transport",
-          "values": ["TCP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["ALLOW"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_transport", "value": "TCP"},
+        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
         {
           "type": "int", "name": "var_dest_port",
           "cardinality": 0,
@@ -526,16 +454,8 @@
       "_comment": "SMTP (25) inbound — DROP. Spam/relay attempts blocked by policy (40% of SMTP traffic).",
       "emitter": "inbound_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_transport",
-          "values": ["TCP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["DROP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_transport", "value": "TCP"},
+        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
         {
           "type": "int", "name": "var_dest_port",
           "cardinality": 0,
@@ -580,15 +500,11 @@
       "_comment": "Port scan — random destination port, always DROPped. 3% of traffic.",
       "emitter": "inbound_log",
       "variables": [
+        {"type": "string:static", "name": "var_win_action", "value": "DROP"},
         {
           "type": "enum", "name": "var_transport",
           "values": ["TCP", "UDP"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["DROP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
         },
         {
           "type": "int", "name": "var_dest_port",
@@ -635,16 +551,8 @@
       "_comment": "DNS (53) outbound — ALLOW. Host resolving names.",
       "emitter": "outbound_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_transport",
-          "values": ["UDP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["ALLOW"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_transport", "value": "UDP"},
+        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
         {
           "type": "int", "name": "var_dest_port",
           "cardinality": 0,
@@ -690,16 +598,8 @@
       "_comment": "HTTPS (443) outbound — ALLOW. Windows Update, telemetry, cloud agent traffic.",
       "emitter": "outbound_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_transport",
-          "values": ["TCP"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
-        {
-          "type": "enum", "name": "var_win_action",
-          "values": ["ALLOW"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        },
+        {"type": "string:static", "name": "var_transport", "value": "TCP"},
+        {"type": "string:static", "name": "var_win_action", "value": "ALLOW"},
         {
           "type": "int", "name": "var_dest_port",
           "cardinality": 0,

@@ -95,25 +95,13 @@
       "_comment": "Call is in progress. Delay models talk time. CDR emitted when call ends.",
       "emitter": "cdr",
       "variables": [
-        {
-          "type": "enum", "name": "var_disposition",
-          "values": ["ANSWERED"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
+        {"type": "string:static", "name": "var_disposition", "value": "ANSWERED"},
+        {"type": "string:static", "name": "var_lastapp", "value": "Dial"},
+        {"type": "string:static", "name": "var_lastdata", "value": "SIP/trunk,30,tTr"},
         {
           "type": "enum", "name": "var_dstchannel",
           "values": ["SIP/trunk-0001", "SIP/trunk-0002", "SIP/trunk-0003"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
-        },
-        {
-          "type": "enum", "name": "var_lastapp",
-          "values": ["Dial"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_lastdata",
-          "values": ["SIP/trunk,30,tTr"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
         },
         {
           "type": "int", "name": "var_duration",
@@ -131,26 +119,10 @@
       "_comment": "Rang out. CDR emitted immediately with ring duration.",
       "emitter": "cdr",
       "variables": [
-        {
-          "type": "enum", "name": "var_disposition",
-          "values": ["NO ANSWER"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_dstchannel",
-          "values": [""],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_lastapp",
-          "values": ["Dial"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_lastdata",
-          "values": ["SIP/trunk,30,tTr"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
+        {"type": "string:static", "name": "var_disposition", "value": "NO ANSWER"},
+        {"type": "string:static", "name": "var_dstchannel", "value": ""},
+        {"type": "string:static", "name": "var_lastapp", "value": "Dial"},
+        {"type": "string:static", "name": "var_lastdata", "value": "SIP/trunk,30,tTr"},
         {
           "type": "int", "name": "var_duration",
           "cardinality": 0,
@@ -168,26 +140,10 @@
       "_comment": "Line busy. CDR emitted immediately.",
       "emitter": "cdr",
       "variables": [
-        {
-          "type": "enum", "name": "var_disposition",
-          "values": ["BUSY"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_dstchannel",
-          "values": [""],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_lastapp",
-          "values": ["Dial"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_lastdata",
-          "values": ["SIP/trunk,30,tTr"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
+        {"type": "string:static", "name": "var_disposition", "value": "BUSY"},
+        {"type": "string:static", "name": "var_dstchannel", "value": ""},
+        {"type": "string:static", "name": "var_lastapp", "value": "Dial"},
+        {"type": "string:static", "name": "var_lastdata", "value": "SIP/trunk,30,tTr"},
         {
           "type": "int", "name": "var_duration",
           "cardinality": 0,

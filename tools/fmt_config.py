@@ -61,6 +61,7 @@ INDENT = '  '
 _DIM_TYPE_RANK = {t: i for i, t in enumerate([
     'clock',
     'string:static',
+    'int:static',
     'variable',
     'enum',
     'int',
@@ -212,7 +213,7 @@ def fmt(value, depth: int = 0, key: str = None) -> str:
             return _inline(value)
         # variable/dimension objects → single line if they fit, else type+name open line
         if _is_variable_or_dimension(value):
-            if value.get('type') in ('variable', 'clock', 'string:static') or _fits_one_line(value):
+            if value.get('type') in ('variable', 'clock', 'string:static', 'int:static') or _fits_one_line(value):
                 return _inline(value)
             # type and name share the opening line; remaining fields expand below
             type_name = (

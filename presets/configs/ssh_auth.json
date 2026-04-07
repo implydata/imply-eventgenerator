@@ -86,16 +86,8 @@
       "type": "activity", "name": "emit_failed_password",
       "emitter": "ssh_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_action",
-          "values": ["Failed password"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_line_type",
-          "values": ["auth"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        }
+        {"type": "string:static", "name": "var_action", "value": "Failed password"},
+        {"type": "string:static", "name": "var_line_type", "value": "auth"}
       ],
       "next": "route_failed_password"
     },
@@ -116,16 +108,8 @@
       "type": "activity", "name": "emit_accepted",
       "emitter": "ssh_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_action",
-          "values": ["Accepted password"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_line_type",
-          "values": ["auth"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        }
+        {"type": "string:static", "name": "var_action", "value": "Accepted password"},
+        {"type": "string:static", "name": "var_line_type", "value": "auth"}
       ],
       "next": "pause_session_opened"
     },
@@ -138,16 +122,8 @@
       "type": "activity", "name": "emit_session_opened",
       "emitter": "ssh_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_action",
-          "values": ["session opened"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_line_type",
-          "values": ["session"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        }
+        {"type": "string:static", "name": "var_action", "value": "session opened"},
+        {"type": "string:static", "name": "var_line_type", "value": "session"}
       ],
       "next": "pause_session_closed"
     },
@@ -160,16 +136,8 @@
       "type": "activity", "name": "emit_session_closed",
       "emitter": "ssh_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_action",
-          "values": ["session closed"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_line_type",
-          "values": ["session"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        }
+        {"type": "string:static", "name": "var_action", "value": "session closed"},
+        {"type": "string:static", "name": "var_line_type", "value": "session"}
       ],
       "next": "session_end"
     },

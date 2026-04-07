@@ -108,16 +108,11 @@
       "type": "activity", "name": "emit_initial_human",
       "emitter": "apache_json_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_http_content_type",
-          "values": ["-"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_http_method",
-          "values": ["GET"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
+        {"type": "string:static", "name": "var_http_content_type", "value": "-"},
+        {"type": "string:static", "name": "var_http_method", "value": "GET"},
+        {"type": "string:static", "name": "var_uri_path", "value": "/"},
+        {"type": "string:static", "name": "var_uri_query", "value": ""},
+        {"type": "int:static", "name": "var_status", "value": 200},
         {
           "type": "enum", "name": "var_http_referrer",
           "values": [
@@ -179,21 +174,6 @@
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
-        },
-        {
-          "type": "enum", "name": "var_status",
-          "values": [200],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_uri_path",
-          "values": ["/"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
-        },
-        {
-          "type": "enum", "name": "var_uri_query",
-          "values": [""],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
         },
         {
           "type": "enum", "name": "var_user",
@@ -282,16 +262,8 @@
       "type": "activity", "name": "emit_browse_products",
       "emitter": "apache_json_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_http_referrer",
-          "values": ["-"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_uri_path",
-          "values": ["/products"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        }
+        {"type": "string:static", "name": "var_http_referrer", "value": "-"},
+        {"type": "string:static", "name": "var_uri_path", "value": "/products"}
       ],
       "next": "route_browse_products"
     },
@@ -503,11 +475,7 @@
       "type": "activity", "name": "emit_add_to_cart",
       "emitter": "apache_json_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_uri_path",
-          "values": ["/cart"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
-        }
+        {"type": "string:static", "name": "var_uri_path", "value": "/cart"}
       ],
       "next": "route_add_to_cart"
     },
@@ -528,21 +496,9 @@
       "type": "activity", "name": "emit_checkout",
       "emitter": "apache_json_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_http_content_type",
-          "values": ["application/x-www-form-urlencoded"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_http_method",
-          "values": ["POST"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_uri_path",
-          "values": ["/checkout"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        }
+        {"type": "string:static", "name": "var_http_content_type", "value": "application/x-www-form-urlencoded"},
+        {"type": "string:static", "name": "var_http_method", "value": "POST"},
+        {"type": "string:static", "name": "var_uri_path", "value": "/checkout"}
       ],
       "next": "route_checkout"
     },
@@ -563,21 +519,9 @@
       "type": "activity", "name": "emit_thank_you",
       "emitter": "apache_json_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_http_content_type",
-          "values": ["-"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_http_method",
-          "values": ["GET"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_uri_path",
-          "values": ["/thank-you"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        }
+        {"type": "string:static", "name": "var_http_content_type", "value": "-"},
+        {"type": "string:static", "name": "var_http_method", "value": "GET"},
+        {"type": "string:static", "name": "var_uri_path", "value": "/thank-you"}
       ],
       "next": "session_end"
     },
@@ -590,16 +534,8 @@
       "type": "activity", "name": "emit_try_again",
       "emitter": "apache_json_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_status",
-          "values": [400],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_uri_path",
-          "values": ["/try-again"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        }
+        {"type": "string:static", "name": "var_uri_path", "value": "/try-again"},
+        {"type": "int:static", "name": "var_status", "value": 400}
       ],
       "next": "route_try_again"
     },
@@ -619,11 +555,7 @@
       "type": "activity", "name": "emit_not_found",
       "emitter": "apache_json_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_status",
-          "values": [404],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
+        {"type": "int:static", "name": "var_status", "value": 404},
         {
           "type": "enum", "name": "var_uri_path",
           "values": [
@@ -646,6 +578,8 @@
     {
       "type": "activity", "name": "setup_hacker",
       "variables": [
+        {"type": "string:static", "name": "var_http_version", "value": "HTTP/1.1"},
+        {"type": "string:static", "name": "var_user", "value": "-"},
         {
           "type": "enum", "name": "var_http_user_agent",
           "values": [
@@ -659,16 +593,6 @@
             "Wget/1.21.2"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
-        },
-        {
-          "type": "enum", "name": "var_http_version",
-          "values": ["HTTP/1.1"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_user",
-          "values": ["-"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
         },
         {
           "type": "ipaddress", "name": "var_client",
@@ -692,6 +616,7 @@
       "type": "activity", "name": "emit_hacker",
       "emitter": "apache_json_log",
       "variables": [
+        {"type": "string:static", "name": "var_http_referrer", "value": "-"},
         {
           "type": "enum", "name": "var_http_content_type",
           "values": ["-", "application/json", "application/x-www-form-urlencoded"],
@@ -701,11 +626,6 @@
           "type": "enum", "name": "var_http_method",
           "values": ["GET", "POST", "PUT", "DELETE"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
-        },
-        {
-          "type": "enum", "name": "var_http_referrer",
-          "values": ["-"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
         },
         {
           "type": "enum", "name": "var_status",
@@ -804,6 +724,8 @@
     {
       "type": "activity", "name": "setup_bot",
       "variables": [
+        {"type": "string:static", "name": "var_http_version", "value": "HTTP/1.1"},
+        {"type": "string:static", "name": "var_user", "value": "-"},
         {
           "type": "enum", "name": "var_http_user_agent",
           "values": [
@@ -818,16 +740,6 @@
             "Scrapy/2.11.0 (+https://scrapy.org)"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 8}
-        },
-        {
-          "type": "enum", "name": "var_http_version",
-          "values": ["HTTP/1.1"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_user",
-          "values": ["-"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
         },
         {
           "type": "ipaddress", "name": "var_client",
@@ -851,21 +763,11 @@
       "type": "activity", "name": "emit_bot",
       "emitter": "apache_json_log",
       "variables": [
-        {
-          "type": "enum", "name": "var_http_content_type",
-          "values": ["-"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_http_method",
-          "values": ["GET"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_http_referrer",
-          "values": ["-"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
+        {"type": "string:static", "name": "var_http_content_type", "value": "-"},
+        {"type": "string:static", "name": "var_http_method", "value": "GET"},
+        {"type": "string:static", "name": "var_http_referrer", "value": "-"},
+        {"type": "string:static", "name": "var_uri_query", "value": ""},
+        {"type": "string:static", "name": "var_user", "value": "-"},
         {
           "type": "enum", "name": "var_status",
           "values": [200, 200, 200, 200, 200, 200, 301, 301, 404],
@@ -893,16 +795,6 @@
             "/categories/vintage-lighting/edison-filament-bulb"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 16}
-        },
-        {
-          "type": "enum", "name": "var_uri_query",
-          "values": [""],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
-        },
-        {
-          "type": "enum", "name": "var_user",
-          "values": ["-"],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 0}
         }
       ],
       "next": "route_bot"
