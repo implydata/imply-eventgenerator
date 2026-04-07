@@ -27,95 +27,39 @@
     {
       "name": "vpc_flow_log",
       "dimensions": [
+        {"type": "variable", "name": "account_id", "variable": "var_account_id"},
+        {"type": "variable", "name": "action", "variable": "var_action"},
+        {"type": "variable", "name": "bytes", "variable": "var_bytes"},
+        {"type": "variable", "name": "dstaddr", "variable": "var_dstaddr"},
+        {"type": "variable", "name": "dstport", "variable": "var_dstport"},
+        {"type": "variable", "name": "end", "variable": "var_end"},
+        {"type": "variable", "name": "interface_id", "variable": "var_interface_id"},
+        {"type": "variable", "name": "packets", "variable": "var_packets"},
+        {"type": "variable", "name": "protocol", "variable": "var_protocol"},
+        {"type": "variable", "name": "srcaddr", "variable": "var_srcaddr"},
+        {"type": "variable", "name": "srcport", "variable": "var_srcport"},
+        {"type": "variable", "name": "start", "variable": "var_start"},
         {
-          "name": "version",
-          "type": "int",
+          "type": "enum", "name": "log_status",
+          "values": ["OK"],
+          "cardinality_distribution": {"type": "constant", "value": 0},
+          "_comment": "Flow log status - OK means logged successfully"
+        },
+        {
+          "type": "int", "name": "version",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
             "value": 2
           },
           "_comment": "VPC Flow Logs version 2"
-        },
-        {
-          "name": "account_id",
-          "type": "variable",
-          "variable": "var_account_id"
-        },
-        {
-          "name": "interface_id",
-          "type": "variable",
-          "variable": "var_interface_id"
-        },
-        {
-          "name": "srcaddr",
-          "type": "variable",
-          "variable": "var_srcaddr"
-        },
-        {
-          "name": "dstaddr",
-          "type": "variable",
-          "variable": "var_dstaddr"
-        },
-        {
-          "name": "srcport",
-          "type": "variable",
-          "variable": "var_srcport"
-        },
-        {
-          "name": "dstport",
-          "type": "variable",
-          "variable": "var_dstport"
-        },
-        {
-          "name": "protocol",
-          "type": "variable",
-          "variable": "var_protocol"
-        },
-        {
-          "name": "packets",
-          "type": "variable",
-          "variable": "var_packets"
-        },
-        {
-          "name": "bytes",
-          "type": "variable",
-          "variable": "var_bytes"
-        },
-        {
-          "name": "start",
-          "type": "variable",
-          "variable": "var_start"
-        },
-        {
-          "name": "end",
-          "type": "variable",
-          "variable": "var_end"
-        },
-        {
-          "name": "action",
-          "type": "variable",
-          "variable": "var_action"
-        },
-        {
-          "name": "log_status",
-          "type": "enum",
-          "values": [
-            "OK"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          },
-          "_comment": "Flow log status - OK means logged successfully"
         }
       ]
     }
   ],
   "states": [
     {
-      "name": "connection_start",
-      "type": "event:start:timer",
+      "type": "event:start:timer", "name": "connection_start",
       "timer": {
         "type": "exponential",
         "mean": 0.5,
@@ -124,38 +68,21 @@
       "next": "setup_initial"
     },
     {
-      "name": "setup_initial",
-      "type": "activity",
+      "type": "activity", "name": "setup_initial",
       "_comment": "Entry point - routes to specific traffic patterns (no output emitted)",
       "variables": [
         {
-          "name": "var_account_id",
-          "type": "enum",
-          "values": [
-            "123456789012",
-            "123456789013",
-            "123456789014"
-          ],
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 2
-          }
+          "type": "enum", "name": "var_account_id",
+          "values": ["123456789012", "123456789013", "123456789014"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "name": "var_action",
-          "type": "enum",
-          "values": [
-            "ACCEPT"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
+          "type": "enum", "name": "var_action",
+          "values": ["ACCEPT"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
         },
         {
-          "name": "var_interface_id",
-          "type": "enum",
+          "type": "enum", "name": "var_interface_id",
           "values": [
             "eni-0a1b2c3d4e5f60001",
             "eni-0a1b2c3d4e5f60002",
@@ -164,84 +91,44 @@
             "eni-0a1b2c3d4e5f60005",
             "eni-0a1b2c3d4e5f60006"
           ],
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 2
-          },
+          "cardinality_distribution": {"type": "exponential", "mean": 2},
           "_comment": "ENI selected once per connection - all flow records use same interface"
         }
       ],
       "next": "route_initial"
     },
     {
-      "name": "route_initial",
-      "type": "gateway:exclusive",
+      "type": "gateway:exclusive", "name": "route_initial",
       "transitions": [
-        {
-          "next": "setup_web_traffic_syn",
-          "probability": 0.4
-        },
-        {
-          "next": "setup_database_traffic_syn",
-          "probability": 0.25
-        },
-        {
-          "next": "setup_ssh_traffic_syn",
-          "probability": 0.1
-        },
-        {
-          "next": "setup_internal_api_syn",
-          "probability": 0.2
-        },
-        {
-          "next": "setup_port_scan",
-          "probability": 0.03
-        },
-        {
-          "next": "setup_dns_traffic",
-          "probability": 0.02
-        }
+        {"next": "setup_web_traffic_syn", "probability": 0.4},
+        {"next": "setup_database_traffic_syn", "probability": 0.25},
+        {"next": "setup_ssh_traffic_syn", "probability": 0.1},
+        {"next": "setup_internal_api_syn", "probability": 0.2},
+        {"next": "setup_port_scan", "probability": 0.03},
+        {"next": "setup_dns_traffic", "probability": 0.02}
       ]
     },
     {
-      "name": "setup_web_traffic_syn",
-      "type": "activity",
+      "type": "activity", "name": "setup_web_traffic_syn",
       "_comment": "Setup web SYN: capture connection 5-tuple and var_start before timer delay",
       "variables": [
+        {"type": "clock", "name": "var_start", "_comment": "Capture SYN flow start time before delay"},
         {
-          "name": "var_srcaddr",
-          "type": "ipaddress",
-          "cardinality": 1000,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 100
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 134744064,
-            "max": 3758096383
-          },
-          "_comment": "External IPs (8.8.0.0 - 223.255.255.255)"
+          "type": "enum", "name": "var_dstport",
+          "values": [80, 443],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
         },
         {
-          "name": "var_dstaddr",
-          "type": "ipaddress",
-          "cardinality": 5,
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 4
-          },
+          "type": "int", "name": "var_protocol",
+          "cardinality": 0,
           "distribution": {
-            "type": "uniform",
-            "min": 167772160,
-            "max": 167772164
+            "type": "constant",
+            "value": 6
           },
-          "_comment": "Web servers (10.0.0.0-10.0.0.4)"
+          "_comment": "TCP"
         },
         {
-          "name": "var_srcport",
-          "type": "int",
+          "type": "int", "name": "var_srcport",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -251,65 +138,43 @@
           "_comment": "Ephemeral ports"
         },
         {
-          "name": "var_dstport",
-          "type": "enum",
-          "values": [
-            80,
-            443
-          ],
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 1
-          }
-        },
-        {
-          "name": "var_protocol",
-          "type": "int",
-          "cardinality": 0,
+          "type": "ipaddress", "name": "var_dstaddr",
+          "cardinality": 5,
           "distribution": {
-            "type": "constant",
-            "value": 6
+            "type": "uniform",
+            "min": 167772160,
+            "max": 167772164
           },
-          "_comment": "TCP"
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4},
+          "_comment": "Web servers (10.0.0.0-10.0.0.4)"
         },
         {
-          "name": "var_start",
-          "type": "clock",
-          "_comment": "Capture SYN flow start time before delay"
+          "type": "ipaddress", "name": "var_srcaddr",
+          "cardinality": 1000,
+          "distribution": {
+            "type": "uniform",
+            "min": 134744064,
+            "max": 3758096383
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 100},
+          "_comment": "External IPs (8.8.0.0 - 223.255.255.255)"
         }
       ],
       "next": "pause_web_traffic_syn"
     },
     {
-      "name": "pause_web_traffic_syn",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_web_traffic_syn",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_web_traffic_syn"
     },
     {
-      "name": "emit_web_traffic_syn",
-      "type": "activity",
+      "type": "activity", "name": "emit_web_traffic_syn",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 3
-          },
-          "_comment": "SYN, SYN-ACK, ACK"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -319,68 +184,45 @@
           "_comment": "TCP handshake packets"
         },
         {
-          "name": "var_end",
-          "type": "clock",
-          "_comment": "Capture end time after handshake delay"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 3
+          },
+          "_comment": "SYN, SYN-ACK, ACK"
         }
       ],
       "next": "route_web_traffic_syn"
     },
     {
-      "name": "route_web_traffic_syn",
-      "type": "gateway:exclusive",
+      "type": "gateway:exclusive", "name": "route_web_traffic_syn",
       "transitions": [
-        {
-          "next": "setup_web_traffic_data",
-          "probability": 0.95
-        },
-        {
-          "next": "setup_web_traffic_rst",
-          "probability": 0.05
-        }
+        {"next": "setup_web_traffic_data", "probability": 0.95},
+        {"next": "setup_web_traffic_rst", "probability": 0.05}
       ]
     },
     {
-      "name": "setup_web_traffic_data",
-      "type": "activity",
+      "type": "activity", "name": "setup_web_traffic_data",
       "_comment": "Setup web data: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_web_traffic_data"
     },
     {
-      "name": "pause_web_traffic_data",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 10.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_web_traffic_data",
+      "delay": {"type": "uniform", "min": 1.0, "max": 10.0},
       "next": "emit_web_traffic_data"
     },
     {
-      "name": "emit_web_traffic_data",
-      "type": "activity",
+      "type": "activity", "name": "emit_web_traffic_data",
       "_comment": "Data transfer - Capture var_start, delay for data transfer (1-10s), emit flow record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end", "_comment": "Capture flow window end time (after activity delay)"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 50,
-            "max": 500
-          }
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -390,79 +232,52 @@
           "_comment": "5KB to 500KB"
         },
         {
-          "name": "var_end",
-          "type": "clock",
-          "_comment": "Capture flow window end time (after activity delay)"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 500
+          }
         }
       ],
       "next": "route_web_traffic_data"
     },
     {
-      "name": "route_web_traffic_data",
-      "type": "gateway:exclusive",
+      "type": "gateway:exclusive", "name": "route_web_traffic_data",
       "transitions": [
-        {
-          "next": "route_web_traffic_continue",
-          "probability": 0.25
-        },
-        {
-          "next": "setup_web_traffic_fin",
-          "probability": 0.75
-        }
+        {"next": "route_web_traffic_continue", "probability": 0.25},
+        {"next": "setup_web_traffic_fin", "probability": 0.75}
       ]
     },
     {
-      "name": "route_web_traffic_continue",
+      "type": "gateway:exclusive", "name": "route_web_traffic_continue",
       "_comment": "Web traffic - Continue: Loop back for next data window",
-            "transitions": [
-        {
-          "next": "setup_web_traffic_data",
-          "probability": 1.0
-        }
-      ],
-      "type": "gateway:exclusive"
+      "transitions": [
+        {"next": "setup_web_traffic_data", "probability": 1.0}
+      ]
     },
     {
-      "name": "setup_web_traffic_fin",
-      "type": "activity",
+      "type": "activity", "name": "setup_web_traffic_fin",
       "_comment": "Setup web FIN: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_web_traffic_fin"
     },
     {
-      "name": "pause_web_traffic_fin",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_web_traffic_fin",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_web_traffic_fin"
     },
     {
-      "name": "emit_web_traffic_fin",
-      "type": "activity",
+      "type": "activity", "name": "emit_web_traffic_fin",
       "_comment": "TCP FIN - Capture var_start, delay for FIN handshake (1-2s), emit close record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 2
-          },
-          "_comment": "FIN, ACK"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -471,53 +286,38 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 2
+          },
+          "_comment": "FIN, ACK"
         }
       ],
       "next": "connection_end"
     },
     {
-      "name": "setup_web_traffic_rst",
-      "type": "activity",
+      "type": "activity", "name": "setup_web_traffic_rst",
       "_comment": "Setup web RST: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_web_traffic_rst"
     },
     {
-      "name": "pause_web_traffic_rst",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_web_traffic_rst",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_web_traffic_rst"
     },
     {
-      "name": "emit_web_traffic_rst",
-      "type": "activity",
+      "type": "activity", "name": "emit_web_traffic_rst",
       "_comment": "TCP RST - Capture var_start, delay for RST (1-2s), emit reset record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 1
-          },
-          "_comment": "RST packet"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -526,52 +326,38 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 1
+          },
+          "_comment": "RST packet"
         }
       ],
       "next": "connection_end"
     },
     {
-      "name": "setup_database_traffic_syn",
-      "type": "activity",
+      "type": "activity", "name": "setup_database_traffic_syn",
       "_comment": "Setup database SYN: capture connection 5-tuple and var_start before timer delay",
       "variables": [
+        {"type": "clock", "name": "var_start"},
         {
-          "name": "var_srcaddr",
-          "type": "ipaddress",
-          "cardinality": 10,
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 9
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 167772160,
-            "max": 167772169
-          },
-          "_comment": "App servers (10.0.0.0-10.0.0.9)"
+          "type": "enum", "name": "var_dstport",
+          "values": [3306, 5432, 1433, 27017],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3},
+          "_comment": "MySQL, PostgreSQL, SQL Server, MongoDB"
         },
         {
-          "name": "var_dstaddr",
-          "type": "ipaddress",
-          "cardinality": 3,
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 2
-          },
+          "type": "int", "name": "var_protocol",
+          "cardinality": 0,
           "distribution": {
-            "type": "uniform",
-            "min": 167772416,
-            "max": 167772418
-          },
-          "_comment": "DB servers (10.0.1.0-10.0.1.2)"
+            "type": "constant",
+            "value": 6
+          }
         },
         {
-          "name": "var_srcport",
-          "type": "int",
+          "type": "int", "name": "var_srcport",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -580,66 +366,43 @@
           }
         },
         {
-          "name": "var_dstport",
-          "type": "enum",
-          "values": [
-            3306,
-            5432,
-            1433,
-            27017
-          ],
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 3
-          },
-          "_comment": "MySQL, PostgreSQL, SQL Server, MongoDB"
-        },
-        {
-          "name": "var_protocol",
-          "type": "int",
-          "cardinality": 0,
+          "type": "ipaddress", "name": "var_dstaddr",
+          "cardinality": 3,
           "distribution": {
-            "type": "constant",
-            "value": 6
-          }
+            "type": "uniform",
+            "min": 167772416,
+            "max": 167772418
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2},
+          "_comment": "DB servers (10.0.1.0-10.0.1.2)"
         },
         {
-          "name": "var_start",
-          "type": "clock"
+          "type": "ipaddress", "name": "var_srcaddr",
+          "cardinality": 10,
+          "distribution": {
+            "type": "uniform",
+            "min": 167772160,
+            "max": 167772169
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 9},
+          "_comment": "App servers (10.0.0.0-10.0.0.9)"
         }
       ],
       "next": "pause_database_traffic_syn"
     },
     {
-      "name": "pause_database_traffic_syn",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_database_traffic_syn",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_database_traffic_syn"
     },
     {
-      "name": "emit_database_traffic_syn",
-      "type": "activity",
+      "type": "activity", "name": "emit_database_traffic_syn",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 3
-          },
-          "_comment": "SYN, SYN-ACK, ACK"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -649,68 +412,45 @@
           "_comment": "TCP handshake packets"
         },
         {
-          "name": "var_end",
-          "type": "clock",
-          "_comment": "Capture end time after handshake delay"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 3
+          },
+          "_comment": "SYN, SYN-ACK, ACK"
         }
       ],
       "next": "route_database_traffic_syn"
     },
     {
-      "name": "route_database_traffic_syn",
-      "type": "gateway:exclusive",
+      "type": "gateway:exclusive", "name": "route_database_traffic_syn",
       "transitions": [
-        {
-          "next": "setup_database_traffic_data",
-          "probability": 0.95
-        },
-        {
-          "next": "setup_database_traffic_rst",
-          "probability": 0.05
-        }
+        {"next": "setup_database_traffic_data", "probability": 0.95},
+        {"next": "setup_database_traffic_rst", "probability": 0.05}
       ]
     },
     {
-      "name": "setup_database_traffic_data",
-      "type": "activity",
+      "type": "activity", "name": "setup_database_traffic_data",
       "_comment": "Setup database data: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_database_traffic_data"
     },
     {
-      "name": "pause_database_traffic_data",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 3.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_database_traffic_data",
+      "delay": {"type": "uniform", "min": 1.0, "max": 3.0},
       "next": "emit_database_traffic_data"
     },
     {
-      "name": "emit_database_traffic_data",
-      "type": "activity",
+      "type": "activity", "name": "emit_database_traffic_data",
       "_comment": "Database traffic - Data: Query execution with flow record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 10,
-            "max": 200
-          }
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -719,78 +459,52 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10,
+            "max": 200
+          }
         }
       ],
       "next": "route_database_traffic_data"
     },
     {
-      "name": "route_database_traffic_data",
-      "type": "gateway:exclusive",
+      "type": "gateway:exclusive", "name": "route_database_traffic_data",
       "transitions": [
-        {
-          "next": "route_database_traffic_continue",
-          "probability": 0.6
-        },
-        {
-          "next": "setup_database_traffic_fin",
-          "probability": 0.4
-        }
+        {"next": "route_database_traffic_continue", "probability": 0.6},
+        {"next": "setup_database_traffic_fin", "probability": 0.4}
       ]
     },
     {
-      "name": "route_database_traffic_continue",
+      "type": "gateway:exclusive", "name": "route_database_traffic_continue",
       "_comment": "Database traffic - Continue: Loop back for next query",
-            "transitions": [
-        {
-          "next": "setup_database_traffic_data",
-          "probability": 1.0
-        }
-      ],
-      "type": "gateway:exclusive"
+      "transitions": [
+        {"next": "setup_database_traffic_data", "probability": 1.0}
+      ]
     },
     {
-      "name": "setup_database_traffic_fin",
-      "type": "activity",
+      "type": "activity", "name": "setup_database_traffic_fin",
       "_comment": "Setup database FIN: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_database_traffic_fin"
     },
     {
-      "name": "pause_database_traffic_fin",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_database_traffic_fin",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_database_traffic_fin"
     },
     {
-      "name": "emit_database_traffic_fin",
-      "type": "activity",
+      "type": "activity", "name": "emit_database_traffic_fin",
       "_comment": "TCP FIN - Graceful connection close",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 2
-          },
-          "_comment": "FIN, ACK"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -799,53 +513,38 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 2
+          },
+          "_comment": "FIN, ACK"
         }
       ],
       "next": "connection_end"
     },
     {
-      "name": "setup_database_traffic_rst",
-      "type": "activity",
+      "type": "activity", "name": "setup_database_traffic_rst",
       "_comment": "Setup database RST: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_database_traffic_rst"
     },
     {
-      "name": "pause_database_traffic_rst",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_database_traffic_rst",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_database_traffic_rst"
     },
     {
-      "name": "emit_database_traffic_rst",
-      "type": "activity",
+      "type": "activity", "name": "emit_database_traffic_rst",
       "_comment": "TCP RST - Connection reset/refused",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 1
-          },
-          "_comment": "RST packet"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -854,51 +553,40 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 1
+          },
+          "_comment": "RST packet"
         }
       ],
       "next": "connection_end"
     },
     {
-      "name": "setup_ssh_traffic_syn",
-      "type": "activity",
+      "type": "activity", "name": "setup_ssh_traffic_syn",
       "_comment": "Setup SSH SYN: capture connection 5-tuple and var_start before timer delay",
       "variables": [
+        {"type": "clock", "name": "var_start"},
         {
-          "name": "var_srcaddr",
-          "type": "ipaddress",
-          "cardinality": 20,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 5
-          },
+          "type": "int", "name": "var_dstport",
+          "cardinality": 0,
           "distribution": {
-            "type": "uniform",
-            "min": 134744064,
-            "max": 184549375
-          },
-          "_comment": "Corporate IPs / VPN"
+            "type": "constant",
+            "value": 22
+          }
         },
         {
-          "name": "var_dstaddr",
-          "type": "ipaddress",
-          "cardinality": 15,
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 14
-          },
+          "type": "int", "name": "var_protocol",
+          "cardinality": 0,
           "distribution": {
-            "type": "uniform",
-            "min": 167772160,
-            "max": 167772174
-          },
-          "_comment": "Internal servers (10.0.0.0-10.0.0.14)"
+            "type": "constant",
+            "value": 6
+          }
         },
         {
-          "name": "var_srcport",
-          "type": "int",
+          "type": "int", "name": "var_srcport",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -907,59 +595,43 @@
           }
         },
         {
-          "name": "var_dstport",
-          "type": "int",
-          "cardinality": 0,
+          "type": "ipaddress", "name": "var_dstaddr",
+          "cardinality": 15,
           "distribution": {
-            "type": "constant",
-            "value": 22
-          }
+            "type": "uniform",
+            "min": 167772160,
+            "max": 167772174
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 14},
+          "_comment": "Internal servers (10.0.0.0-10.0.0.14)"
         },
         {
-          "name": "var_protocol",
-          "type": "int",
-          "cardinality": 0,
+          "type": "ipaddress", "name": "var_srcaddr",
+          "cardinality": 20,
           "distribution": {
-            "type": "constant",
-            "value": 6
-          }
-        },
-        {
-          "name": "var_start",
-          "type": "clock"
+            "type": "uniform",
+            "min": 134744064,
+            "max": 184549375
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 5},
+          "_comment": "Corporate IPs / VPN"
         }
       ],
       "next": "pause_ssh_traffic_syn"
     },
     {
-      "name": "pause_ssh_traffic_syn",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_ssh_traffic_syn",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_ssh_traffic_syn"
     },
     {
-      "name": "emit_ssh_traffic_syn",
-      "type": "activity",
+      "type": "activity", "name": "emit_ssh_traffic_syn",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 3
-          },
-          "_comment": "SYN, SYN-ACK, ACK"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -969,68 +641,45 @@
           "_comment": "TCP handshake packets"
         },
         {
-          "name": "var_end",
-          "type": "clock",
-          "_comment": "Capture end time after handshake delay"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 3
+          },
+          "_comment": "SYN, SYN-ACK, ACK"
         }
       ],
       "next": "route_ssh_traffic_syn"
     },
     {
-      "name": "route_ssh_traffic_syn",
-      "type": "gateway:exclusive",
+      "type": "gateway:exclusive", "name": "route_ssh_traffic_syn",
       "transitions": [
-        {
-          "next": "setup_ssh_traffic_data",
-          "probability": 0.95
-        },
-        {
-          "next": "setup_ssh_traffic_rst",
-          "probability": 0.05
-        }
+        {"next": "setup_ssh_traffic_data", "probability": 0.95},
+        {"next": "setup_ssh_traffic_rst", "probability": 0.05}
       ]
     },
     {
-      "name": "setup_ssh_traffic_data",
-      "type": "activity",
+      "type": "activity", "name": "setup_ssh_traffic_data",
       "_comment": "Setup SSH data: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_ssh_traffic_data"
     },
     {
-      "name": "pause_ssh_traffic_data",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 40.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_ssh_traffic_data",
+      "delay": {"type": "uniform", "min": 1.0, "max": 40.0},
       "next": "emit_ssh_traffic_data"
     },
     {
-      "name": "emit_ssh_traffic_data",
-      "type": "activity",
+      "type": "activity", "name": "emit_ssh_traffic_data",
       "_comment": "SSH traffic - Data: Session activity with flow record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 100,
-            "max": 2000
-          }
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1039,78 +688,52 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 100,
+            "max": 2000
+          }
         }
       ],
       "next": "route_ssh_traffic_data"
     },
     {
-      "name": "route_ssh_traffic_data",
-      "type": "gateway:exclusive",
+      "type": "gateway:exclusive", "name": "route_ssh_traffic_data",
       "transitions": [
-        {
-          "next": "route_ssh_traffic_continue",
-          "probability": 0.4
-        },
-        {
-          "next": "setup_ssh_traffic_fin",
-          "probability": 0.6
-        }
+        {"next": "route_ssh_traffic_continue", "probability": 0.4},
+        {"next": "setup_ssh_traffic_fin", "probability": 0.6}
       ]
     },
     {
-      "name": "route_ssh_traffic_continue",
+      "type": "gateway:exclusive", "name": "route_ssh_traffic_continue",
       "_comment": "SSH traffic - Continue: Loop back for next session window",
-            "transitions": [
-        {
-          "next": "setup_ssh_traffic_data",
-          "probability": 1.0
-        }
-      ],
-      "type": "gateway:exclusive"
+      "transitions": [
+        {"next": "setup_ssh_traffic_data", "probability": 1.0}
+      ]
     },
     {
-      "name": "setup_ssh_traffic_fin",
-      "type": "activity",
+      "type": "activity", "name": "setup_ssh_traffic_fin",
       "_comment": "Setup SSH FIN: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_ssh_traffic_fin"
     },
     {
-      "name": "pause_ssh_traffic_fin",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_ssh_traffic_fin",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_ssh_traffic_fin"
     },
     {
-      "name": "emit_ssh_traffic_fin",
-      "type": "activity",
+      "type": "activity", "name": "emit_ssh_traffic_fin",
       "_comment": "TCP FIN - Graceful connection close",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 2
-          },
-          "_comment": "FIN, ACK"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1119,53 +742,38 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 2
+          },
+          "_comment": "FIN, ACK"
         }
       ],
       "next": "connection_end"
     },
     {
-      "name": "setup_ssh_traffic_rst",
-      "type": "activity",
+      "type": "activity", "name": "setup_ssh_traffic_rst",
       "_comment": "Setup SSH RST: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_ssh_traffic_rst"
     },
     {
-      "name": "pause_ssh_traffic_rst",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_ssh_traffic_rst",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_ssh_traffic_rst"
     },
     {
-      "name": "emit_ssh_traffic_rst",
-      "type": "activity",
+      "type": "activity", "name": "emit_ssh_traffic_rst",
       "_comment": "TCP RST - Connection reset/refused",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 1
-          },
-          "_comment": "RST packet"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1174,49 +782,37 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 1
+          },
+          "_comment": "RST packet"
         }
       ],
       "next": "connection_end"
     },
     {
-      "name": "setup_internal_api_syn",
-      "type": "activity",
+      "type": "activity", "name": "setup_internal_api_syn",
       "_comment": "Setup internal API SYN: capture connection 5-tuple and var_start before timer delay",
       "variables": [
+        {"type": "clock", "name": "var_start"},
         {
-          "name": "var_srcaddr",
-          "type": "ipaddress",
-          "cardinality": 20,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 8
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 167772672,
-            "max": 167772691
-          },
-          "_comment": "Microservices (10.0.2.0-10.0.2.19)"
+          "type": "enum", "name": "var_dstport",
+          "values": [8080, 8081, 8443, 9090, 3000, 4000, 5000, 6000],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
         },
         {
-          "name": "var_dstaddr",
-          "type": "ipaddress",
-          "cardinality": 20,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 8
-          },
+          "type": "int", "name": "var_protocol",
+          "cardinality": 0,
           "distribution": {
-            "type": "uniform",
-            "min": 167772672,
-            "max": 167772691
+            "type": "constant",
+            "value": 6
           }
         },
         {
-          "name": "var_srcport",
-          "type": "int",
+          "type": "int", "name": "var_srcport",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1225,69 +821,42 @@
           }
         },
         {
-          "name": "var_dstport",
-          "type": "enum",
-          "values": [
-            8080,
-            8081,
-            8443,
-            9090,
-            3000,
-            4000,
-            5000,
-            6000
-          ],
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 7
-          }
-        },
-        {
-          "name": "var_protocol",
-          "type": "int",
-          "cardinality": 0,
+          "type": "ipaddress", "name": "var_dstaddr",
+          "cardinality": 20,
           "distribution": {
-            "type": "constant",
-            "value": 6
-          }
+            "type": "uniform",
+            "min": 167772672,
+            "max": 167772691
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 8}
         },
         {
-          "name": "var_start",
-          "type": "clock"
+          "type": "ipaddress", "name": "var_srcaddr",
+          "cardinality": 20,
+          "distribution": {
+            "type": "uniform",
+            "min": 167772672,
+            "max": 167772691
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 8},
+          "_comment": "Microservices (10.0.2.0-10.0.2.19)"
         }
       ],
       "next": "pause_internal_api_syn"
     },
     {
-      "name": "pause_internal_api_syn",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_internal_api_syn",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_internal_api_syn"
     },
     {
-      "name": "emit_internal_api_syn",
-      "type": "activity",
+      "type": "activity", "name": "emit_internal_api_syn",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 3
-          },
-          "_comment": "SYN, SYN-ACK, ACK"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1297,68 +866,45 @@
           "_comment": "TCP handshake packets"
         },
         {
-          "name": "var_end",
-          "type": "clock",
-          "_comment": "Capture end time after handshake delay"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 3
+          },
+          "_comment": "SYN, SYN-ACK, ACK"
         }
       ],
       "next": "route_internal_api_syn"
     },
     {
-      "name": "route_internal_api_syn",
-      "type": "gateway:exclusive",
+      "type": "gateway:exclusive", "name": "route_internal_api_syn",
       "transitions": [
-        {
-          "next": "setup_internal_api_data",
-          "probability": 0.95
-        },
-        {
-          "next": "setup_internal_api_rst",
-          "probability": 0.05
-        }
+        {"next": "setup_internal_api_data", "probability": 0.95},
+        {"next": "setup_internal_api_rst", "probability": 0.05}
       ]
     },
     {
-      "name": "setup_internal_api_data",
-      "type": "activity",
+      "type": "activity", "name": "setup_internal_api_data",
       "_comment": "Setup internal API data: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_internal_api_data"
     },
     {
-      "name": "pause_internal_api_data",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 3.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_internal_api_data",
+      "delay": {"type": "uniform", "min": 1.0, "max": 3.0},
       "next": "emit_internal_api_data"
     },
     {
-      "name": "emit_internal_api_data",
-      "type": "activity",
+      "type": "activity", "name": "emit_internal_api_data",
       "_comment": "Internal API traffic - Data: API call with flow record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 10,
-            "max": 100
-          }
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1367,78 +913,52 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10,
+            "max": 100
+          }
         }
       ],
       "next": "route_internal_api_data"
     },
     {
-      "name": "route_internal_api_data",
-      "type": "gateway:exclusive",
+      "type": "gateway:exclusive", "name": "route_internal_api_data",
       "transitions": [
-        {
-          "next": "route_internal_api_continue",
-          "probability": 0.7
-        },
-        {
-          "next": "setup_internal_api_fin",
-          "probability": 0.3
-        }
+        {"next": "route_internal_api_continue", "probability": 0.7},
+        {"next": "setup_internal_api_fin", "probability": 0.3}
       ]
     },
     {
-      "name": "route_internal_api_continue",
+      "type": "gateway:exclusive", "name": "route_internal_api_continue",
       "_comment": "Internal API traffic - Continue: Loop back for next API call",
-            "transitions": [
-        {
-          "next": "setup_internal_api_data",
-          "probability": 1.0
-        }
-      ],
-      "type": "gateway:exclusive"
+      "transitions": [
+        {"next": "setup_internal_api_data", "probability": 1.0}
+      ]
     },
     {
-      "name": "setup_internal_api_fin",
-      "type": "activity",
+      "type": "activity", "name": "setup_internal_api_fin",
       "_comment": "Setup internal API FIN: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_internal_api_fin"
     },
     {
-      "name": "pause_internal_api_fin",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_internal_api_fin",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_internal_api_fin"
     },
     {
-      "name": "emit_internal_api_fin",
-      "type": "activity",
+      "type": "activity", "name": "emit_internal_api_fin",
       "_comment": "TCP FIN - Graceful connection close",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 2
-          },
-          "_comment": "FIN, ACK"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1447,53 +967,38 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 2
+          },
+          "_comment": "FIN, ACK"
         }
       ],
       "next": "connection_end"
     },
     {
-      "name": "setup_internal_api_rst",
-      "type": "activity",
+      "type": "activity", "name": "setup_internal_api_rst",
       "_comment": "Setup internal API RST: capture var_start before timer delay",
       "variables": [
-        {
-          "name": "var_start",
-          "type": "clock"
-        }
+        {"type": "clock", "name": "var_start"}
       ],
       "next": "pause_internal_api_rst"
     },
     {
-      "name": "pause_internal_api_rst",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_internal_api_rst",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_internal_api_rst"
     },
     {
-      "name": "emit_internal_api_rst",
-      "type": "activity",
+      "type": "activity", "name": "emit_internal_api_rst",
       "_comment": "TCP RST - Connection reset/refused",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 1
-          },
-          "_comment": "RST packet"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1502,73 +1007,29 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 1
+          },
+          "_comment": "RST packet"
         }
       ],
       "next": "connection_end"
     },
     {
-      "name": "setup_port_scan",
-      "type": "activity",
+      "type": "activity", "name": "setup_port_scan",
       "_comment": "Setup port scan: capture 5-tuple, var_action REJECT, and var_start before timer delay",
       "variables": [
+        {"type": "clock", "name": "var_start"},
         {
-          "name": "var_action",
-          "type": "enum",
-          "values": [
-            "REJECT"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
+          "type": "enum", "name": "var_action",
+          "values": ["REJECT"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
         },
         {
-          "name": "var_srcaddr",
-          "type": "ipaddress",
-          "cardinality": 5,
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 4
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 200000000,
-            "max": 300000000
-          },
-          "_comment": "Known attacker IPs"
-        },
-        {
-          "name": "var_dstaddr",
-          "type": "ipaddress",
-          "cardinality": 50,
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 49
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 167772160,
-            "max": 167772209
-          },
-          "_comment": "Scanning range (10.0.0.0-10.0.0.49)"
-        },
-        {
-          "name": "var_srcport",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 1024,
-            "max": 65535
-          }
-        },
-        {
-          "name": "var_dstport",
-          "type": "int",
+          "type": "int", "name": "var_dstport",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1578,8 +1039,7 @@
           "_comment": "Scanning all ports"
         },
         {
-          "name": "var_protocol",
-          "type": "int",
+          "type": "int", "name": "var_protocol",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1587,41 +1047,52 @@
           }
         },
         {
-          "name": "var_start",
-          "type": "clock"
+          "type": "int", "name": "var_srcport",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1024,
+            "max": 65535
+          }
+        },
+        {
+          "type": "ipaddress", "name": "var_dstaddr",
+          "cardinality": 50,
+          "distribution": {
+            "type": "uniform",
+            "min": 167772160,
+            "max": 167772209
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 49},
+          "_comment": "Scanning range (10.0.0.0-10.0.0.49)"
+        },
+        {
+          "type": "ipaddress", "name": "var_srcaddr",
+          "cardinality": 5,
+          "distribution": {
+            "type": "uniform",
+            "min": 200000000,
+            "max": 300000000
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4},
+          "_comment": "Known attacker IPs"
         }
       ],
       "next": "pause_port_scan"
     },
     {
-      "name": "pause_port_scan",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_port_scan",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_port_scan"
     },
     {
-      "name": "emit_port_scan",
-      "type": "activity",
+      "type": "activity", "name": "emit_port_scan",
       "_comment": "Port scan - Capture 5-tuple & var_start, delay for probe (1-2s), emit rejected scan",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 1
-          },
-          "_comment": "Single SYN probe"
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1630,16 +1101,21 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 1
+          },
+          "_comment": "Single SYN probe"
         }
       ],
       "next": "route_port_scan_response"
     },
     {
-      "name": "route_port_scan_response",
+      "type": "gateway:exclusive", "name": "route_port_scan_response",
       "_comment": "Decide how firewall/service responds to scan",
-            "transitions": [
+      "transitions": [
         {
           "next": "route_port_scan_next_or_stop",
           "probability": 0.7,
@@ -1655,76 +1131,44 @@
           "probability": 0.1,
           "_comment": "Honeypot - SYN-ACK"
         }
-      ],
-      "type": "gateway:exclusive"
+      ]
     },
     {
-      "name": "route_port_scan_next_or_stop",
+      "type": "gateway:exclusive", "name": "route_port_scan_next_or_stop",
       "_comment": "Continue scanning or stop",
-            "transitions": [
-        {
-          "next": "setup_port_scan",
-          "probability": 0.95
-        },
-        {
-          "next": "connection_end",
-          "probability": 0.05
-        }
-      ],
-      "type": "gateway:exclusive"
+      "transitions": [
+        {"next": "setup_port_scan", "probability": 0.95},
+        {"next": "connection_end", "probability": 0.05}
+      ]
     },
     {
-      "name": "setup_port_scan_closed",
-      "type": "activity",
+      "type": "activity", "name": "setup_port_scan_closed",
       "_comment": "Port closed response - Setup: Capture var_start for RST",
       "variables": [
+        {"type": "clock", "name": "var_start"},
         {
-          "name": "var_action",
-          "type": "enum",
-          "values": [
-            "ACCEPT"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          },
+          "type": "enum", "name": "var_action",
+          "values": ["ACCEPT"],
+          "cardinality_distribution": {"type": "constant", "value": 0},
           "_comment": "Response is accepted (RST gets through)"
-        },
-        {
-          "name": "var_start",
-          "type": "clock"
         }
       ],
       "next": "pause_port_scan_closed_activity"
     },
     {
-      "name": "pause_port_scan_closed_activity",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_port_scan_closed_activity",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_port_scan_closed_response"
     },
     {
-      "name": "emit_port_scan_closed_response",
-      "type": "activity",
+      "type": "activity", "name": "emit_port_scan_closed_response",
       "_comment": "Port closed response - Emit: Service sends RST",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 1
-          }
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1733,67 +1177,43 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
-        },
-        {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 1
+          }
         }
       ],
       "next": "route_port_scan_next_or_stop"
     },
     {
-      "name": "setup_port_scan_honeypot",
-      "type": "activity",
+      "type": "activity", "name": "setup_port_scan_honeypot",
       "_comment": "Honeypot response - Setup: Capture var_start for SYN-ACK",
       "variables": [
+        {"type": "clock", "name": "var_start"},
         {
-          "name": "var_action",
-          "type": "enum",
-          "values": [
-            "ACCEPT"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
-        },
-        {
-          "name": "var_start",
-          "type": "clock"
+          "type": "enum", "name": "var_action",
+          "values": ["ACCEPT"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
         }
       ],
       "next": "pause_port_scan_honeypot_activity"
     },
     {
-      "name": "pause_port_scan_honeypot_activity",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_port_scan_honeypot_activity",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_port_scan_honeypot_response"
     },
     {
-      "name": "emit_port_scan_honeypot_response",
-      "type": "activity",
+      "type": "activity", "name": "emit_port_scan_honeypot_response",
       "_comment": "Honeypot response - Emit: Port appears open to trap attacker",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 1
-          }
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1802,65 +1222,23 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
-        },
-        {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 1
+          }
         }
       ],
       "next": "route_port_scan_next_or_stop"
     },
     {
-      "name": "setup_dns_traffic",
-      "type": "activity",
+      "type": "activity", "name": "setup_dns_traffic",
       "_comment": "Setup DNS: capture 5-tuple and var_start before timer delay",
       "variables": [
+        {"type": "clock", "name": "var_start"},
         {
-          "name": "var_srcaddr",
-          "type": "ipaddress",
-          "cardinality": 30,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 10
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 167772160,
-            "max": 167772189
-          },
-          "_comment": "Internal hosts (10.0.0.0-10.0.0.29)"
-        },
-        {
-          "name": "var_dstaddr",
-          "type": "ipaddress",
-          "cardinality": 2,
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 1
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 167772162,
-            "max": 167772163
-          },
-          "_comment": "DNS servers (10.0.0.2-10.0.0.3)"
-        },
-        {
-          "name": "var_srcport",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 49152,
-            "max": 65535
-          }
-        },
-        {
-          "name": "var_dstport",
-          "type": "int",
+          "type": "int", "name": "var_dstport",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1868,8 +1246,7 @@
           }
         },
         {
-          "name": "var_protocol",
-          "type": "int",
+          "type": "int", "name": "var_protocol",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1878,41 +1255,52 @@
           "_comment": "UDP"
         },
         {
-          "name": "var_start",
-          "type": "clock"
+          "type": "int", "name": "var_srcport",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 49152,
+            "max": 65535
+          }
+        },
+        {
+          "type": "ipaddress", "name": "var_dstaddr",
+          "cardinality": 2,
+          "distribution": {
+            "type": "uniform",
+            "min": 167772162,
+            "max": 167772163
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1},
+          "_comment": "DNS servers (10.0.0.2-10.0.0.3)"
+        },
+        {
+          "type": "ipaddress", "name": "var_srcaddr",
+          "cardinality": 30,
+          "distribution": {
+            "type": "uniform",
+            "min": 167772160,
+            "max": 167772189
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 10},
+          "_comment": "Internal hosts (10.0.0.0-10.0.0.29)"
         }
       ],
       "next": "pause_dns_traffic"
     },
     {
-      "name": "pause_dns_traffic",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 1.0,
-        "max": 2.0
-      },
+      "type": "event:intermediate:timer", "name": "pause_dns_traffic",
+      "delay": {"type": "uniform", "min": 1.0, "max": 2.0},
       "next": "emit_dns_traffic"
     },
     {
-      "name": "emit_dns_traffic",
-      "type": "activity",
+      "type": "activity", "name": "emit_dns_traffic",
       "_comment": "DNS traffic - Capture 5-tuple & var_start, delay for query/response (1-2s), emit flow record",
       "emitter": "vpc_flow_log",
       "variables": [
+        {"type": "clock", "name": "var_end"},
         {
-          "name": "var_packets",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 2,
-            "max": 4
-          }
-        },
-        {
-          "name": "var_bytes",
-          "type": "int",
+          "type": "int", "name": "var_bytes",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1921,29 +1309,24 @@
           }
         },
         {
-          "name": "var_end",
-          "type": "clock"
+          "type": "int", "name": "var_packets",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2,
+            "max": 4
+          }
         }
       ],
       "next": "route_dns_traffic"
     },
     {
-      "name": "route_dns_traffic",
-      "type": "gateway:exclusive",
+      "type": "gateway:exclusive", "name": "route_dns_traffic",
       "transitions": [
-        {
-          "next": "setup_dns_traffic",
-          "probability": 0.3
-        },
-        {
-          "next": "connection_end",
-          "probability": 0.7
-        }
+        {"next": "setup_dns_traffic", "probability": 0.3},
+        {"next": "connection_end", "probability": 0.7}
       ]
     },
-    {
-      "name": "connection_end",
-      "type": "event:end"
-    }
+    {"type": "event:end", "name": "connection_end"}
   ]
 }

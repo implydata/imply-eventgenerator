@@ -59,3 +59,13 @@ Config errors (bad field references, wrong distributions, missing variables) oft
 ## Config JSON authoring
 
 Config files grow large quickly. Keep the code and `docs/` reference docs in sync at all times — if a field or distribution type isn't documented, clarify before using it.
+
+## Config JSON style
+
+After writing or editing any config, run the formatter to enforce consistent field ordering and compact/expanded forms:
+
+```bash
+python tools/fmt_config.py presets/configs/<name>.json
+```
+
+The formatter is the authoritative source of style rules. Run `--check` in CI to detect unformatted files. The formatter guarantees no data loss: it compares the parsed original and output structurally before writing, and aborts if they differ.

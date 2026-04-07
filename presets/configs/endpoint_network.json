@@ -4,61 +4,24 @@
       "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} {{ win_action }} {{ transport }} {{ src }} {{ dest }} {{ src_port }} {{ dest_port }} {{ size }} - - - - - - {{ direction }} -"
     }
   },
-  "_description": "Windows Firewall log (WindowsFirewallLog sourcetype). Models the traffic an internet-facing Windows host sees: inbound HTTP/HTTPS, RDP, SMB probes, SMTP, port scanning \u2014 plus outbound DNS and Windows Update. High DROP rate reflects typical internet exposure.",
+  "_description": "Windows Firewall log (WindowsFirewallLog sourcetype). Models the traffic an internet-facing Windows host sees: inbound HTTP/HTTPS, RDP, SMB probes, SMTP, port scanning — plus outbound DNS and Windows Update. High DROP rate reflects typical internet exposure.",
   "emitters": [
     {
       "name": "inbound_log",
       "_comment": "Inbound traffic: internet IP is src, local host IP is dest",
       "dimensions": [
+        {"type": "clock", "name": "time"},
+        {"type": "variable", "name": "dest", "variable": "var_local_ip"},
+        {"type": "variable", "name": "dest_port", "variable": "var_dest_port"},
+        {"type": "variable", "name": "size", "variable": "var_size"},
+        {"type": "variable", "name": "src", "variable": "var_internet_ip"},
+        {"type": "variable", "name": "src_port", "variable": "var_src_port"},
+        {"type": "variable", "name": "transport", "variable": "var_transport"},
+        {"type": "variable", "name": "win_action", "variable": "var_win_action"},
         {
-          "name": "time",
-          "type": "clock"
-        },
-        {
-          "name": "win_action",
-          "type": "variable",
-          "variable": "var_win_action"
-        },
-        {
-          "name": "transport",
-          "type": "variable",
-          "variable": "var_transport"
-        },
-        {
-          "name": "src",
-          "type": "variable",
-          "variable": "var_internet_ip"
-        },
-        {
-          "name": "dest",
-          "type": "variable",
-          "variable": "var_local_ip"
-        },
-        {
-          "name": "src_port",
-          "type": "variable",
-          "variable": "var_src_port"
-        },
-        {
-          "name": "dest_port",
-          "type": "variable",
-          "variable": "var_dest_port"
-        },
-        {
-          "name": "size",
-          "type": "variable",
-          "variable": "var_size"
-        },
-        {
-          "name": "direction",
-          "type": "enum",
-          "values": [
-            "RECEIVE"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
+          "type": "enum", "name": "direction",
+          "values": ["RECEIVE"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
         }
       ]
     },
@@ -66,63 +29,25 @@
       "name": "outbound_log",
       "_comment": "Outbound traffic: local host IP is src, internet IP is dest",
       "dimensions": [
+        {"type": "clock", "name": "time"},
+        {"type": "variable", "name": "dest", "variable": "var_internet_ip"},
+        {"type": "variable", "name": "dest_port", "variable": "var_dest_port"},
+        {"type": "variable", "name": "size", "variable": "var_size"},
+        {"type": "variable", "name": "src", "variable": "var_local_ip"},
+        {"type": "variable", "name": "src_port", "variable": "var_src_port"},
+        {"type": "variable", "name": "transport", "variable": "var_transport"},
+        {"type": "variable", "name": "win_action", "variable": "var_win_action"},
         {
-          "name": "time",
-          "type": "clock"
-        },
-        {
-          "name": "win_action",
-          "type": "variable",
-          "variable": "var_win_action"
-        },
-        {
-          "name": "transport",
-          "type": "variable",
-          "variable": "var_transport"
-        },
-        {
-          "name": "src",
-          "type": "variable",
-          "variable": "var_local_ip"
-        },
-        {
-          "name": "dest",
-          "type": "variable",
-          "variable": "var_internet_ip"
-        },
-        {
-          "name": "src_port",
-          "type": "variable",
-          "variable": "var_src_port"
-        },
-        {
-          "name": "dest_port",
-          "type": "variable",
-          "variable": "var_dest_port"
-        },
-        {
-          "name": "size",
-          "type": "variable",
-          "variable": "var_size"
-        },
-        {
-          "name": "direction",
-          "type": "enum",
-          "values": [
-            "SEND"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
+          "type": "enum", "name": "direction",
+          "values": ["SEND"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
         }
       ]
     }
   ],
   "states": [
     {
-      "name": "connection_start",
-      "type": "event:start:timer",
+      "type": "event:start:timer", "name": "connection_start",
       "timer": {
         "type": "exponential",
         "mean": 0.3,
@@ -131,136 +56,56 @@
       "next": "setup_connection"
     },
     {
-      "name": "setup_connection",
-      "type": "activity",
+      "type": "activity", "name": "setup_connection",
       "variables": [
         {
-          "name": "var_local_ip",
-          "type": "ipaddress",
+          "type": "ipaddress", "name": "var_local_ip",
           "cardinality": 5,
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 4
-          },
           "distribution": {
             "type": "uniform",
             "min": 167772160,
             "max": 167772415
           },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4},
           "_comment": "10.0.0.0/24 — small pool of local Windows hosts"
         }
       ],
       "next": "route_initial"
     },
     {
-      "name": "route_initial",
-      "type": "gateway:exclusive",
+      "type": "gateway:exclusive", "name": "route_initial",
       "transitions": [
-        {
-          "next": "emit_inbound_https",
-          "probability": 0.255
-        },
-        {
-          "next": "emit_inbound_https_drop",
-          "probability": 0.045
-        },
-        {
-          "next": "emit_inbound_http",
-          "probability": 0.12
-        },
-        {
-          "next": "emit_inbound_http_drop",
-          "probability": 0.03
-        },
-        {
-          "next": "emit_inbound_rdp",
-          "probability": 0.05
-        },
-        {
-          "next": "emit_inbound_rdp_drop",
-          "probability": 0.15
-        },
-        {
-          "next": "emit_inbound_smb_drop",
-          "probability": 0.1
-        },
-        {
-          "next": "emit_inbound_smtp",
-          "probability": 0.048
-        },
-        {
-          "next": "emit_inbound_smtp_drop",
-          "probability": 0.032
-        },
-        {
-          "next": "emit_inbound_scan",
-          "probability": 0.03
-        },
-        {
-          "next": "emit_outbound_dns",
-          "probability": 0.04
-        },
-        {
-          "next": "emit_outbound_update",
-          "probability": 0.1
-        }
+        {"next": "emit_inbound_https", "probability": 0.255},
+        {"next": "emit_inbound_https_drop", "probability": 0.045},
+        {"next": "emit_inbound_http", "probability": 0.12},
+        {"next": "emit_inbound_http_drop", "probability": 0.03},
+        {"next": "emit_inbound_rdp", "probability": 0.05},
+        {"next": "emit_inbound_rdp_drop", "probability": 0.15},
+        {"next": "emit_inbound_smb_drop", "probability": 0.1},
+        {"next": "emit_inbound_smtp", "probability": 0.048},
+        {"next": "emit_inbound_smtp_drop", "probability": 0.032},
+        {"next": "emit_inbound_scan", "probability": 0.03},
+        {"next": "emit_outbound_dns", "probability": 0.04},
+        {"next": "emit_outbound_update", "probability": 0.1}
       ]
     },
     {
-      "name": "emit_inbound_https",
-      "_comment": "HTTPS (443) inbound \u2014 ALLOW (85% of HTTPS traffic).",
+      "type": "activity", "name": "emit_inbound_https",
+      "_comment": "HTTPS (443) inbound — ALLOW (85% of HTTPS traffic).",
       "emitter": "inbound_log",
       "variables": [
         {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "ALLOW"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
+          "type": "enum", "name": "var_transport",
+          "values": ["TCP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "TCP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
+          "type": "enum", "name": "var_win_action",
+          "values": ["ALLOW"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
         },
         {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
-          "cardinality": 500,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 100
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 16777216,
-            "max": 3758096383
-          }
-        },
-        {
-          "name": "var_src_port",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 49152,
-            "max": 65535
-          }
-        },
-        {
-          "name": "var_dest_port",
-          "type": "int",
+          "type": "int", "name": "var_dest_port",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -268,63 +113,16 @@
           }
         },
         {
-          "name": "var_size",
-          "type": "int",
+          "type": "int", "name": "var_size",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 40,
             "max": 1500
           }
-        }
-      ],
-      "type": "activity",
-      "next": "connection_end"
-    },
-    {
-      "name": "emit_inbound_https_drop",
-      "_comment": "HTTPS (443) inbound \u2014 DROP (15% of HTTPS traffic).",
-      "emitter": "inbound_log",
-      "variables": [
-        {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "DROP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "TCP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
-        },
-        {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
-          "cardinality": 500,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 100
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 16777216,
-            "max": 3758096383
-          }
-        },
-        {
-          "name": "var_src_port",
-          "type": "int",
+          "type": "int", "name": "var_src_port",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -333,8 +131,35 @@
           }
         },
         {
-          "name": "var_dest_port",
-          "type": "int",
+          "type": "ipaddress", "name": "var_internet_ip",
+          "cardinality": 500,
+          "distribution": {
+            "type": "uniform",
+            "min": 16777216,
+            "max": 3758096383
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 100}
+        }
+      ],
+      "next": "connection_end"
+    },
+    {
+      "type": "activity", "name": "emit_inbound_https_drop",
+      "_comment": "HTTPS (443) inbound — DROP (15% of HTTPS traffic).",
+      "emitter": "inbound_log",
+      "variables": [
+        {
+          "type": "enum", "name": "var_transport",
+          "values": ["TCP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "enum", "name": "var_win_action",
+          "values": ["DROP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "int", "name": "var_dest_port",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -342,63 +167,16 @@
           }
         },
         {
-          "name": "var_size",
-          "type": "int",
+          "type": "int", "name": "var_size",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 40,
             "max": 200
           }
-        }
-      ],
-      "type": "activity",
-      "next": "connection_end"
-    },
-    {
-      "name": "emit_inbound_http",
-      "_comment": "HTTP (80) inbound \u2014 ALLOW (80% of HTTP traffic).",
-      "emitter": "inbound_log",
-      "variables": [
-        {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "ALLOW"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "TCP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
-        },
-        {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
-          "cardinality": 500,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 100
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 16777216,
-            "max": 3758096383
-          }
-        },
-        {
-          "name": "var_src_port",
-          "type": "int",
+          "type": "int", "name": "var_src_port",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -407,8 +185,35 @@
           }
         },
         {
-          "name": "var_dest_port",
-          "type": "int",
+          "type": "ipaddress", "name": "var_internet_ip",
+          "cardinality": 500,
+          "distribution": {
+            "type": "uniform",
+            "min": 16777216,
+            "max": 3758096383
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 100}
+        }
+      ],
+      "next": "connection_end"
+    },
+    {
+      "type": "activity", "name": "emit_inbound_http",
+      "_comment": "HTTP (80) inbound — ALLOW (80% of HTTP traffic).",
+      "emitter": "inbound_log",
+      "variables": [
+        {
+          "type": "enum", "name": "var_transport",
+          "values": ["TCP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "enum", "name": "var_win_action",
+          "values": ["ALLOW"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "int", "name": "var_dest_port",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -416,63 +221,16 @@
           }
         },
         {
-          "name": "var_size",
-          "type": "int",
+          "type": "int", "name": "var_size",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 40,
             "max": 1500
           }
-        }
-      ],
-      "type": "activity",
-      "next": "connection_end"
-    },
-    {
-      "name": "emit_inbound_http_drop",
-      "_comment": "HTTP (80) inbound \u2014 DROP (20% of HTTP traffic).",
-      "emitter": "inbound_log",
-      "variables": [
-        {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "DROP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "TCP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
-        },
-        {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
-          "cardinality": 500,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 100
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 16777216,
-            "max": 3758096383
-          }
-        },
-        {
-          "name": "var_src_port",
-          "type": "int",
+          "type": "int", "name": "var_src_port",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -481,8 +239,35 @@
           }
         },
         {
-          "name": "var_dest_port",
-          "type": "int",
+          "type": "ipaddress", "name": "var_internet_ip",
+          "cardinality": 500,
+          "distribution": {
+            "type": "uniform",
+            "min": 16777216,
+            "max": 3758096383
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 100}
+        }
+      ],
+      "next": "connection_end"
+    },
+    {
+      "type": "activity", "name": "emit_inbound_http_drop",
+      "_comment": "HTTP (80) inbound — DROP (20% of HTTP traffic).",
+      "emitter": "inbound_log",
+      "variables": [
+        {
+          "type": "enum", "name": "var_transport",
+          "values": ["TCP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "enum", "name": "var_win_action",
+          "values": ["DROP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "int", "name": "var_dest_port",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -490,147 +275,107 @@
           }
         },
         {
-          "name": "var_size",
-          "type": "int",
+          "type": "int", "name": "var_size",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 40,
             "max": 200
           }
+        },
+        {
+          "type": "int", "name": "var_src_port",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 49152,
+            "max": 65535
+          }
+        },
+        {
+          "type": "ipaddress", "name": "var_internet_ip",
+          "cardinality": 500,
+          "distribution": {
+            "type": "uniform",
+            "min": 16777216,
+            "max": 3758096383
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 100}
         }
       ],
-      "type": "activity",
       "next": "connection_end"
     },
     {
-      "name": "emit_inbound_rdp",
-      "_comment": "RDP (3389) inbound \u2014 ALLOW. Authorised remote desktop (25% of RDP traffic).",
+      "type": "activity", "name": "emit_inbound_rdp",
+      "_comment": "RDP (3389) inbound — ALLOW. Authorised remote desktop (25% of RDP traffic).",
       "emitter": "inbound_log",
       "variables": [
         {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "ALLOW"
-          ],
-          "cardinality_distribution": {
+          "type": "enum", "name": "var_transport",
+          "values": ["TCP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "enum", "name": "var_win_action",
+          "values": ["ALLOW"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "int", "name": "var_dest_port",
+          "cardinality": 0,
+          "distribution": {
             "type": "constant",
-            "value": 0
+            "value": 3389
           }
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "TCP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
+          "type": "int", "name": "var_size",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 40,
+            "max": 200
           }
         },
         {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
+          "type": "int", "name": "var_src_port",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 49152,
+            "max": 65535
+          }
+        },
+        {
+          "type": "ipaddress", "name": "var_internet_ip",
           "cardinality": 20,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 5
-          },
           "distribution": {
             "type": "uniform",
             "min": 16777216,
             "max": 3758096383
-          }
-        },
-        {
-          "name": "var_src_port",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 49152,
-            "max": 65535
-          }
-        },
-        {
-          "name": "var_dest_port",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "constant",
-            "value": 3389
-          }
-        },
-        {
-          "name": "var_size",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 40,
-            "max": 200
-          }
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 5}
         }
       ],
-      "type": "activity",
       "next": "connection_end"
     },
     {
-      "name": "emit_inbound_rdp_drop",
-      "_comment": "RDP (3389) inbound \u2014 DROP. Brute-force/scanning from internet (75% of RDP traffic).",
+      "type": "activity", "name": "emit_inbound_rdp_drop",
+      "_comment": "RDP (3389) inbound — DROP. Brute-force/scanning from internet (75% of RDP traffic).",
       "emitter": "inbound_log",
       "variables": [
         {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "DROP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
+          "type": "enum", "name": "var_transport",
+          "values": ["TCP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "TCP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
+          "type": "enum", "name": "var_win_action",
+          "values": ["DROP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
         },
         {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
-          "cardinality": 300,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 30
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 16777216,
-            "max": 3758096383
-          }
-        },
-        {
-          "name": "var_src_port",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 49152,
-            "max": 65535
-          }
-        },
-        {
-          "name": "var_dest_port",
-          "type": "int",
+          "type": "int", "name": "var_dest_port",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -638,63 +383,16 @@
           }
         },
         {
-          "name": "var_size",
-          "type": "int",
+          "type": "int", "name": "var_size",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 40,
             "max": 80
           }
-        }
-      ],
-      "type": "activity",
-      "next": "connection_end"
-    },
-    {
-      "name": "emit_inbound_smb_drop",
-      "_comment": "SMB (445) inbound \u2014 DROP. Should never be open to the internet; all attempts blocked.",
-      "emitter": "inbound_log",
-      "variables": [
-        {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "DROP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "TCP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
-        },
-        {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
-          "cardinality": 200,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 20
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 16777216,
-            "max": 3758096383
-          }
-        },
-        {
-          "name": "var_src_port",
-          "type": "int",
+          "type": "int", "name": "var_src_port",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -703,8 +401,35 @@
           }
         },
         {
-          "name": "var_dest_port",
-          "type": "int",
+          "type": "ipaddress", "name": "var_internet_ip",
+          "cardinality": 300,
+          "distribution": {
+            "type": "uniform",
+            "min": 16777216,
+            "max": 3758096383
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 30}
+        }
+      ],
+      "next": "connection_end"
+    },
+    {
+      "type": "activity", "name": "emit_inbound_smb_drop",
+      "_comment": "SMB (445) inbound — DROP. Should never be open to the internet; all attempts blocked.",
+      "emitter": "inbound_log",
+      "variables": [
+        {
+          "type": "enum", "name": "var_transport",
+          "values": ["TCP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "enum", "name": "var_win_action",
+          "values": ["DROP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "int", "name": "var_dest_port",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -712,63 +437,16 @@
           }
         },
         {
-          "name": "var_size",
-          "type": "int",
+          "type": "int", "name": "var_size",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 40,
             "max": 80
           }
-        }
-      ],
-      "type": "activity",
-      "next": "connection_end"
-    },
-    {
-      "name": "emit_inbound_smtp",
-      "_comment": "SMTP (25) inbound \u2014 ALLOW. Legitimate email delivery (60% of SMTP traffic).",
-      "emitter": "inbound_log",
-      "variables": [
-        {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "ALLOW"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "TCP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
-        },
-        {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
-          "cardinality": 400,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 80
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 16777216,
-            "max": 3758096383
-          }
-        },
-        {
-          "name": "var_src_port",
-          "type": "int",
+          "type": "int", "name": "var_src_port",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -777,8 +455,35 @@
           }
         },
         {
-          "name": "var_dest_port",
-          "type": "int",
+          "type": "ipaddress", "name": "var_internet_ip",
+          "cardinality": 200,
+          "distribution": {
+            "type": "uniform",
+            "min": 16777216,
+            "max": 3758096383
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 20}
+        }
+      ],
+      "next": "connection_end"
+    },
+    {
+      "type": "activity", "name": "emit_inbound_smtp",
+      "_comment": "SMTP (25) inbound — ALLOW. Legitimate email delivery (60% of SMTP traffic).",
+      "emitter": "inbound_log",
+      "variables": [
+        {
+          "type": "enum", "name": "var_transport",
+          "values": ["TCP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "enum", "name": "var_win_action",
+          "values": ["ALLOW"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "int", "name": "var_dest_port",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -786,63 +491,16 @@
           }
         },
         {
-          "name": "var_size",
-          "type": "int",
+          "type": "int", "name": "var_size",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 40,
             "max": 800
           }
-        }
-      ],
-      "type": "activity",
-      "next": "connection_end"
-    },
-    {
-      "name": "emit_inbound_smtp_drop",
-      "_comment": "SMTP (25) inbound \u2014 DROP. Spam/relay attempts blocked by policy (40% of SMTP traffic).",
-      "emitter": "inbound_log",
-      "variables": [
-        {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "DROP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "TCP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
-        },
-        {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
-          "cardinality": 400,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 80
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 16777216,
-            "max": 3758096383
-          }
-        },
-        {
-          "name": "var_src_port",
-          "type": "int",
+          "type": "int", "name": "var_src_port",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -851,8 +509,35 @@
           }
         },
         {
-          "name": "var_dest_port",
-          "type": "int",
+          "type": "ipaddress", "name": "var_internet_ip",
+          "cardinality": 400,
+          "distribution": {
+            "type": "uniform",
+            "min": 16777216,
+            "max": 3758096383
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 80}
+        }
+      ],
+      "next": "connection_end"
+    },
+    {
+      "type": "activity", "name": "emit_inbound_smtp_drop",
+      "_comment": "SMTP (25) inbound — DROP. Spam/relay attempts blocked by policy (40% of SMTP traffic).",
+      "emitter": "inbound_log",
+      "variables": [
+        {
+          "type": "enum", "name": "var_transport",
+          "values": ["TCP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "enum", "name": "var_win_action",
+          "values": ["DROP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "int", "name": "var_dest_port",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -860,75 +545,53 @@
           }
         },
         {
-          "name": "var_size",
-          "type": "int",
+          "type": "int", "name": "var_size",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 40,
             "max": 200
           }
-        }
-      ],
-      "type": "activity",
-      "next": "connection_end"
-    },
-    {
-      "name": "emit_inbound_scan",
-      "_comment": "Port scan \u2014 random destination port, always DROPped. 3% of traffic.",
-      "emitter": "inbound_log",
-      "variables": [
-        {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "DROP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "TCP",
-            "UDP"
-          ],
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 1
-          }
-        },
-        {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
-          "cardinality": 100,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 10
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 16777216,
-            "max": 3758096383
-          }
-        },
-        {
-          "name": "var_src_port",
-          "type": "int",
+          "type": "int", "name": "var_src_port",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
-            "min": 1024,
+            "min": 49152,
             "max": 65535
           }
         },
         {
-          "name": "var_dest_port",
-          "type": "int",
+          "type": "ipaddress", "name": "var_internet_ip",
+          "cardinality": 400,
+          "distribution": {
+            "type": "uniform",
+            "min": 16777216,
+            "max": 3758096383
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 80}
+        }
+      ],
+      "next": "connection_end"
+    },
+    {
+      "type": "activity", "name": "emit_inbound_scan",
+      "_comment": "Port scan — random destination port, always DROPped. 3% of traffic.",
+      "emitter": "inbound_log",
+      "variables": [
+        {
+          "type": "enum", "name": "var_transport",
+          "values": ["TCP", "UDP"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
+        },
+        {
+          "type": "enum", "name": "var_win_action",
+          "values": ["DROP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "int", "name": "var_dest_port",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -937,75 +600,53 @@
           }
         },
         {
-          "name": "var_size",
-          "type": "int",
+          "type": "int", "name": "var_size",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 40,
             "max": 80
           }
-        }
-      ],
-      "type": "activity",
-      "next": "connection_end"
-    },
-    {
-      "name": "emit_outbound_dns",
-      "_comment": "DNS (53) outbound \u2014 ALLOW. Host resolving names.",
-      "emitter": "outbound_log",
-      "variables": [
-        {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "ALLOW"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "UDP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
-        },
-        {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
-          "cardinality": 4,
-          "cardinality_distribution": {
+          "type": "int", "name": "var_src_port",
+          "cardinality": 0,
+          "distribution": {
             "type": "uniform",
-            "min": 0,
-            "max": 3
-          },
+            "min": 1024,
+            "max": 65535
+          }
+        },
+        {
+          "type": "ipaddress", "name": "var_internet_ip",
+          "cardinality": 100,
           "distribution": {
             "type": "uniform",
             "min": 16777216,
             "max": 3758096383
           },
-          "_comment": "Small pool of DNS resolvers"
+          "cardinality_distribution": {"type": "exponential", "mean": 10}
+        }
+      ],
+      "next": "connection_end"
+    },
+    {
+      "type": "activity", "name": "emit_outbound_dns",
+      "_comment": "DNS (53) outbound — ALLOW. Host resolving names.",
+      "emitter": "outbound_log",
+      "variables": [
+        {
+          "type": "enum", "name": "var_transport",
+          "values": ["UDP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
         },
         {
-          "name": "var_src_port",
-          "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 49152,
-            "max": 65535
-          }
+          "type": "enum", "name": "var_win_action",
+          "values": ["ALLOW"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
         },
         {
-          "name": "var_dest_port",
-          "type": "int",
+          "type": "int", "name": "var_dest_port",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1013,64 +654,16 @@
           }
         },
         {
-          "name": "var_size",
-          "type": "int",
+          "type": "int", "name": "var_size",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 40,
             "max": 120
           }
-        }
-      ],
-      "type": "activity",
-      "next": "connection_end"
-    },
-    {
-      "name": "emit_outbound_update",
-      "_comment": "HTTPS (443) outbound \u2014 ALLOW. Windows Update, telemetry, cloud agent traffic.",
-      "emitter": "outbound_log",
-      "variables": [
-        {
-          "name": "var_win_action",
-          "type": "enum",
-          "values": [
-            "ALLOW"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
         },
         {
-          "name": "var_transport",
-          "type": "enum",
-          "values": [
-            "TCP"
-          ],
-          "cardinality_distribution": {
-            "type": "constant",
-            "value": 0
-          }
-        },
-        {
-          "name": "var_internet_ip",
-          "type": "ipaddress",
-          "cardinality": 20,
-          "cardinality_distribution": {
-            "type": "exponential",
-            "mean": 5
-          },
-          "distribution": {
-            "type": "uniform",
-            "min": 16777216,
-            "max": 3758096383
-          },
-          "_comment": "Microsoft CDN and update endpoints"
-        },
-        {
-          "name": "var_src_port",
-          "type": "int",
+          "type": "int", "name": "var_src_port",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1079,8 +672,36 @@
           }
         },
         {
-          "name": "var_dest_port",
-          "type": "int",
+          "type": "ipaddress", "name": "var_internet_ip",
+          "cardinality": 4,
+          "distribution": {
+            "type": "uniform",
+            "min": 16777216,
+            "max": 3758096383
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3},
+          "_comment": "Small pool of DNS resolvers"
+        }
+      ],
+      "next": "connection_end"
+    },
+    {
+      "type": "activity", "name": "emit_outbound_update",
+      "_comment": "HTTPS (443) outbound — ALLOW. Windows Update, telemetry, cloud agent traffic.",
+      "emitter": "outbound_log",
+      "variables": [
+        {
+          "type": "enum", "name": "var_transport",
+          "values": ["TCP"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "enum", "name": "var_win_action",
+          "values": ["ALLOW"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "int", "name": "var_dest_port",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1088,22 +709,37 @@
           }
         },
         {
-          "name": "var_size",
-          "type": "int",
+          "type": "int", "name": "var_size",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 40,
             "max": 1500
           }
+        },
+        {
+          "type": "int", "name": "var_src_port",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 49152,
+            "max": 65535
+          }
+        },
+        {
+          "type": "ipaddress", "name": "var_internet_ip",
+          "cardinality": 20,
+          "distribution": {
+            "type": "uniform",
+            "min": 16777216,
+            "max": 3758096383
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 5},
+          "_comment": "Microsoft CDN and update endpoints"
         }
       ],
-      "type": "activity",
       "next": "connection_end"
     },
-    {
-      "name": "connection_end",
-      "type": "event:end"
-    }
+    {"type": "event:end", "name": "connection_end"}
   ]
 }

@@ -12,6 +12,7 @@ Available field generator types are:
 
 * [`clock`](#clock) generates a datetime using the simulated clock.
 * [`timestamp`](./types/timestamp.md) generates a datetime between a range.
+* [`string:static`](./types/string_static.md) emits a fixed literal string — the same value every time.
 * [`string`](./types/string.md) creates a synthetic string, optionally limited to a specific list of characters.
 * [`int`](./types/int.md) generates whole numbers.
 * [`float`](./types/float.md) generates floating point numbers.
