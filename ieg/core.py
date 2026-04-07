@@ -15,7 +15,6 @@ from sortedcontainers import SortedList
 from ieg.dimensions import DimensionTimestampClock, DimensionVariable, get_dimensions, get_variables
 from ieg.distributions import parse_distribution, parse_schedule
 from ieg.states import Controller, State, Transition
-from ieg.targets import TargetConfluent, TargetFile, TargetKafka
 from ieg.validate import validate_config
 
 from jinja2 import Environment, Undefined, UndefinedError
@@ -220,7 +219,7 @@ class Clock:
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
-    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None, template_name=None):
+    def __init__(self, name, config, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None, template_name=None):
         self.name = name
         self.config = config
 
@@ -262,79 +261,14 @@ class DataDriver:
         self.sim_control = Controller(total_recs, runtime, self.global_clock)
         self.schedule = parse_schedule(schedule_config, self.global_clock) if schedule_config else None
 
-        #
-        # Set up the output target
-        #
-
-        self.target = target
-        if target is None:
-            # Default: write to stdout
-            stdout_lock = threading.Lock()
-            class _StdoutPrinter:
-                def print(self, record):
-                    with stdout_lock:
-                        sys.stdout.write(str(record) + '\n')
-                        sys.stdout.flush()
-            self.target_printer = _StdoutPrinter()
-        elif target['type'].lower() == 'file':
-            path = target['path']
-            if path is None:
-                msg = 'Error: File target requires a path item'
-                raise Exception(msg)
-            self.target_printer = TargetFile(path)
-        elif target['type'].lower() == 'kafka':
-            if 'endpoint' in target.keys():
-                endpoint = target['endpoint']
-            else:
-                msg = 'Error: Kafka target requires an endpoint item'
-                raise Exception(msg)
-            if 'topic' in target.keys():
-                topic = target['topic']
-            else:
-                msg = 'Error: Kafka target requires a topic item'
-                raise Exception(msg)
-            if 'security_protocol' in target.keys():
-                security_protocol = target['security_protocol']
-            else:
-                security_protocol = 'PLAINTEXT'
-            if 'compression_type' in target.keys():
-                compression_type = target['compression_type']
-            else:
-                compression_type = None
-            if 'topic_key' in target.keys():
-                topic_key = target['topic_key']
-            else:
-                topic_key = []
-            self.target_printer = TargetKafka(endpoint, topic, security_protocol, compression_type, topic_key)
-        elif target['type'].lower() == 'confluent':
-            if 'servers' in target.keys():
-                servers = target['servers']
-            else:
-                msg = 'Error: Confluent target requires a servers item'
-                raise Exception(msg)
-            if 'topic' in target.keys():
-                topic = target['topic']
-            else:
-                msg = 'Error: Confluent target requires a topic item'
-                raise Exception(msg)
-            if 'username' in target.keys():
-                username = target['username']
-            else:
-                msg = 'Error: Confluent target requires a username'
-                raise Exception(msg)
-            if 'password' in target.keys():
-                password = target['password']
-            else:
-                msg = 'Error: Confluent target requires a password'
-                raise Exception(msg)
-            if 'topic_key' in target.keys():
-                topic_key = target['topic_key']
-            else:
-                topic_key = []
-            self.target_printer = TargetConfluent(servers, topic, username, password, topic_key)
-        else:
-            msg = 'Error: Unknown target type "'+target['type']+'"'
-            raise Exception(msg)
+        # Always write to stdout
+        stdout_lock = threading.Lock()
+        class _StdoutPrinter:
+            def print(self, record):
+                with stdout_lock:
+                    sys.stdout.write(str(record) + '\n')
+                    sys.stdout.flush()
+        self.target_printer = _StdoutPrinter()
 
         # Remove type validation and default to generator
         self.type = 'generator'
@@ -540,7 +474,6 @@ class DataDriver:
         """Return a dict of simulation status and statistics."""
         return {  'name': self.name,
                   'config_file': self.config['config_file'],
-                  'target': self.target,
                   'active_sessions': self.sim_control.get_entity_count(),
                   'total_records': self.sim_control.get_record_count(),
                   'start_time': self.sim_control.get_start_time().strftime('%Y-%m-%d %H:%M:%S'),

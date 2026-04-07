@@ -8,10 +8,9 @@ Workers traverse a number of [`states`](./states.md) and generate events as they
 | --- | --- | --- | --- |
 | [`states`](./states.md) | A list of states that will be used to generate events. | See [`states`](./states.md) | Yes |
 | [`emitters`](./emitters.md) | A list of emitters. | See [`emitters`](./emitters.md) | Yes |
-| [`target`](./targets.md) | A target configuration. | See [`targets`](./targets.md) | No |
 | `interarrival` | The period of time that elapses before the next worker is started. | A [distribution](./distributions.md) object. | Yes |
 
-In this example, there is just one state: `state_1`. When each worker reaches that state, it uses the `example_record_1` emitter to produce an event with one field called `enum_dim`, where the possible values of that field are selected using a uniform distribution from a list of characters. Since no `target` is specified, the output is sent to stdout.
+In this example, there is just one state: `state_1`. When each worker reaches that state, it uses the `example_record_1` emitter to produce an event with one field called `enum_dim`, where the possible values of that field are selected using a uniform distribution from a list of characters. Output is written to stdout.
 
 There is then a `delay` of 5 seconds before a worker picks the next state from a list of possible `transitions`. In this configuration, because the `next` state is the same as the current state, the worker repeatedly enters this state until the generator itself stops.
 

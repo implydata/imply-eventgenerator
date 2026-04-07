@@ -58,7 +58,7 @@ class DimensionBase:
             for i in range(cardinality):
                 value = None
                 while True:
-                    value = self.get_stochastic_value()
+                    value = self._get_raw_value()
                     if value not in self.cardinality:
                         break
                 self.cardinality.append(value)
@@ -102,14 +102,17 @@ class DimensionBase:
                 valid = False
         return valid
 
-    def get_stochastic_value(self):
-        """
-        Generate a random individual value for the dimension.
+    def _get_raw_value(self):
+        """Generate a single raw value from the underlying distribution. Must be overridden by subclasses."""
+        raise NotImplementedError("Unexpected error: Subclasses must implement _get_raw_value()")
 
-        This method is intended to be overridden by subclasses to provide specific
-        stochastic value generation logic.
-        """
-        raise NotImplementedError("Unexpected error: Subclasses must implement get_stochastic_value()")
+    def get_stochastic_value(self):
+        """Return a value, selecting from the cardinality pool if one was built, otherwise generating a fresh value."""
+        if self.cardinality is not None:
+            index = int(self.cardinality_distribution.get_sample())
+            index = max(0, min(index, len(self.cardinality) - 1))
+            return self.cardinality[index]
+        return self._get_raw_value()
 
     def get_json_field_string(self):
         """
@@ -156,7 +159,7 @@ class DimensionInt(DimensionBase):
     def validate_desc(desc, context):
         return DimensionBase.validate_desc(desc, context)
 
-    def get_stochastic_value(self):
+    def _get_raw_value(self):
         return int(self.value_distribution.get_sample())
 
 #
@@ -191,7 +194,7 @@ class DimensionFloat(DimensionBase):
                 valid = False
         return valid
 
-    def get_stochastic_value(self):
+    def _get_raw_value(self):
         return float(self.value_distribution.get_sample())
 
     def get_json_field_string(self):
@@ -330,7 +333,7 @@ class DimensionString(DimensionBase):
                 valid = False
         return valid
 
-    def get_stochastic_value(self):
+    def _get_raw_value(self):
         length = int(self.length_distribution.get_sample())
         return ''.join(random.choices(list(self.chars), k=length))
 
@@ -399,7 +402,7 @@ class DimensionTimestamp(DimensionBase):
             for i in range(cardinality):
                 value = None
                 while True:
-                    value = self.get_stochastic_value()
+                    value = self._get_raw_value()
                     if value not in self.cardinality:
                         break
                 self.cardinality.append(value)
@@ -424,7 +427,7 @@ class DimensionTimestamp(DimensionBase):
                 valid = False
         return valid
 
-    def get_stochastic_value(self):
+    def _get_raw_value(self):
         # Return a random timestamp as a datetime object
         timestamp = datetime.fromtimestamp(self.value_distribution.get_sample())
         if timestamp.tzinfo is None:
@@ -463,7 +466,7 @@ class DimensionIPAddress(DimensionBase):
     def validate_desc(desc, context):
         return DimensionBase.validate_desc(desc, context)
 
-    def get_stochastic_value(self):
+    def _get_raw_value(self):
         value = int(self.value_distribution.get_sample())
         return str((value & 0xFF000000) >> 24)+'.'+str((value & 0x00FF0000) >> 16)+'.'+str((value & 0x0000FF00) >> 8)+'.'+str(value & 0x000000FF)
 
