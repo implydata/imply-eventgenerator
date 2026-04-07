@@ -85,10 +85,18 @@ def validate_config(config, template_name=None):
                 if not validate_distribution_desc(state['delay'], f"{ctx} delay"):
                     valid = False
             for var in state.get('variables', []):
-                if not validate_dimension_desc(var, f"{ctx}, variable '{var.get('name', '?')}'"):
+                vctx = f"{ctx}, variable '{var.get('name', '?')}'"
+                if var.get('type', '').lower() == 'variable':
+                    logger.error("%s: type 'variable' is not valid in a state's 'variables' block — it can only be used in emitter dimensions", vctx)
+                    valid = False
+                elif not validate_dimension_desc(var, vctx):
                     valid = False
             for var in state.get('variables_on_entry', []):
-                if not validate_dimension_desc(var, f"{ctx}, variables_on_entry '{var.get('name', '?')}'"):
+                vctx = f"{ctx}, variables_on_entry '{var.get('name', '?')}'"
+                if var.get('type', '').lower() == 'variable':
+                    logger.error("%s: type 'variable' is not valid in a state's 'variables_on_entry' block — it can only be used in emitter dimensions", vctx)
+                    valid = False
+                elif not validate_dimension_desc(var, vctx):
                     valid = False
 
         # Cross-cutting: transition destination existence
