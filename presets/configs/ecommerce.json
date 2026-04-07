@@ -429,16 +429,6 @@
           }
         }
       ],
-      "next": "pause_initial_human"
-    },
-    {
-      "name": "pause_initial_human",
-      "type": "event:intermediate:timer",
-      "delay": {
-        "type": "uniform",
-        "min": 0.3,
-        "max": 1.2
-      },
       "next": "emit_initial_human"
     },
     {
