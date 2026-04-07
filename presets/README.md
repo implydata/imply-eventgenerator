@@ -10,6 +10,9 @@ Ready-to-use generator configs and schedules. Each config embeds named output te
 | [`ecommerce_lighting.json`](../docs/presets/ecommerce_lighting.md) | Lighting retailer — busier, shorter sessions | ~1,365 |
 | [`ecommerce_furniture.json`](../docs/presets/ecommerce_furniture.md) | Furniture retailer — quieter, longer sessions | ~415 |
 | [`vpc_flow_logs.json`](../docs/presets/vpc_flow_logs.md) | AWS VPC Flow Logs | ~25 |
+| [`ssh_auth.json`](../docs/presets/ssh_auth.md) | Linux SSH authentication | ~38 |
+| [`pbx_calls.json`](../docs/presets/pbx_calls.md) | PBX call detail records | ~5 |
+| [`endpoint_network.json`](../docs/presets/endpoint_network.md) | Internet-facing Windows endpoint network traffic | ~1 |
 
 ## Schedules
 
