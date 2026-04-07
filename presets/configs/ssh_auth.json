@@ -59,12 +59,8 @@
         "type": "exponential",
         "mean": 10.0
       },
-      "next": "setup_initial"
-    },
-    {
-      "name": "setup_initial",
-      "_comment": "Sets per-connection variables. No emission.",
-      "variables": [
+      "next": "route_initial",
+      "variables_on_entry": [
         {
           "name": "var_hostname",
           "type": "enum",
@@ -134,9 +130,7 @@
             "max": 65535
           }
         }
-      ],
-      "type": "activity",
-      "next": "route_initial"
+      ]
     },
     {
       "name": "route_initial",

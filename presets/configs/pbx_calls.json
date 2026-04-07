@@ -64,12 +64,8 @@
         "type": "exponential",
         "mean": 30.0
       },
-      "next": "setup_initial"
-    },
-    {
-      "name": "setup_initial",
-      "_comment": "Sets per-call identity. No emission.",
-      "variables": [
+      "next": "route_busy_check",
+      "variables_on_entry": [
         {
           "name": "var_accountcode",
           "type": "enum",
@@ -114,9 +110,23 @@
             "max": 9999
           }
         }
-      ],
-      "type": "activity",
-      "next": "pause_ringing"
+      ]
+    },
+    {
+      "name": "route_busy_check",
+      "_comment": "Busy is determined before ringing — the line is either free or engaged.",
+      "type": "gateway:exclusive",
+      "transitions": [
+        { "next": "pause_busy", "probability": 0.1 },
+        { "next": "pause_ringing", "probability": 0.9 }
+      ]
+    },
+    {
+      "name": "pause_busy",
+      "_comment": "Busy signal is near-instantaneous.",
+      "type": "event:intermediate:timer",
+      "delay": { "type": "uniform", "min": 0.5, "max": 2.0 },
+      "next": "emit_busy"
     },
     {
       "name": "pause_ringing",
@@ -130,23 +140,12 @@
     },
     {
       "name": "route_ringing",
-      "_comment": "Phone is ringing. Delay models ring time before outcome is determined. No emission.",
-      "variables": [],
+      "_comment": "Phone rang out — either answered or no answer.",
+      "type": "gateway:exclusive",
       "transitions": [
-        {
-          "next": "pause_answered",
-          "probability": 0.7
-        },
-        {
-          "next": "emit_no_answer",
-          "probability": 0.2
-        },
-        {
-          "next": "emit_busy",
-          "probability": 0.1
-        }
-      ],
-      "type": "gateway:exclusive"
+        { "next": "pause_answered", "probability": 0.78 },
+        { "next": "emit_no_answer", "probability": 0.22 }
+      ]
     },
     {
       "name": "pause_answered",
