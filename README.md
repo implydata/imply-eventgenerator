@@ -77,8 +77,6 @@ python generator.py \
 | `--debug` | Enable debug logging. Outputs detailed thread scheduling and event queue information to stderr. |
 | [`--seed`](docs/deterministic.md) | An integer seed for deterministic data generation. Use with `-s` for fully reproducible output. |
 
-You can also run the generator as an HTTP service. See the [server API reference](docs/server.md) for details.
-
 ### Generator configuration
 
 The [generator configuration](docs/generator-config.md) is a JSON document passed via `-c`. It contains two top-level arrays:
