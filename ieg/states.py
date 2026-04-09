@@ -184,11 +184,11 @@ class State:
                     except (TypeError, ValueError):
                         pass
                 if abs(total_prob - 1.0) > 0.01:
-                    logger.warning(
-                        "%s: transition probabilities sum to %.4f, not 1.0"
-                        " — random.choices will normalise but this is likely a mistake",
+                    logger.error(
+                        "%s: transition probabilities sum to %.4f, not 1.0",
                         context, total_prob
                     )
+                    valid = False
             return valid
 
         return valid
