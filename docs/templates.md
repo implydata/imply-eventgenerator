@@ -87,17 +87,3 @@ python generator.py -c presets/configs/ecommerce.json --template apache:access:j
 ```
 
 This checks that the named template exists and that all referenced environment variables are set.
-
-## Relationship to format files (`-f`)
-
-`--template` replaces the need for separate format files in most cases. The key differences:
-
-| | `--template` | `-f` |
-| --- | --- | --- |
-| Template location | Embedded in the config | Separate `.txt` file |
-| Syntax | Jinja2 | Home-grown `{{field\|strftime}}` |
-| Multiple formats from one config | Yes — pick by name | No — one file per format |
-| Datetime formatting | `{{ time.strftime(...) }}` or `{{ time.timestamp()\|int }}` | `{{time\|%d/%b/%Y}}` |
-| Environment variables | `{{ env.VAR }}` | `%VAR%` |
-
-Format files remain fully supported. See [formats.md](formats.md) for the `-f` reference.

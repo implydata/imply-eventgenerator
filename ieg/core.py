@@ -8,7 +8,6 @@ state machine, spawns worker threads, and writes rendered records to stdout.
 import json
 import logging
 import os
-import re
 import sys
 import threading
 import time
@@ -25,9 +24,6 @@ from ieg.validate import validate_config
 from jinja2 import Environment, Undefined, UndefinedError
 
 logger = logging.getLogger('ieg')
-
-# Update TEMPLATE_REGEX to capture optional strftime format
-TEMPLATE_REGEX = re.compile(r"{{\s*([^|}]+)(?:\|([^}]+))?\s*}}")
 
 
 class _StrictEnv:
@@ -49,19 +45,6 @@ class _StrictEnv:
 
 _jinja_env = Environment(undefined=Undefined)
 _jinja_env.globals['env'] = _StrictEnv()
-
-def render_env_variables(config):
-    """Substitute %VAR% placeholders in a legacy format-file template with environment variable values.
-
-    This handles the legacy -f format file env var syntax only. Jinja2 templates
-    (--template) use {{ env.VAR }} syntax via _StrictEnv instead.
-    """
-    if isinstance(config, dict):
-        return {k: render_env_variables(v) for k, v in config.items()}
-    elif isinstance(config, str):
-        return re.sub(r"%(\w+)%", lambda match: os.getenv(match.group(1), match.group(0)), config)
-    else:
-        return config
 
 class FutureEvent:
     """A future event in the simulation clock, used to manage simulated time ordering."""
@@ -233,7 +216,7 @@ class Clock:
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
-    def __init__(self, name, config, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None, template_name=None):
+    def __init__(self, name, config, runtime, total_recs, time_type, start_time, max_entities, schedule_config=None, template_name=None):
         self.name = name
         self.config = config
 
@@ -246,7 +229,6 @@ class DataDriver:
         self.start_time = start_time
         self.max_entities = max_entities
         self.status_msg = 'Creating...'
-        self.record_format = record_format
         self.header = None
         self.jinja_template = None
 
@@ -259,13 +241,6 @@ class DataDriver:
             self.jinja_template = _jinja_env.from_string(tmpl['body'])
             if self.header is None and 'header' in tmpl:
                 self.header = tmpl['header']
-
-        if self.record_format:
-            self.record_format = render_env_variables(record_format)
-            if isinstance(self.record_format, str):
-                unresolved = re.findall(r"%(\w+)%", self.record_format)
-                if unresolved:
-                    raise ValueError(f"Record format file contains unresolved environment variables: {', '.join(unresolved)}")
 
         #
         # Set up the global clock
@@ -347,68 +322,14 @@ class DataDriver:
         self.rate_delay = parse_distribution(timer_desc['cardinality_distribution'], clock=self.global_clock)
 
 
-    @staticmethod
-    def get_value(record, key, default=""):
-        """
-        Retrieve the value for a given key from the record dictionary.
-        Supports nested keys using dot notation (e.g., "field.subfield").
-        Returns the default value if the key is missing.
-        """
-        keys = key.split(".")  # Split the key by dots for nested access
-        value = record
-        for k in keys:
-            if isinstance(value, dict) and k in value:
-                value = value[k]
-            else:
-                return default  # Return default if key is missing
-        return value
-
-    def render_template(self, template, record):
-        """
-        Replace placeholders in the template with values from the record.
-        Supports optional strftime formatting for datetime values.
-        """
-        def replace_placeholder(match):
-            key = match.group(1)  # Placeholder name (e.g., "time")
-            format_str = match.group(2)  # Optional strftime format (e.g., "%Y-%m-%d")
-            value = self.get_value(record, key)  # Retrieve the value from the record
-
-            if isinstance(value, datetime) and format_str:
-                try:
-                    return value.strftime(format_str)  # Apply strftime if format is provided
-                except ValueError as e:
-                    raise ValueError(f"Invalid strftime format '{format_str}' for key '{key}': {e}")
-            return str(value) if value is not None else ''  # Default to string conversion
-
-        return TEMPLATE_REGEX.sub(replace_placeholder, template)
-
-    def apply_pattern(self, pattern, record):
-        """Recursively apply template rendering to a pattern structure."""
-        if isinstance(pattern, dict):
-            return {k: self.apply_pattern(v, record) for k, v in pattern.items()}
-        elif isinstance(pattern, str):
-            return self.render_template(pattern, record)
-        else:
-            return pattern
-
     def render_record(self, record):
-        """Format a record as JSON or using the configured record format template."""
+        """Render a record as a Jinja2 template string, or plain JSON if no template is active."""
         if self.jinja_template is not None:
             return self.jinja_template.render(**record)
-
-        if not self.record_format:
-            # If no record format is provided, return the record as a JSON string.
-            for key, value in record.items():
-                if isinstance(value, datetime):
-                    record[key] = value.isoformat()
-            return json.dumps(record)
-
-        try:
-            # Apply the pattern using the new approach
-            formatted_record = self.apply_pattern(self.record_format, record)
-        except Exception as e:
-            raise ValueError(f"Error formatting record with pattern: {e}")
-        return formatted_record
+        for key, value in record.items():
+            if isinstance(value, datetime):
+                record[key] = value.isoformat()
+        return json.dumps(record)
 
     def create_record(self, dimensions, variables):
         """Build a record dict from dimensions and variable values."""

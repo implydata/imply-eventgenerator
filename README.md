@@ -68,8 +68,7 @@ python generator.py \
 | Argument | Description |
 | --- | --- |
 | [`-c`](#generator-configuration) | Path to the generator configuration JSON file. See [generator configuration reference](docs/generator-config.md). |
-| [`-t` / `--template`](docs/templates.md) | A named output template embedded in the generator config. Mutually exclusive with `-f`. See [output templates](docs/templates.md). |
-| [`-f`](#output-format) | **(Deprecated)** A file that contains a pattern that can be used to format the output records. Use `-t` instead. |
+| [`-t` / `--template`](docs/templates.md) | A named output template embedded in the generator config. See [output templates](docs/templates.md). |
 | [`-s`](#simulated-time) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-configuration) | The maximum number of workers to create. Defaults to 100. |
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
@@ -99,8 +98,6 @@ Each concurrent worker (`-m`) runs one independent Actor — one lifecycle from 
 ### Output format
 
 Configs that include a `templates` block (such as those in `presets/configs/`) support named output templates selected with `--template`. Templates use Jinja2 and can produce JSON, CSV, NCSA combined logs, and more from a single config. See the [output templates reference](docs/templates.md).
-
-For configs without a `templates` block, use `-f` to supply an external format file — a text file with field names in braces (`{{` and `}}`). Format files support datetime formatting and environment variable substitution. See the [format file reference](docs/formats.md).
 
 ### Generation limits
 
