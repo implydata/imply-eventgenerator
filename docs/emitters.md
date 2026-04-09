@@ -1,5 +1,7 @@
 # Event emitters
 
+> Building a new config? See [How to build a config](./how-to-build-a-config.md) for the design process. This page is the emitter field reference.
+
 Emitters define the data that will be created by the data generator when a particular [state](./states.md) is reached.
 
 Define one or more emitters, each with its own dimensions and data configuration.

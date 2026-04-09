@@ -30,7 +30,7 @@ Write out the lifecycle as a simple flow before touching JSON. Focus on:
 
 > **Example lifecycle:**
 >
-> ```
+> ```text
 > Ticket arrives
 >   → Ticket created event emitted (captures ticket_id, priority, category)
 >   → Sits in triage queue (1–10 minutes)
@@ -69,6 +69,7 @@ Apply the mapping to the example:
 | Ticket closed | `event:end` | `ticket_closed` |
 
 > **Key rules:**
+>
 > - Only `event:start:timer` and `event:intermediate:timer` advance the clock. Activities and gateways are instantaneous.
 > - Only `activity` states emit records or set variables.
 > - `gateway:exclusive` makes a probabilistic routing decision and nothing else.
@@ -101,12 +102,14 @@ The `event:start:timer` is typically named after the arrival event (`ticket_arri
 **Emitters** define the output record shape. One emitter per record type. Each dimension in an emitter either generates a fresh value or references a variable via `"type": "variable"`.
 
 > **Example variables:**
+>
 > - `var_ticket_id` — set at creation, referenced at resolution
 > - `var_priority` — set at creation (enum: urgent/normal/low)
 > - `var_category` — set at creation (enum: billing/technical/account)
 > - `var_agent_id` — set at resolution
 >
 > **Example emitters:**
+>
 > - `ticket_log` — emits `ticket_id`, `priority`, `category`, `agent_id` (using variables and fresh values)
 
 ---
@@ -125,6 +128,7 @@ For each timer and each generated field, choose a distribution. See [distributio
 | Fixed value field (not random at all) | `string:static` or `int:static` |
 
 > **Example distributions:**
+>
 > - Interarrival (`ticket_arrives`): `exponential` mean 30s — tickets arrive roughly every 30 seconds on average
 > - Triage queue wait: `uniform` 60–600s — anywhere from 1 to 10 minutes
 > - Fast-track resolution: `uniform` 300–900s (5–15 min)
@@ -284,11 +288,12 @@ Config errors (bad field references, wrong distributions, missing variables) oft
 
 `-m` is a concurrency **cap**, not a volume knob. Volume is controlled by the interarrival mean. The maximum useful `-m` is determined by Little's Law:
 
-```
+```bash
 max -m = W / mean
 ```
 
 Where:
+
 - **W** = average session duration in seconds (sum of all timer means along the expected path)
 - **mean** = interarrival mean in seconds
 

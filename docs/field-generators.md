@@ -1,5 +1,7 @@
 # Field generators
 
+> Building a new config? See [How to build a config](./how-to-build-a-config.md) for the design process. This page is the field generator type reference.
+
 Field generators are JSON objects that appear in emitter [`dimensions`](./emitters.md) and state [`variables`](./states.md).
 
 Whenever a worker encounters a field generator, whether via an emitter dimension list or a state variable, it generates a key (`name`) and a value.

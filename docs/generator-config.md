@@ -1,8 +1,10 @@
 # Generator configurations
 
-Control the behavior of the data generator using a JSON configuration object known as the "Generator Configuration". See the `config_file` folder for [examples](../config_file/examples).
+> Building a new config? See [How to build a config](./how-to-build-a-config.md) for the step-by-step design process. This page is the field-level reference.
 
-Workers traverse a number of [`states`](./states.md) and generate events as they go using [`emitters`](./emitters.md). Activity states emit records; `event:intermediate:timer` states advance the clock without emitting. Workers are spawned periodically, controlled by the `cardinality_distribution` of the `event:start:timer` state.
+A generator configuration is a JSON document passed to the generator via `-c`. Each concurrent worker (`-m`) runs one independent Actor — one lifecycle from the initial `event:start:timer` state to `event:end`. Activity states emit records; `event:intermediate:timer` states advance the clock without emitting.
+
+See [`presets/configs/`](../presets/configs/) for ready-to-use examples.
 
 | Object | Description | Options | Required? |
 | --- | --- | --- | --- |
@@ -54,7 +56,7 @@ Try this out by saving the above to `example.json`.
 The following command will create 10 records and use only one worker:
 
 ```bash
-python3 src/generator.py -f example.json -n 10 -m 1
+python generator.py -c example.json -n 10 -m 1 -s "2024-01-01T00:00:00"
 ```
 
 This causes the following output.  Notice that each row is spaced 5 seconds apart, since only one worker is generating results.
@@ -89,7 +91,8 @@ When run with `-m 3`, 3 workers are spawned. Since `session_start` has a `consta
 
 ## See Also
 
-- [States Documentation](states.md) - Detailed state configuration guide
-- [Emitters Documentation](emitters.md) - Emitter configuration reference
-- [Common Patterns](patterns.md) - State machine patterns and techniques for building realistic configurations
-- [Best Practices](best-practices.md) - Configuration guidelines, naming conventions, and development workflow
+- [How to build a config](how-to-build-a-config.md) — step-by-step design guide
+- [States](states.md) — state type reference
+- [Emitters](emitters.md) — emitter field reference
+- [Common patterns](patterns.md) — state machine patterns
+- [Best practices](best-practices.md) — naming conventions and pitfalls

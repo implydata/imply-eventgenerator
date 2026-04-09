@@ -1,10 +1,12 @@
 # Worker states
 
+> Building a new config? See [How to build a config](./how-to-build-a-config.md) for the design process. This page is the state type field reference.
+
 ## The Actor
 
 Every state machine models the behaviour of a single **Actor** — the real-world entity whose lifecycle the state machine represents. Each concurrent worker (`-m`) runs one independent instance of the machine, simulating one Actor at a time.
 
-Identifying the Actor upfront is the most important design decision for a new config. It determines what counts as a "session", what variables are set once at entry and carried through, and where the natural `stop` point is.
+Identifying the Actor upfront is the most important design decision for a new config. It determines what counts as one lifecycle, what variables are set once at entry and carried through, and which state is the `event:end`.
 
 | Config | Actor |
 | --- | --- |
@@ -356,7 +358,7 @@ This example models a simple network connection: a start timer controls interarr
         { "name": "end", "type": "variable", "variable": "var_end" }
       ]
     }
-  ],
+  ]
 }
 ```
 
@@ -364,10 +366,8 @@ This example models a simple network connection: a start timer controls interarr
 
 ## See Also
 
-- [Generator Configuration](generator-config.md) - Core concepts and configuration overview
-- [Common Patterns](patterns.md) - State machine patterns including:
-  - Variable Persistence Across States
-  - Common Variables in Initial State
-  - Multiple Records Per Connection
-  - TCP Connection Lifecycle Pattern
-- [Best Practices](best-practices.md) - Configuration guidelines and naming conventions
+- [How to build a config](how-to-build-a-config.md) — step-by-step design guide
+- [Field generators](field-generators.md) — all field generator types for use in `variables`
+- [Distributions](distributions.md) — distribution types for `cardinality_distribution`
+- [Common patterns](patterns.md) — variable persistence, multi-record sessions, flow duration
+- [Best practices](best-practices.md) — naming conventions and pitfalls
