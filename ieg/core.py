@@ -189,7 +189,7 @@ class Clock:
 
     def sleep(self, delta):
         """Sleep for delta seconds. In simulated mode, advances sim time instead of waiting."""
-        if delta < 0:
+        if delta <= 0:
             return
         if self.time_type != 'REAL': # Simulated time
             self.lock.acquire()
