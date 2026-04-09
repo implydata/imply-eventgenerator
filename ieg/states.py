@@ -1,3 +1,12 @@
+"""State machine classes: Transition, State, and Controller.
+
+State models one node in the Actor lifecycle graph. Controller tracks simulation
+end conditions (record count or elapsed duration). Transition encodes a single
+weighted edge in a gateway:exclusive state's transitions list.
+
+See docs/states.md for the config-level reference.
+"""
+
 import logging
 import threading
 import random
@@ -7,8 +16,7 @@ import isodate
 logger = logging.getLogger('ieg')
 
 class Transition:
-    # Represents a state transition in the state machine.
-    # Defines the next state and the probability of transitioning to it.
+    """A single weighted edge in a gateway:exclusive state's transitions list."""
     def __init__(self, next_state, probability):
         self.next_state = next_state
         self.probability = probability
@@ -52,8 +60,15 @@ class Transition:
 VALID_TYPES = {'activity', 'gateway:exclusive', 'event:start:timer', 'event:intermediate:timer', 'event:end'}
 
 class State:
-    # Represents a state in the state machine.
-    # Defines dimensions, delay, transitions, and variables for the state.
+    """A node in the Actor lifecycle state machine.
+
+    type determines runtime behaviour:
+      event:start:timer        — controls worker spawn pacing; always first
+      event:intermediate:timer — advances the clock without emitting
+      activity                 — evaluates variables and optionally emits a record
+      gateway:exclusive        — routes to one of several next states by probability
+      event:end                — terminates the worker thread
+    """
     def __init__(self, name, state_type, dimensions, delay, transitions, variables):
         self.name = name
         self.type = state_type

@@ -1,3 +1,13 @@
+"""Dimension (field generator) classes for emitter records and state variables.
+
+Each Dimension* class corresponds to a field generator type in the config JSON
+(e.g. DimensionInt → "type": "int", DimensionEnum → "type": "enum"). All classes
+expose get_stochastic_value() for record building and validate_desc() for pre-flight
+config validation.
+
+See docs/field-generators.md for the config-level reference.
+"""
+
 import logging
 import random
 import string
@@ -146,8 +156,7 @@ class DimensionBase:
 #
 
 class DimensionInt(DimensionBase):
-    # Represents an integer dimension.
-    # Generates random integers based on a value distribution.
+    """Generates integer values from a numeric distribution. Config type: "int"."""
     def __init__(self, desc):
         self.value_distribution = parse_distribution(desc['distribution'])
         super().__init__(desc)
@@ -167,8 +176,7 @@ class DimensionInt(DimensionBase):
 #
 
 class DimensionFloat(DimensionBase):
-    # Represents a float dimension.
-    # Generates random float values based on a value distribution and optional precision.
+    """Generates float values from a numeric distribution with optional decimal precision. Config type: "float"."""
     def __init__(self, desc):
         self.value_distribution = parse_distribution(desc['distribution'])
         if 'precision' in desc:
@@ -218,8 +226,12 @@ class DimensionFloat(DimensionBase):
         return s
 
 class DimensionCounter:
-    # Represents a counter dimension.
-    # Generates sequential values starting from a specified value.
+    """Emits a sequentially incrementing integer. Config type: "counter".
+
+    The counter is per-instance, not global — each DimensionCounter object maintains
+    its own sequence. Useful for surrogate keys within a single emitter.
+    Fields: start (default 0), increment (default 1).
+    """
     def __init__(self, desc):
         self.name = desc['name']
         if 'percent_nulls' in desc.keys():
@@ -356,7 +368,11 @@ class DimensionIntStatic:
 
 
 class DimensionString(DimensionBase):
-    # Generates random strings based on a length distribution and character set.
+    """Generates random strings of a given length drawn from a character set. Config type: "string".
+
+    length_distribution controls how many characters to generate per value.
+    chars (optional) restricts the character set; defaults to all printable ASCII.
+    """
     def __init__(self, desc):
         self.length_distribution = parse_distribution(desc['length_distribution'])
         if 'chars' in desc:
@@ -426,6 +442,12 @@ class DimensionString(DimensionBase):
 #
 
 class DimensionTimestampClock:
+    """Captures the worker's current simulated clock time as a datetime. Config type: "clock".
+
+    Used for the record timestamp and for start/end time capture in the
+    setup → timer → emit pattern. Returns timezone-aware UTC datetimes.
+    Unlike DimensionTimestamp, this reflects the simulation clock, not a random range.
+    """
     def __init__(self, clock, desc):
         self.clock = clock
         self.name = desc['name']  # Ensure self.name is set
@@ -446,7 +468,11 @@ class DimensionTimestampClock:
         return current_time
 
 class DimensionTimestamp(DimensionBase):
-    # Generates random timestamps as datetime objects based on a distribution.
+    """Generates a random datetime within a fixed range, independent of the simulation clock. Config type: "timestamp".
+
+    distribution min/max are ISO 8601 strings. Use DimensionTimestampClock ("clock") instead
+    when you want the record time to track the simulation clock.
+    """
     def __init__(self, desc):
         self.name = desc['name']
         self.value_distribution = parse_timestamp_distribution(desc['distribution'])
@@ -522,7 +548,11 @@ class DimensionTimestamp(DimensionBase):
         return random.random() < self.percent_missing
 
 class DimensionIPAddress(DimensionBase):
-    # Generates random IP addresses based on a value distribution.
+    """Generates IPv4 addresses from a numeric distribution over the 32-bit address space. Config type: "ipaddress".
+
+    distribution min/max are integers representing the packed 32-bit address.
+    Use a CIDR range by computing min/max from the network prefix.
+    """
     def __init__(self, desc):
         self.value_distribution = parse_distribution(desc['distribution'])
         super().__init__(desc)
@@ -559,7 +589,12 @@ class DimensionIPAddress(DimensionBase):
 #
 
 class DimensionEnum:
-   # Return a value selected from a list.
+    """Selects a value from a fixed list using a cardinality_distribution index. Config type: "enum".
+
+    cardinality_distribution is used as a zero-based index into the values list, so
+    uniform(min=0, max=N-1) gives equal probability. The index is clamped to
+    [0, len(values)-1] to prevent out-of-range errors.
+    """
     def __init__(self, desc):
         self.name = desc['name']
         if 'percent_nulls' in desc.keys():
@@ -623,9 +658,7 @@ class DimensionEnum:
         return random.random() < self.percent_missing
 
 class DimensionObject():
-
-    # Generates JSON objects with nested dimensions.
-
+    """Generates a nested JSON object from a list of child dimensions. Config type: "object"."""
     def __init__(self, clock, desc):
         self.global_clock = clock
         self.name = desc['name']
@@ -724,9 +757,11 @@ class DimensionObject():
         return random.random() < self.percent_missing
 
 class DimensionList():
+    """Generates a JSON array whose length and element type are both drawn from distributions. Config type: "list".
 
-    # Generates lists of elements based on length and selection distributions.
-
+    length_distribution controls the number of elements per array.
+    selection_distribution indexes into the elements list to pick the element type for each slot.
+    """
     def __init__(self, clock, desc):
         self.global_clock = clock
         self.name = desc['name']
@@ -853,7 +888,13 @@ class DimensionList():
 #
 
 class DimensionVariable:
-    # Generate values based on a variable defined in the state machine.
+    """Outputs the current value of a named worker variable. Config type: "variable".
+
+    Variable values are set by activity states and persist for the lifetime of the worker.
+    If the referenced variable has not been set by the time the emitter runs, a KeyError
+    will be raised at runtime. Use validate_config() to catch this pre-flight.
+    Only valid in emitter dimensions, not in a state's variables block.
+    """
     def __init__(self, desc):
         self.name = desc['name']
         self.variable_name = desc['variable']

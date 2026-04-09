@@ -1,4 +1,9 @@
-"""IEG classes and functions."""
+"""Core engine: Clock, DataDriver, and record rendering.
+
+Clock manages simulated and real-time scheduling across worker threads.
+DataDriver is the top-level driver: it parses a generator config, builds the
+state machine, spawns worker threads, and writes rendered records to stdout.
+"""
 
 import json
 import logging
@@ -46,9 +51,10 @@ _jinja_env = Environment(undefined=Undefined)
 _jinja_env.globals['env'] = _StrictEnv()
 
 def render_env_variables(config):
-    """
-    Replace placeholders in the configuration with environment variable values.
-    Placeholders should be in the format %VARIABLE_NAME%.
+    """Substitute %VAR% placeholders in a legacy format-file template with environment variable values.
+
+    This handles the legacy -f format file env var syntax only. Jinja2 templates
+    (--template) use {{ env.VAR }} syntax via _StrictEnv instead.
     """
     if isinstance(config, dict):
         return {k: render_env_variables(v) for k, v in config.items()}
@@ -93,7 +99,15 @@ class FutureEvent:
         self.event.set()
 
 class Clock:
-    """Manages time for the data generation process, supporting real-time and simulated modes."""
+    """Manages time for all worker threads, supporting real-time and simulated modes.
+
+    In simulated mode (time_type != 'REAL'), threads coordinate via a shared sorted
+    event queue: each sleeping thread registers a FutureEvent, and only the thread
+    with the earliest scheduled time is allowed to run. This produces deterministic,
+    serialised output when combined with --seed.
+
+    In real-time mode, sleep() delegates to time.sleep() with no coordination.
+    """
 
     future_events = SortedList()
     active_threads = 0
@@ -449,7 +463,7 @@ class DataDriver:
         self.sim_control.remove_entity()
 
     def spawning_thread(self):
-        """Spawn worker threads at the configured interarrival rate."""
+        """Spawn worker threads at the rate set by the event:start:timer's cardinality_distribution."""
         self.global_clock.activate_thread()
 
         # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
