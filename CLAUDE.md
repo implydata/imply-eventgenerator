@@ -33,13 +33,22 @@ Every `docs/presets/<name>.md` must follow this structure:
 5. [Preset-specific sections] — e.g. product categories, session routing, per-Actor flow diagrams
 6. **Concurrency (`-m`)** — Little's Law table (W, mean, λ, max useful `-m`). Always required — users need to know there is an upper limit on volume.
 
-The section structure in `docs/best-practices.md` under "README Files" is outdated — ignore it.
-
 ## Keeping docs and code in sync
 
-The reference docs in `docs/` (especially `emitters.md`, `distributions.md`, `field-generators.md`) define what the engine actually supports. These must stay in sync with the code.
+The reference docs in `docs/` are the authoritative source for what the engine supports. These must stay in sync with the code:
 
-- If a code change adds or modifies a distribution type, emitter option, or field type, update the relevant doc in the same pass — not as a follow-up.
+| Doc | Covers |
+| --- | --- |
+| `states.md` | State type field reference |
+| `emitters.md` | Emitter structure and dimension fields |
+| `distributions.md` | Distribution types and parameters |
+| `field-generators.md` | Index of all field generator types |
+| `docs/types/<type>.md` | Per-type detail — one file per field generator type |
+| `templates.md` | Template syntax and the `templates` block |
+| `schedules.md` | Schedule format and multiplier semantics |
+
+- If a code change adds or modifies a state type, distribution type, emitter option, or field type, update the relevant doc in the same pass — not as a follow-up.
+- `field-generators.md` is an index page; the per-type detail lives in `docs/types/`. When a new field type is added, create `docs/types/<type>.md` **and** add a row to `field-generators.md`.
 - If asked to write a config that uses a distribution or field type not present in `docs/`, **stop and flag it** rather than writing JSON and hoping it works.
 
 ## Testing configs
@@ -58,7 +67,7 @@ Config errors (bad field references, wrong distributions, missing variables) oft
 
 ## Config JSON authoring
 
-Config files grow large quickly. Keep the code and `docs/` reference docs in sync at all times — if a field or distribution type isn't documented, clarify before using it.
+Before writing any JSON, read `docs/how-to-build-a-config.md` — it walks through the full design process from Actor definition to tested config (Steps 1–10). The reference docs listed above are authoritative on what the engine supports; flag any discrepancy rather than guessing.
 
 ## Config JSON style
 
