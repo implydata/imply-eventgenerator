@@ -49,7 +49,7 @@ class Transition:
             transitions.append(Transition(next_state, probability))
         return transitions
 
-VALID_TYPES = {'activity', 'activity:multi:seq', 'gateway:exclusive', 'event:start:timer', 'event:intermediate:timer', 'event:end'}
+VALID_TYPES = {'activity', 'gateway:exclusive', 'event:start:timer', 'event:intermediate:timer', 'event:end'}
 
 class State:
     # Represents a state in the state machine.
