@@ -106,7 +106,7 @@ An activity is where work happens: variables are evaluated and, optionally, a re
 | `_comment` | Optional annotation. | No |
 | `variables` | A list of [field generators](./field-generators.md) whose values are stored for later use. Evaluated before the record is emitted. | No |
 | `emitter` | The [emitter](./emitters.md) to use. If omitted, no record is emitted. | No |
-| `next` | Name of the next state (a string, not a transitions list). Use `"stop"` to terminate. | Yes |
+| `next` | Name of the next state (a string, not a transitions list). Route to an `event:end` state to terminate. | Yes |
 
 ### Naming conventions
 
@@ -231,7 +231,7 @@ Routes the worker to one of several next states based on weighted probabilities.
 
 | Field | Description | Required? |
 | --- | --- | --- |
-| `next` | The name of the next state, or `"stop"` to terminate. | Yes |
+| `next` | The name of the next state. Route to an `event:end` state to terminate. | Yes |
 | `probability` | Probability of this branch being taken. All probabilities must sum to 1.0. | Yes |
 
 ```json
@@ -267,7 +267,7 @@ Terminates the worker. No fields other than `name` and `type` are permitted. The
 }
 ```
 
-Note: you can also terminate a worker by setting `"next": "stop"` in any `activity` state or `"next": "stop"` in any `gateway:exclusive` transition. `event:end` is the explicit named form.
+Every config should have exactly one `event:end` state. All paths through the state machine must eventually route to it.
 
 ---
 
@@ -357,7 +357,6 @@ This example models a simple network connection: a start timer controls interarr
       ]
     }
   ],
-  "interarrival": { "type": "exponential", "mean": 1.0 }
 }
 ```
 

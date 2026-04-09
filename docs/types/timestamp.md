@@ -12,7 +12,7 @@ When a [field generator](./field-generators.md) type is `timestamp`, an ISO form
 | `percent_nulls` | The stochastic frequency (inclusive) for generating null values. | Integer between 0 and 100. | No. | 0 |
 | `distribution` | Describes the distribution of timestamp values the driver generates, with the dates given in ISO format. | A [distribution](./distributions.md) object. | Yes | |
 
-In this example, there are two states: `state_1` and `state_2`. There is a 20% probability that the data generator will switch to `state_2` after `state_1`.
+In this example, `session_start` spawns a new worker every second. A `gateway:exclusive` routes 80% to `example_event_1` and 20% to `example_event_2`, each preceded by a 0.1-second timer, cycling continuously.
 
 The emitter for `state_1` is `example_event_1`. This emits a simple [`string`](./types/string.md) as `emitter_number`, and `timestamp` in the range between 1st January 2020 at 3pm and 1st January 2020 at 8pm. `percent_nulls` adds a 25% chance that the value is null.
 
@@ -22,42 +22,44 @@ The emitter for `state_2` is `example_event_2` which also emits a simple string 
 {
   "states": [
     {
-      "name": "state_1",
-      "emitter": "example_event_1",
-      "delay": {
-        "type": "constant",
-        "value": 0.1
-      },
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "route_event"
+    },
+    {
+      "name": "route_event",
+      "type": "gateway:exclusive",
       "transitions": [
-        {
-          "next": "state_1",
-          "probability": 0.8
-        },
-        {
-          "next": "state_2",
-          "probability": 0.2
-        }
+        { "next": "pause_state_1", "probability": 0.8 },
+        { "next": "pause_state_2", "probability": 0.2 }
       ]
     },
     {
-      "name": "state_2",
+      "name": "pause_state_1",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 0.1 },
+      "next": "emit_state_1"
+    },
+    {
+      "name": "emit_state_1",
+      "type": "activity",
+      "emitter": "example_event_1",
+      "next": "route_event"
+    },
+    {
+      "name": "pause_state_2",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 0.1 },
+      "next": "emit_state_2"
+    },
+    {
+      "name": "emit_state_2",
+      "type": "activity",
       "emitter": "example_event_2",
-      "delay": {
-        "type": "constant",
-        "value": 0.1
-      },
-      "transitions": [
-        {
-          "next": "state_1",
-          "probability": 1.0
-        }
-      ]
+      "next": "route_event"
     }
   ],
-  "interarrival": {
-    "type": "constant",
-    "value": 1
-  },
   "emitters": [
     {
       "name": "example_event_1",

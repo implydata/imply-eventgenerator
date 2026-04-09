@@ -205,13 +205,24 @@ Object field generators create nested data.
       ]
     }
   ],
-  "interarrival": { "type": "constant", "value": 1 },
   "states": [
     {
-      "name": "state_1",
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "pause_event"
+    },
+    {
+      "name": "pause_event",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "emit_event"
+    },
+    {
+      "name": "emit_event",
+      "type": "activity",
       "emitter": "example_record_1",
-      "delay": { "type": "constant", "value": 1 },
-      "transitions": [{ "next": "state_1", "probability": 1.0 }]
+      "next": "pause_event"
     }
   ]
 }
@@ -344,13 +355,24 @@ The other field values (e.g., __cardinality__, __percent_nulls__, etc.) operate 
       ]
     }
   ],
-  "interarrival": { "type": "constant", "value": 1 },
   "states": [
     {
-      "name": "state_1",
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "pause_event"
+    },
+    {
+      "name": "pause_event",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "emit_event"
+    },
+    {
+      "name": "emit_event",
+      "type": "activity",
       "emitter": "example_record_1",
-      "delay": { "type": "constant", "value": 1 },
-      "transitions": [{ "next": "state_1", "probability": 1.0 }]
+      "next": "pause_event"
     }
   ]
 }

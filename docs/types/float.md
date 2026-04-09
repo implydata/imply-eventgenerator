@@ -13,9 +13,9 @@ When a [field generator](./field-generators.md) type is  `float`, random floatin
 | `distribution` | Specifies the distribution of the numbers generated. | A [distribution](./distributions.md) object. | Yes. | |
 | `precision` | The number of digits after the decimal. | Integer | No. | Full precision. |
 
-In this example, there is just one state (`state_1`) and therefore one state listed in `transitions`, causing the data generator to always return to `state_1`.
+In this example, `session_start` spawns workers on a uniform 1000–25000 second interval. Each worker pauses for the same distribution before emitting a record via `example_event_1`, cycling continuously.
 
-The emitter for `state_1` is `example_event_1`, which emits the following dimensions:
+The emitter `example_event_1` produces the following dimensions:
 
 * `service` is an `enum` dimension, selecting one of the `values` using a `normal` `cardinality_distribution` [distribution](./distributions.md) object, causing withdrawals to appear more than deposits.
 * `account_id` is a synthetic string of numbers with a constant length of 16.
@@ -26,21 +26,24 @@ The emitter for `state_1` is `example_event_1`, which emits the following dimens
 {
   "states": [
     {
-      "name": "state_1",
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "uniform", "min": 1000, "max": 25000 },
+      "next": "pause_event"
+    },
+    {
+      "name": "pause_event",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "uniform", "min": 1000, "max": 25000 },
+      "next": "emit_event"
+    },
+    {
+      "name": "emit_event",
+      "type": "activity",
       "emitter": "example_event_1",
-      "delay": {
-        "type": "uniform",
-        "min": 1000,
-        "max": 25000
-      },
-      "transitions": [ { "next": "state_1", "probability": 1 } ]
+      "next": "pause_event"
     }
   ],
-  "interarrival": {
-    "type": "uniform",
-    "min": 1000,
-    "max": 25000
-  },
   "emitters": [
     {
       "name": "example_event_1",

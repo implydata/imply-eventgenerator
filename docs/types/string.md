@@ -13,7 +13,7 @@ When a [field generator](./field-generators.md) type is  `string`, a random stri
 | `chars` | A list of characters to use to generate strings. | String | No | All printable characters. |
 | `length_distribution` | A distribution function that specifies the length of the string values. | A [distribution](./distributions.md) object. | Yes. | |
 
-In this example, there are three states: `state_1`, `state_2`, and `state_3`. All three states have the same probabilities: 20% of reaching `state_1`, 50% of reaching `state_2`, and 30% of reaching `state_3`. Each state has its own emitter.
+In this example, `session_start` spawns a new worker every second. A `gateway:exclusive` routes 20% to `example_event_1`, 50% to `example_event_2`, and 30% to `example_event_3`, each path preceded by a 0.1-second timer, cycling continuously.
 
 The emitter for `state_1` is `example_event_1`. This emits two synthetic strings:
 
@@ -28,49 +28,57 @@ The emitter for `state_3` is `example_event_3`, and here only upper-case charact
 {
   "states": [
     {
-      "name": "state_1",
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "route_emitter"
+    },
+    {
+      "name": "route_emitter",
+      "type": "gateway:exclusive",
+      "transitions": [
+        { "next": "pause_state_1", "probability": 0.2 },
+        { "next": "pause_state_2", "probability": 0.5 },
+        { "next": "pause_state_3", "probability": 0.3 }
+      ]
+    },
+    {
+      "name": "pause_state_1",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 0.1 },
+      "next": "emit_state_1"
+    },
+    {
+      "name": "emit_state_1",
+      "type": "activity",
       "emitter": "example_event_1",
-      "delay": {
-        "type": "constant",
-        "value": 0.1
-      },
-      "transitions": [
-        { "next": "state_1", "probability": 0.2 },
-        { "next": "state_2", "probability": 0.5 },
-        { "next": "state_3", "probability": 0.3 }
-      ]
+      "next": "route_emitter"
     },
     {
-      "name": "state_2",
+      "name": "pause_state_2",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 0.1 },
+      "next": "emit_state_2"
+    },
+    {
+      "name": "emit_state_2",
+      "type": "activity",
       "emitter": "example_event_2",
-      "delay": {
-        "type": "constant",
-        "value": 0.1
-      },
-      "transitions": [
-        { "next": "state_1", "probability": 0.2 },
-        { "next": "state_2", "probability": 0.5 },
-        { "next": "state_3", "probability": 0.3 }
-      ]
+      "next": "route_emitter"
     },
     {
-      "name": "state_3",
+      "name": "pause_state_3",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 0.1 },
+      "next": "emit_state_3"
+    },
+    {
+      "name": "emit_state_3",
+      "type": "activity",
       "emitter": "example_event_3",
-      "delay": {
-        "type": "constant",
-        "value": 0.1
-      },
-      "transitions": [
-        { "next": "state_1", "probability": 0.2 },
-        { "next": "state_2", "probability": 0.5 },
-        { "next": "state_3", "probability": 0.3 }
-      ]
+      "next": "route_emitter"
     }
   ],
-  "interarrival": {
-    "type": "constant",
-    "value": 1
-  },
   "emitters": [
     {
       "name": "example_event_1",

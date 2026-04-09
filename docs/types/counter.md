@@ -13,7 +13,7 @@ Counters are not incremented when missing or null.
 | `start` | The starting value for the counter. | Integer | No. | 0 |
 | `increment` | The increment for the counter. | Integer | No. | 1 |
 
-In this example, there are two worker states, `state_1` and `state_2`. There's a 50% probability that, in each state, the other state will be selected next.
+In this example, `session_start` spawns a new worker every second. A `gateway:exclusive` routes 50/50 between two emitters — each preceded by a 0.1-second timer — cycling continuously.
 
 Each state has its own emitter, `state_1` uses `example_event_1`, `state_2` uses `example_event_2`.
 
@@ -28,25 +28,44 @@ The second emitter, `example_event_2`, mirrors the same configuration, using dif
 
 ```json
 {
-  "type": "generator",
   "states": [
     {
-      "name": "state_1",
-      "emitter": "example_event_1",
-      "delay": { "type": "constant", "value": 0.1 },
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "route_emitter"
+    },
+    {
+      "name": "route_emitter",
+      "type": "gateway:exclusive",
       "transitions": [
-        { "next": "state_1", "probability": 0.5 },
-        { "next": "state_2", "probability": 0.5 }
+        { "next": "pause_state_1", "probability": 0.5 },
+        { "next": "pause_state_2", "probability": 0.5 }
       ]
     },
     {
-      "name": "state_2",
+      "name": "pause_state_1",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 0.1 },
+      "next": "emit_state_1"
+    },
+    {
+      "name": "emit_state_1",
+      "type": "activity",
+      "emitter": "example_event_1",
+      "next": "route_emitter"
+    },
+    {
+      "name": "pause_state_2",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 0.1 },
+      "next": "emit_state_2"
+    },
+    {
+      "name": "emit_state_2",
+      "type": "activity",
       "emitter": "example_event_2",
-      "delay": { "type": "constant", "value": 0.1 },
-      "transitions": [
-        { "next": "state_1", "probability": 0.5 },
-        { "next": "state_2", "probability": 0.5 }
-      ]
+      "next": "route_emitter"
     }
   ],
   "emitters": [
@@ -69,7 +88,6 @@ The second emitter, `example_event_2`, mirrors the same configuration, using dif
       ]
     }
   ],
-  "interarrival": { "type": "constant", "value": 1 }
 }
 ```
 

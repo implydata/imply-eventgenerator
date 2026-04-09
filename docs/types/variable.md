@@ -8,9 +8,9 @@ When a worker encounters an [emitter dimension](./emitters.md#dimensions) with a
 | `name` | The unique name for the dimension. | String | Yes | |
 | `variable` | The name of a [state variable](./generator-config.md#variables). | String | Yes | |
 
-In the following example, there are two states, `state_1` and `state_2`. In `state_1`, two variables are created, `var_client_ip` and `var_account_code`. Notice that these conform to the normal configuration for [dimensions in emitters](./emitters.md) - [`ipaddress`](./types/ipaddress.md) and [`string`](./types/string.md) respectively.
+In the following example, `session_start` spawns a new worker every 0.2 seconds. A `setup_session` activity sets `var_client_ip` and `var_account_code` once per session and emits an initial click. A `gateway:exclusive` then routes 70% of the time to another click (after a 1-second pause) and 30% to `session_end`.
 
-Both states use the `click` emitter, which contains:
+Both activities use the `click` emitter, which contains:
 
 * An `enum` dimension to randomly output a request URL.
 * The value of the `var_client_ip` variable, output as the `client_ip` field.
@@ -20,7 +20,14 @@ Both states use the `click` emitter, which contains:
 {
   "states": [
     {
-      "name": "state_1",
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "constant", "value": 0.2 },
+      "next": "setup_session"
+    },
+    {
+      "name": "setup_session",
+      "type": "activity",
       "emitter": "click",
       "variables": [
         {
@@ -28,11 +35,7 @@ Both states use the `click` emitter, which contains:
           "type": "ipaddress",
           "cardinality": 5,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 5 },
-          "distribution": {
-            "type": "uniform",
-            "min": 184549376,
-            "max": 2127008767
-          }
+          "distribution": { "type": "uniform", "min": 184549376, "max": 2127008767 }
         },
         {
           "name": "var_account_code",
@@ -42,17 +45,31 @@ Both states use the `click` emitter, which contains:
           "chars": "ABC123"
         }
       ],
-      "delay": { "type": "constant", "value": 0.5 },
-      "transitions": [ { "next": "state_2", "probability": 1.0 } ]
+      "next": "route_continue"
     },
     {
-      "name": "state_2",
-      "emitter": "click",
-      "delay": { "type": "constant", "value": 1 },
+      "name": "route_continue",
+      "type": "gateway:exclusive",
       "transitions": [
-        { "next": "state_2", "probability": 0.7 },
-        { "next": "stop", "probability": 0.3 }
+        { "next": "pause_click", "probability": 0.7 },
+        { "next": "session_end", "probability": 0.3 }
       ]
+    },
+    {
+      "name": "pause_click",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "emit_click"
+    },
+    {
+      "name": "emit_click",
+      "type": "activity",
+      "emitter": "click",
+      "next": "route_continue"
+    },
+    {
+      "name": "session_end",
+      "type": "event:end"
     }
   ],
   "emitters": [
@@ -81,7 +98,6 @@ Both states use the `click` emitter, which contains:
       ]
     }
   ],
-  "interarrival": { "type": "constant", "value": 0.2 }
 }
 ```
 

@@ -12,9 +12,9 @@ When a [field generator](./field-generators.md) type is `int`, a random integer 
 | `percent_nulls` | The stochastic frequency (inclusive) for generating null values. | Integer between 0 and 100. | No. | 0 |
 | `distribution` | Specifies the distribution of the numbers generated, with each rounded to the nearest integer value. | A [distribution](./distributions.md) object. | Yes. | |
 
-In this example, there is just one state (`state_1`) and therefore one state listed in `transitions`, causing the data generator to always return to `state_1`.
+In this example, `session_start` spawns a new worker every 3600 seconds. Each worker pauses for a uniform delay of 5–10 seconds then emits a record via `example_event_1`, cycling continuously.
 
-The emitter for `state_1` is `example_event_1`, which emits the following dimensions:
+The emitter `example_event_1` produces the following dimensions:
 
 * `user` is an `enum` dimension, selecting one of the `values` using a `uniform` `cardinality_distribution` [distribution](./distributions.md) object.
 * `whiteboard_pen_delta` - the change in the number of whiteboard pens each person owns - is an `int` selected using a `normal` `distribution` with a `mean` of 0 and standard deviation (`stddev`) of 4.
@@ -24,20 +24,24 @@ The emitter for `state_1` is `example_event_1`, which emits the following dimens
 {
   "states": [
     {
-      "name": "state_1",
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "constant", "value": 3600 },
+      "next": "pause_event"
+    },
+    {
+      "name": "pause_event",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "uniform", "min": 5, "max": 10 },
+      "next": "emit_event"
+    },
+    {
+      "name": "emit_event",
+      "type": "activity",
       "emitter": "example_event_1",
-      "delay": {
-        "type": "uniform",
-        "min": 5,
-        "max": 10
-      },
-      "transitions": [ { "next": "state_1", "probability": 1 } ]
+      "next": "pause_event"
     }
   ],
-  "interarrival": {
-    "type": "constant",
-    "value": 3600
-  },
   "emitters": [
     {
       "name": "example_event_1",

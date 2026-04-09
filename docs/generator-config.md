@@ -2,47 +2,35 @@
 
 Control the behavior of the data generator using a JSON configuration object known as the "Generator Configuration". See the `config_file` folder for [examples](../config_file/examples).
 
-Workers traverse a number of [`states`](./states.md) and generate events as they go using [`emitters`](./emitters.md). Activity states emit records; `event:intermediate:timer` states advance the clock without emitting. States may optionally omit an emitter to create non-emitting states useful for routing or variable setup. Workers are created periodically, according to the `interarrival` time.
+Workers traverse a number of [`states`](./states.md) and generate events as they go using [`emitters`](./emitters.md). Activity states emit records; `event:intermediate:timer` states advance the clock without emitting. Workers are spawned periodically, controlled by the `cardinality_distribution` of the `event:start:timer` state.
 
 | Object | Description | Options | Required? |
 | --- | --- | --- | --- |
 | [`states`](./states.md) | A list of states that will be used to generate events. | See [`states`](./states.md) | Yes |
 | [`emitters`](./emitters.md) | A list of emitters. | See [`emitters`](./emitters.md) | Yes |
-| `interarrival` | The period of time that elapses before the next worker is started. | A [distribution](./distributions.md) object. | Yes |
 
-In this example, there are two states: a timer `wait_5s` and an activity `state_1`. When each worker reaches `state_1`, it uses the `example_record_1` emitter to produce an event with one field called `enum_dim`, where the possible values of that field are selected using a uniform distribution from a list of characters. Output is written to stdout.
-
-The `wait_5s` timer pauses for 5 seconds before transitioning back to `state_1`, so the worker cycles: emit → wait 5 s → emit → wait 5 s → … until the generator stops.
-
-The `interarrival` distribution is a `constant`, causing new workers to be spawned once every second.
+In this example there are three states. `session_start` is an `event:start:timer` that spawns a new worker every second. Each worker emits an event via `emit_event`, then waits 5 seconds in `wait_5s` before emitting again — cycling until the generator stops.
 
 ```json
 {
   "states": [
     {
-      "name": "state_1",
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "emit_event"
+    },
+    {
+      "name": "emit_event",
       "type": "activity",
       "emitter": "example_record_1",
-      "transitions": [
-        {
-          "next": "wait_5s",
-          "probability": 1
-        }
-      ]
+      "next": "wait_5s"
     },
     {
       "name": "wait_5s",
       "type": "event:intermediate:timer",
-      "cardinality_distribution": {
-        "type": "constant",
-        "value": 5
-      },
-      "transitions": [
-        {
-          "next": "state_1",
-          "probability": 1
-        }
-      ]
+      "cardinality_distribution": { "type": "constant", "value": 5 },
+      "next": "emit_event"
     }
   ],
   "emitters": [
@@ -52,21 +40,12 @@ The `interarrival` distribution is a `constant`, causing new workers to be spawn
         {
           "name": "enum_dim",
           "type": "enum",
-          "values": [
-            "A",
-            "B",
-            "C"
-          ],
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 2
-          }
+          "values": ["A", "B", "C"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
         }
       ]
     }
-  ],
-  "interarrival": { "type": "constant", "value": 1 }
+  ]
 }
 ```
 
@@ -93,7 +72,7 @@ This causes the following output.  Notice that each row is spaced 5 seconds apar
 {"time":"2025-02-18T09:33:01.464","enum_dim":"B"}
 ```
 
-When run with the `-m 3`, 3 workers are spawned. Since `interarrival` is a `constant` of 1 second, one worker is spawned every second, meaning that rows 1 through 3 are each from different worker threads, and rows 4 through 6 are those workers in their second state, 7 through 9 in their third state, and so on.
+When run with `-m 3`, 3 workers are spawned. Since `session_start` has a `constant` interarrival of 1 second, one worker is spawned per second, meaning rows 1–3 are each from different worker threads, rows 4–6 are those workers in their second cycle, and so on.
 
 ```json
 {"time":"2025-02-18T09:35:49.618","enum_dim":"A"}
