@@ -75,18 +75,36 @@ Each session is routed at startup by `global_init` (no event emitted):
 | Hacker | 0.1% | Automated scanner probing for vulnerabilities |
 | Bot | 0.2% | Web crawler indexing site content |
 
+```mermaid
+flowchart LR
+    A(["<b>session_start</b><br/>event:start:timer"]) --> B["<b>global_init</b><br/>activity"]
+    B --> C{"<b>route_session</b><br/>gateway:exclusive"}
+    C -->|"99.7%"| D["Human flow"]
+    C -->|"0.1%"| E["Hacker flow"]
+    C -->|"0.2%"| F["Bot flow"]
+```
+
 ---
 
 ## Human flow
 
-```text
-global_init ──→ initial_human ──→ browse_products ──→ browse_cat_* ⟲
-                                        ↓                    ↓
-                                    not_found           add_to_cart
-                                        ↓                    ↓
-                                  browse_products       checkout ──→ thank_you ──→ stop
-                                                             ↓
-                                                         try_again ──→ checkout
+```mermaid
+flowchart TD
+    A["<b>initial_human</b><br/>activity"] --> B{"<b>browse_products</b><br/>gateway:exclusive"}
+    B -->|"exit"| Z(["<b>session_end</b><br/>event:end"])
+    B -->|"not found"| D["<b>not_found</b><br/>activity"]
+    B --> C["<b>browse_cat_*</b><br/>activity"]
+    D --> B
+    C -->|"self-loop"| C
+    C -->|"back"| B
+    C -->|"exit"| Z
+    C --> E["<b>add_to_cart</b><br/>activity"]
+    E -->|"exit"| Z
+    E --> F["<b>checkout</b><br/>activity"]
+    F --> G["<b>thank_you</b><br/>activity"]
+    G --> Z
+    F --> H["<b>try_again</b><br/>activity"]
+    H --> F
 ```
 
 `initial_human` emits the homepage (`/`) hit and sets session-level properties — IP address, browser user-agent, cookie, and HTTP version — which persist unchanged for the rest of the session.
@@ -97,10 +115,11 @@ From `browse_products` the worker selects a product category (`browse_cat_electr
 
 ## Hacker flow
 
-```text
-global_init ──→ hacker_start ──→ hacker ⟲(99%)
-                                      ↓(1%)
-                                     stop
+```mermaid
+flowchart LR
+    A["<b>hacker_start</b><br/>activity"] --> B["<b>hacker</b><br/>activity"]
+    B -->|"99%"| B
+    B -->|"1%"| Z(["<b>session_end</b><br/>event:end"])
 ```
 
 `hacker_start` fires once on session entry (no event emitted) to pin the session-level properties:
@@ -124,10 +143,11 @@ The loop continues with 99% probability, averaging ~100 probe requests per sessi
 
 ## Bot flow
 
-```text
-global_init ──→ bot_start ──→ bot ⟲(98%)
-                                  ↓(2%)
-                                 stop
+```mermaid
+flowchart LR
+    A["<b>bot_start</b><br/>activity"] --> B["<b>bot</b><br/>activity"]
+    B -->|"98%"| B
+    B -->|"2%"| Z(["<b>session_end</b><br/>event:end"])
 ```
 
 `bot_start` fires once on session entry (no event emitted) to pin the session-level properties:

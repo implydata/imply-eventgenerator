@@ -46,18 +46,18 @@ python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -r
 
 ## State machine
 
-```text
-[start] ──→ initial ──→ ringing (5–30 s)
-                              ↓
-                   ┌──────────┼────────────┐
-                  70%        20%          10%
-                   ↓          ↓            ↓
-               answered   no_answer      busy
-             (~180 s talk)  (emit CDR)  (emit CDR)
-                   ↓            ↓            ↓
-               (emit CDR)     stop         stop
-                   ↓
-                  stop
+```mermaid
+flowchart TD
+    A(["<b>session_start</b><br/>event:start:timer"]) --> B["<b>initial</b><br/>activity"]
+    B --> C[/"<b>ringing</b><br/>event:intermediate:timer (5–30s)"/]
+    C --> D{"<b>call_outcome</b><br/>gateway:exclusive"}
+    D -->|"70%"| E[/"<b>answered</b><br/>event:intermediate:timer (~180s)"/]
+    D -->|"20%"| F["<b>no_answer</b><br/>activity"]
+    D -->|"10%"| G["<b>busy</b><br/>activity"]
+    E --> H["<b>emit_cdr</b><br/>activity"]
+    F --> Z(["<b>call_end</b><br/>event:end"])
+    G --> Z
+    H --> Z
 ```
 
 The `ringing` state models real ring time (5–30 s) before the outcome is determined. Answered calls spend an additional ~3 minutes in `answered` before the CDR is emitted — so in real-time mode, `-m` controls how many calls are genuinely in progress simultaneously.

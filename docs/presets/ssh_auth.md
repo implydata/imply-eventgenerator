@@ -36,14 +36,18 @@ python generator.py -c presets/configs/ssh_auth.json --template linux_secure -r 
 
 ## State machine
 
-```text
-[start] ──→ initial ──→ (40%) failed_password ⟲ (35%)
-                   ↘               ↓ (5%)
-                    ──→ (60%) accepted
-                                   ↓
-                            session_opened
-                                   ↓ (after ~10 min)
-                            session_closed ──→ stop
+```mermaid
+flowchart TD
+    A(["<b>session_start</b><br/>event:start:timer"]) --> B["<b>initial</b><br/>activity"]
+    B -->|"40%"| C["<b>failed_password</b><br/>activity"]
+    B -->|"60%"| D["<b>accepted</b><br/>activity"]
+    C -->|"35% retry"| C
+    C -->|"5% break through"| D
+    C -->|"60% give up"| Z(["<b>session_end</b><br/>event:end"])
+    D --> E[/"<b>session_active</b><br/>event:intermediate:timer (~10 min)"/]
+    E --> F["<b>session_opened</b><br/>activity"]
+    F --> G["<b>session_closed</b><br/>activity"]
+    G --> Z
 ```
 
 Variables set in `initial` (hostname, username, source IP, port, PID) persist for the entire connection lifecycle. Failed password attempts self-loop with 35% probability, giving realistic brute-force bursts. A failed session can break through to `accepted` with 5% probability, or give up with 60%.

@@ -32,6 +32,18 @@ python generator.py -c presets/configs/vpc_flow_logs.json --template aws:cloudwa
 | `action` | `ACCEPT` or `REJECT` |
 | `log_status` | `OK`, `NODATA`, or `SKIPDATA` |
 
+## State machine
+
+Each worker represents one network flow. The Actor captures connection attributes and a start timestamp, waits for the flow duration, then emits a single completed flow record.
+
+```mermaid
+flowchart LR
+    A(["<b>connection_start</b><br/>event:start:timer"]) --> B["<b>setup_flow</b><br/>activity"]
+    B --> C[/"<b>pause_flow_duration</b><br/>event:intermediate:timer"/]
+    C --> D["<b>emit_flow_record</b><br/>activity"]
+    D --> E(["<b>connection_end</b><br/>event:end"])
+```
+
 ## Concurrency (`-m`)
 
 | Little's Law component | Value |

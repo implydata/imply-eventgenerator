@@ -180,9 +180,9 @@ To emit a record that covers a time range (e.g. a network flow with `start` and 
 
 ```mermaid
 flowchart LR
-    A[setup_*\nactivity] -->|captures var_start| B
-    B[/event:intermediate:timer/] -->|clock advances| C
-    C[emit_*\nactivity] -->|captures var_end,\nemits record| D([event:end])
+    A["<b>setup_*</b><br/>activity"] -->|"captures var_start"| B
+    B[/"<b>pause_*</b><br/>event:intermediate:timer"/] -->|"clock advances"| C
+    C["<b>emit_*</b><br/>activity"] -->|"captures var_end, emits record"| D(["<b>session_end</b><br/>event:end"])
 ```
 
 1. A `setup_*` activity captures `var_start` via a `clock` field generator.
@@ -297,13 +297,13 @@ This example models a simple network connection: a start timer controls interarr
 
 ```mermaid
 flowchart TD
-    A(["<b>connection_start</b><br/><code>event:start:timer</code>"]) --> B["<b>setup_connection</b><br/><code>activity</code>"]
-    B --> C{"<b>route_traffic</b><br/><code>gateway:exclusive</code>"}
-    C -->|70%| D[/"<b>pause_web_flow</b><br/><code>event:intermediate:timer</code>"/]
-    C -->|30%| E[/"<b>pause_ssh_flow</b><br/><code>event:intermediate:timer</code>"/]
-    D --> F["<b>emit_web_flow</b><br/><code>activity</code>"]
-    E --> G["<b>emit_ssh_flow</b><br/><code>activity</code>"]
-    F --> H(["<b>connection_end</b><br/><code>event:end</code>"])
+    A(["<b>connection_start</b><br/>event:start:timer"]) --> B["<b>setup_connection</b><br/>activity"]
+    B --> C{"<b>route_traffic</b><br/>gateway:exclusive"}
+    C -->|70%| D[/"<b>pause_web_flow</b><br/>event:intermediate:timer"/]
+    C -->|30%| E[/"<b>pause_ssh_flow</b><br/>event:intermediate:timer"/]
+    D --> F["<b>emit_web_flow</b><br/>activity"]
+    E --> G["<b>emit_ssh_flow</b><br/>activity"]
+    F --> H(["<b>connection_end</b><br/>event:end"])
     G --> H
 ```
 
