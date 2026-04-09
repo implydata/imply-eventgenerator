@@ -4,6 +4,8 @@
 
 ## The Actor
 
+The state machine design is grounded in [BPMN (Business Process Model and Notation)](https://en.wikipedia.org/wiki/Business_Process_Model_and_Notation) — a standard for modelling business processes as flows of events, activities, and gateways. The five state types map directly onto BPMN concepts: start/intermediate/end events, activities, and exclusive gateways. Each worker is a BPMN pool — one lane, one participant, one lifecycle.
+
 Every state machine models the behaviour of a single **Actor** — the real-world entity whose lifecycle the state machine represents. Each concurrent worker (`-m`) runs one independent instance of the machine, simulating one Actor at a time.
 
 Identifying the Actor upfront is the most important design decision for a new config. It determines what counts as one lifecycle, what variables are set once at entry and carried through, and which state is the `event:end`.
@@ -16,7 +18,16 @@ Identifying the Actor upfront is the most important design decision for a new co
 | `pbx_calls` | A caller making a phone call |
 | `endpoint_network` | A connection attempt arriving at or leaving a Windows host |
 
-Think of each worker as a BPMN pool — one lane, one participant, one lifecycle from the initial `event:start:timer` to `event:end`.
+A typical Actor lifecycle looks like this:
+
+```mermaid
+flowchart LR
+    A([event:start:timer]) --> B[activity]
+    B --> C{gateway:exclusive}
+    C -->|loop| D[/event:intermediate:timer/]
+    D --> B
+    C -->|exit| E([event:end])
+```
 
 ---
 
@@ -167,6 +178,13 @@ There is no type distinction between these two patterns — both use `"type": "a
 
 To emit a record that covers a time range (e.g. a network flow with `start` and `end` timestamps), use the **setup → timer → emit** pattern:
 
+```mermaid
+flowchart LR
+    A[setup_*\nactivity] -->|captures var_start| B
+    B[/event:intermediate:timer/] -->|clock advances| C
+    C[emit_*\nactivity] -->|captures var_end,\nemits record| D([event:end])
+```
+
 1. A `setup_*` activity captures `var_start` via a `clock` field generator.
 2. An `event:intermediate:timer` advances the clock by the flow duration.
 3. An `emit_*` activity captures `var_end` and emits the record.
@@ -276,6 +294,18 @@ Every config should have exactly one `event:end` state. All paths through the st
 ## Complete example
 
 This example models a simple network connection: a start timer controls interarrival, an activity sets up connection attributes and captures the start time, a timer delays for the flow duration, an activity emits the completed flow record, and an end state terminates the worker.
+
+```mermaid
+flowchart TD
+    A([connection_start\nevent:start:timer]) --> B[setup_connection\nactivity]
+    B --> C{route_traffic\ngateway:exclusive}
+    C -->|70%| D[/pause_web_flow\nevent:intermediate:timer/]
+    C -->|30%| E[/pause_ssh_flow\nevent:intermediate:timer/]
+    D --> F[emit_web_flow\nactivity]
+    E --> G[emit_ssh_flow\nactivity]
+    F --> H([connection_end\nevent:end])
+    G --> H
+```
 
 ```json
 {
