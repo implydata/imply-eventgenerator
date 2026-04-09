@@ -25,7 +25,7 @@ from pathlib import Path
 
 STATE_TYPES = {
     'event:start:timer', 'event:intermediate:timer', 'event:end',
-    'activity', 'activity:multi:seq', 'gateway:exclusive',
+    'activity', 'gateway:exclusive',
 }
 
 # Canonical field order for each state type.
@@ -34,7 +34,6 @@ STATE_FIELD_ORDER = {
     'event:start:timer':        ['name', 'type', '_comment', 'cardinality_distribution', 'next'],
     'event:intermediate:timer': ['name', 'type', '_comment', 'cardinality_distribution', 'next'],
     'activity':                 ['name', 'type', '_comment', 'variables', 'emitter', 'next'],
-    'activity:multi:seq':       ['name', 'type', '_comment', 'variables', 'emitter', 'next'],
     'gateway:exclusive':        ['name', 'type', '_comment', 'transitions'],
     'event:end':                ['name', 'type'],
 }
