@@ -31,8 +31,7 @@ Generate one day of VPC Flow Logs deterministically:
 
 ```bash
 python generator.py \
-  -c conf/gen/vpc_flow_logs.json \
-  -f conf/form/vpc_flow_logs.txt \
+  -c presets/configs/vpc_flow_logs.json \
   -s 2026-02-12T00:00:00 \
   -r P1D \
   --seed 42

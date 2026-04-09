@@ -1,1 +1,0 @@
-{{version}} {{account_id}} {{interface_id}} {{srcaddr}} {{dstaddr}} {{srcport}} {{dstport}} {{protocol}} {{packets}} {{bytes}} {{start|%s}} {{end|%s}} {{action}} {{log_status}}

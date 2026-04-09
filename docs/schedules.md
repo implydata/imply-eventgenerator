@@ -5,7 +5,7 @@ A schedule modulates the number of active workers over time, producing realistic
 ## Usage
 
 ```bash
-python generator.py -c conf/gen/apache_access_json_lighting.json -m 500 --schedule schedule/ecommerce.json
+python generator.py -c presets/configs/ecommerce_lighting.json -m 500 --schedule presets/schedules/ecommerce.json
 ```
 
 Without `--schedule`, the generator runs at full capacity (`-m` workers) at all times.
