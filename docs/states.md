@@ -297,13 +297,13 @@ This example models a simple network connection: a start timer controls interarr
 
 ```mermaid
 flowchart TD
-    A(["<b>connection_start</b><br/><tt>event:start:timer</tt>"]) --> B["<b>setup_connection</b><br/><tt>activity</tt>"]
-    B --> C{"<b>route_traffic</b><br/><tt>gateway:exclusive</tt>"}
-    C -->|70%| D[/"<b>pause_web_flow</b><br/><tt>event:intermediate:timer</tt>"/]
-    C -->|30%| E[/"<b>pause_ssh_flow</b><br/><tt>event:intermediate:timer</tt>"/]
-    D --> F["<b>emit_web_flow</b><br/><tt>activity</tt>"]
-    E --> G["<b>emit_ssh_flow</b><br/><tt>activity</tt>"]
-    F --> H(["<b>connection_end</b><br/><tt>event:end</tt>"])
+    A(["<b>connection_start</b><br/><code>event:start:timer</code>"]) --> B["<b>setup_connection</b><br/><code>activity</code>"]
+    B --> C{"<b>route_traffic</b><br/><code>gateway:exclusive</code>"}
+    C -->|70%| D[/"<b>pause_web_flow</b><br/><code>event:intermediate:timer</code>"/]
+    C -->|30%| E[/"<b>pause_ssh_flow</b><br/><code>event:intermediate:timer</code>"/]
+    D --> F["<b>emit_web_flow</b><br/><code>activity</code>"]
+    E --> G["<b>emit_ssh_flow</b><br/><code>activity</code>"]
+    F --> H(["<b>connection_end</b><br/><code>event:end</code>"])
     G --> H
 ```
 
