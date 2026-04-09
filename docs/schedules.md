@@ -14,7 +14,7 @@ Without `--schedule`, the generator runs at full capacity (`-m` workers) at all 
 
 The schedule defines a multiplier between 0 and 1 for any point in time. The generator applies this to `-m` to compute the effective worker cap:
 
-```
+```text
 effective workers = -m × schedule_multiplier
 ```
 
