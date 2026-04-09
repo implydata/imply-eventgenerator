@@ -297,13 +297,13 @@ This example models a simple network connection: a start timer controls interarr
 
 ```mermaid
 flowchart TD
-    A([connection_start\nevent:start:timer]) --> B[setup_connection\nactivity]
-    B --> C{route_traffic\ngateway:exclusive}
-    C -->|70%| D[/pause_web_flow\nevent:intermediate:timer/]
-    C -->|30%| E[/pause_ssh_flow\nevent:intermediate:timer/]
-    D --> F[emit_web_flow\nactivity]
-    E --> G[emit_ssh_flow\nactivity]
-    F --> H([connection_end\nevent:end])
+    A(["<b>connection_start</b><br/><tt>event:start:timer</tt>"]) --> B["<b>setup_connection</b><br/><tt>activity</tt>"]
+    B --> C{"<b>route_traffic</b><br/><tt>gateway:exclusive</tt>"}
+    C -->|70%| D[/"<b>pause_web_flow</b><br/><tt>event:intermediate:timer</tt>"/]
+    C -->|30%| E[/"<b>pause_ssh_flow</b><br/><tt>event:intermediate:timer</tt>"/]
+    D --> F["<b>emit_web_flow</b><br/><tt>activity</tt>"]
+    E --> G["<b>emit_ssh_flow</b><br/><tt>activity</tt>"]
+    F --> H(["<b>connection_end</b><br/><tt>event:end</tt>"])
     G --> H
 ```
 
