@@ -41,7 +41,7 @@ Each template has:
 
 ## Template syntax
 
-Templates use [Jinja2](https://jinja.palletsprojects.com/). Every emitter dimension is available by name as a template variable.
+Templates are rendered using [Jinja2](https://jinja.palletsprojects.com/), a Python templating engine. Each `body` (and `header`) string is a Jinja2 template: expressions in `{{ }}` are replaced with field values, and control structures like `{% if %}` are supported. Every emitter dimension is available by name as a template variable.
 
 ### Field values
 
