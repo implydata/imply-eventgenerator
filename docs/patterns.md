@@ -29,21 +29,36 @@ This is one of the most important concepts for building efficient state machines
 {
   "states": [
     {
-      "name": "connection_start",
+      "name": "setup_session",
+      "type": "activity",
       "variables": [
-        {"name": "user_id", "type": "string", "distribution": {"type": "uniform", "min": 1000, "max": 9999}},
-        {"name": "session_id", "type": "string", "distribution": {"type": "uniform", "min": 100000, "max": 999999}}
+        {"name": "var_user_id", "type": "int", "cardinality": 0, "distribution": {"type": "uniform", "min": 1000, "max": 9999}},
+        {"name": "var_session_id", "type": "int", "cardinality": 0, "distribution": {"type": "uniform", "min": 100000, "max": 999999}}
       ],
-      "transitions": [{"next": "page_view", "probability": 1.0}]
+      "next": "emit_page_view"
     },
     {
-      "name": "page_view",
+      "name": "emit_page_view",
+      "type": "activity",
       "emitter": "web_event",
       "variables": [
-        {"name": "page_name", "type": "enum", "values": ["home", "products", "checkout"]}
-        // user_id and session_id automatically available here!
+        {"name": "var_page_name", "type": "enum", "values": ["home", "products", "checkout"],
+         "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}}
+        // var_user_id and var_session_id automatically available here!
       ],
-      "transitions": [{"next": "page_view", "probability": 0.7}]
+      "next": "route_continue"
+    },
+    {
+      "name": "route_continue",
+      "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "emit_page_view", "probability": 0.7},
+        {"next": "session_end", "probability": 0.3}
+      ]
+    },
+    {
+      "name": "session_end",
+      "type": "event:end"
     }
   ]
 }
@@ -51,10 +66,10 @@ This is one of the most important concepts for building efficient state machines
 
 ### How It Works
 
-1. **First State** (connection_start): Defines `user_id` and `session_id`
-2. **Subsequent States** (page_view): Can reference `user_id` and `session_id` without redefining them
-3. **Worker Scope**: Variables persist for the lifetime of the worker thread
-4. **Only Redefine What Changes**: Only define new variables or variables whose values should change
+1. **`setup_session` activity**: Sets `var_user_id` and `var_session_id` once for the Actor's lifetime
+2. **`emit_page_view` activity**: References `var_user_id` and `var_session_id` without redefining them
+3. **Actor scope**: Variables persist for the lifetime of the Actor instance (one worker thread)
+4. **Only redefine what changes**: Only define new variables or variables whose values should change between states
 
 ### Common Use Cases
 
@@ -68,27 +83,36 @@ This is one of the most important concepts for building efficient state machines
 {
   "states": [
     {
-      "name": "initial",
+      "name": "setup_connection",
+      "type": "activity",
       "variables": [
-        {"name": "var_account_id", "type": "enum", "values": ["123456789012", "123456789013"]},
-        {"name": "var_interface_id", "type": "enum", "values": ["eni-1a2b3c4d", "eni-5e6f7g8h"]},
-        {"name": "var_action", "type": "enum", "values": ["ACCEPT", "REJECT"], "probabilities": [0.95, 0.05]}
+        {"name": "var_account_id", "type": "enum", "values": ["123456789012", "123456789013"],
+         "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_interface_id", "type": "enum", "values": ["eni-1a2b3c4d", "eni-5e6f7g8h"],
+         "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_action", "type": "enum", "values": ["ACCEPT", "REJECT"],
+         "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
       ],
+      "next": "route_traffic_type"
+    },
+    {
+      "name": "route_traffic_type",
+      "type": "gateway:exclusive",
       "transitions": [
-        {"next": "web_traffic_setup", "probability": 0.4},
-        {"next": "api_traffic_setup", "probability": 0.6}
+        {"next": "setup_web_traffic", "probability": 0.4},
+        {"next": "setup_api_traffic", "probability": 0.6}
       ]
     },
     {
-      "name": "web_traffic_setup",
+      "name": "setup_web_traffic",
+      "type": "activity",
       "variables": [
-        {"name": "var_srcaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "10.0.0.0/16"}},
-        {"name": "var_dstaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "203.0.113.0/24"}},
-        {"name": "var_srcport", "type": "int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}},
-        {"name": "var_dstport", "type": "constant", "value": 443}
+        {"name": "var_srcaddr", "type": "ipaddress", "distribution": {"type": "uniform", "min": 167772160, "max": 184549375}, "cardinality": 0},
+        {"name": "var_srcport", "type": "int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}, "cardinality": 0},
+        {"name": "var_dstport", "type": "int:static", "value": 443}
         // var_account_id, var_interface_id, var_action all available here!
       ],
-      "transitions": [{"next": "web_traffic_emit", "probability": 1.0}]
+      "next": "web_traffic_emit"
     }
   ]
 }
@@ -262,35 +286,40 @@ This pattern builds on [Variable Persistence](#variable-persistence-across-state
 {
   "states": [
     {
-      "name": "initial",
+      "name": "route_traffic",
+      "type": "gateway:exclusive",
       "transitions": [
-        {"next": "web_traffic", "probability": 0.4},
-        {"next": "api_traffic", "probability": 0.6}
+        {"next": "emit_web_traffic", "probability": 0.4},
+        {"next": "emit_api_traffic", "probability": 0.6}
       ]
     },
     {
-      "name": "web_traffic",
+      "name": "emit_web_traffic",
+      "type": "activity",
       "emitter": "access_log",
       "variables": [
-        {"name": "account_id", "type": "enum", "values": ["account-1", "account-2"]},
-        {"name": "region", "type": "enum", "values": ["us-east-1", "us-west-2"]},
-        {"name": "url", "type": "enum", "values": ["/home", "/products"]}
-      ]
+        {"name": "var_account_id", "type": "enum", "values": ["account-1", "account-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_region", "type": "enum", "values": ["us-east-1", "us-west-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_url", "type": "enum", "values": ["/home", "/products"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
+      ],
+      "next": "session_end"
     },
     {
-      "name": "api_traffic",
+      "name": "emit_api_traffic",
+      "type": "activity",
       "emitter": "api_log",
       "variables": [
-        {"name": "account_id", "type": "enum", "values": ["account-1", "account-2"]},
-        {"name": "region", "type": "enum", "values": ["us-east-1", "us-west-2"]},
-        {"name": "endpoint", "type": "enum", "values": ["/api/v1/users", "/api/v1/orders"]}
-      ]
+        {"name": "var_account_id", "type": "enum", "values": ["account-1", "account-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_region", "type": "enum", "values": ["us-east-1", "us-west-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_endpoint", "type": "enum", "values": ["/api/v1/users", "/api/v1/orders"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
+      ],
+      "next": "session_end"
     }
   ]
 }
 ```
 
-**Problem**: `account_id` and `region` are duplicated in both states.
+**Problem**: `var_account_id` and `var_region` are duplicated in both activities.
 
 #### After Optimization
 
@@ -298,35 +327,45 @@ This pattern builds on [Variable Persistence](#variable-persistence-across-state
 {
   "states": [
     {
-      "name": "initial",
+      "name": "setup_session",
+      "type": "activity",
       "variables": [
-        {"name": "account_id", "type": "enum", "values": ["account-1", "account-2"]},
-        {"name": "region", "type": "enum", "values": ["us-east-1", "us-west-2"]}
+        {"name": "var_account_id", "type": "enum", "values": ["account-1", "account-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_region", "type": "enum", "values": ["us-east-1", "us-west-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
       ],
+      "next": "route_traffic"
+    },
+    {
+      "name": "route_traffic",
+      "type": "gateway:exclusive",
       "transitions": [
-        {"next": "web_traffic", "probability": 0.4},
-        {"next": "api_traffic", "probability": 0.6}
+        {"next": "emit_web_traffic", "probability": 0.4},
+        {"next": "emit_api_traffic", "probability": 0.6}
       ]
     },
     {
-      "name": "web_traffic",
+      "name": "emit_web_traffic",
+      "type": "activity",
       "emitter": "access_log",
       "variables": [
-        {"name": "url", "type": "enum", "values": ["/home", "/products"]}
-      ]
+        {"name": "var_url", "type": "enum", "values": ["/home", "/products"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
+      ],
+      "next": "session_end"
     },
     {
-      "name": "api_traffic",
+      "name": "emit_api_traffic",
+      "type": "activity",
       "emitter": "api_log",
       "variables": [
-        {"name": "endpoint", "type": "enum", "values": ["/api/v1/users", "/api/v1/orders"]}
-      ]
+        {"name": "var_endpoint", "type": "enum", "values": ["/api/v1/users", "/api/v1/orders"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
+      ],
+      "next": "session_end"
     }
   ]
 }
 ```
 
-**Benefit**: Eliminated 4 lines of duplicate variable definitions.
+**Benefit**: `var_account_id` and `var_region` are defined once in `setup_session` and automatically available in both activity states.
 
 ### VPC Flow Logs: Common Variables
 
@@ -334,13 +373,14 @@ The VPC Flow Logs configuration has multiple traffic patterns (web, API, databas
 
 ```json
 {
-  "name": "initial",
+  "name": "setup_connection",
+  "type": "activity",
   "variables": [
     {
       "name": "var_account_id",
       "type": "enum",
       "values": ["123456789012", "123456789013", "123456789014"],
-      "probabilities": [0.5, 0.3, 0.2]
+      "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
     },
     {
       "name": "var_interface_id",
@@ -351,15 +391,20 @@ The VPC Flow Logs configuration has multiple traffic patterns (web, API, databas
         "eni-0a1b2c3d4e5f60005", "eni-0a1b2c3d4e5f60006"
       ],
       "cardinality_distribution": {"type": "exponential", "mean": 2},
-      "_comment": "ENI selected once per connection - all flow records use same interface"
+      "_comment": "ENI selected once per connection — all flow records use same interface"
     },
     {
       "name": "var_action",
       "type": "enum",
       "values": ["ACCEPT", "REJECT"],
-      "probabilities": [0.95, 0.05]
+      "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
     }
   ],
+  "next": "route_traffic_type"
+},
+{
+  "name": "route_traffic_type",
+  "type": "gateway:exclusive",
   "transitions": [
     {"next": "web_traffic_syn", "probability": 0.35},
     {"next": "database_traffic_syn", "probability": 0.25},
@@ -518,9 +563,13 @@ Real-world connections often generate multiple observation records over time. Ex
       "name": "route_flow_continue",
       "type": "gateway:exclusive",
       "transitions": [
-        {"next": "stop", "probability": 0.7},
+        {"next": "connection_end", "probability": 0.7},
         {"next": "setup_flow_record", "probability": 0.3}
       ]
+    },
+    {
+      "name": "connection_end",
+      "type": "event:end"
     }
   ]
 }
@@ -532,7 +581,7 @@ Real-world connections often generate multiple observation records over time. Ex
 2. **Setup State**: Captures `var_start` before the timer
 3. **Timer State**: Time advances (simulating data transfer duration)
 4. **Emit State**: Captures `var_end`, emits the flow record
-5. **Decision Point**: 30% chance to loop back to `setup_flow_record`, 70% chance to stop
+5. **Decision Point**: 30% chance to loop back to `setup_flow_record`, 70% chance to reach `event:end`
 6. **Same Connection**: Source/destination IPs and ports persist across all records
 7. **Result**: Same 5-tuple appears in multiple flow records with different time windows
 
@@ -587,29 +636,45 @@ From the actual VPC Flow Logs configuration, the data transfer state shows how m
 
 #### Increasing Probability of Closure
 
-Make long-running connections less likely:
+Make long-running connections less likely by using a separate `gateway:exclusive` after each emit with escalating exit probabilities:
 
 ```json
 {
+  "name": "route_after_record_1",
+  "type": "gateway:exclusive",
   "transitions": [
-    {"next": "close", "probability": 0.5},
-    {"next": "continue_once", "probability": 0.5}
+    {"next": "connection_end", "probability": 0.5},
+    {"next": "setup_record_2", "probability": 0.5}
   ]
-}
-// ...
+},
 {
   "name": "emit_record_2",
+  "type": "activity",
+  "emitter": "flow_log",
+  "variables": [...],
+  "next": "route_after_record_2"
+},
+{
+  "name": "route_after_record_2",
+  "type": "gateway:exclusive",
   "transitions": [
-    {"next": "close", "probability": 0.7},
-    {"next": "continue_twice", "probability": 0.3}
+    {"next": "connection_end", "probability": 0.7},
+    {"next": "setup_record_3", "probability": 0.3}
   ]
-}
-// ...
+},
 {
   "name": "emit_record_3",
+  "type": "activity",
+  "emitter": "flow_log",
+  "variables": [...],
+  "next": "route_after_record_3"
+},
+{
+  "name": "route_after_record_3",
+  "type": "gateway:exclusive",
   "transitions": [
-    {"next": "close", "probability": 0.9},
-    {"next": "continue_thrice", "probability": 0.1}
+    {"next": "connection_end", "probability": 0.9},
+    {"next": "setup_record_4", "probability": 0.1}
   ]
 }
 ```
@@ -621,11 +686,18 @@ Make long-running connections less likely:
 ```json
 {
   "name": "emit_pageview",
+  "type": "activity",
   "emitter": "session_event",
   "variables": [
-    {"name": "event_type", "type": "constant", "value": "pageview"},
-    {"name": "page_url", "type": "enum", "values": ["/home", "/products", "/checkout"]}
+    {"name": "var_event_type", "type": "string:static", "value": "pageview"},
+    {"name": "var_page_url", "type": "enum", "values": ["/home", "/products", "/checkout"],
+     "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}}
   ],
+  "next": "route_after_pageview"
+},
+{
+  "name": "route_after_pageview",
+  "type": "gateway:exclusive",
   "transitions": [
     {"next": "session_end", "probability": 0.2},
     {"next": "emit_click", "probability": 0.5},
@@ -634,11 +706,18 @@ Make long-running connections less likely:
 },
 {
   "name": "emit_click",
+  "type": "activity",
   "emitter": "session_event",
   "variables": [
-    {"name": "event_type", "type": "constant", "value": "click"},
-    {"name": "button_id", "type": "enum", "values": ["add_to_cart", "buy_now", "learn_more"]}
+    {"name": "var_event_type", "type": "string:static", "value": "click"},
+    {"name": "var_button_id", "type": "enum", "values": ["add_to_cart", "buy_now", "learn_more"],
+     "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}}
   ],
+  "next": "route_after_click"
+},
+{
+  "name": "route_after_click",
+  "type": "gateway:exclusive",
   "transitions": [
     {"next": "session_end", "probability": 0.3},
     {"next": "emit_pageview", "probability": 0.7}

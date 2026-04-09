@@ -27,7 +27,6 @@ Templates live in a top-level `templates` object in the generator config, keyed 
       "body": "{{ time.timestamp()|int }},{{ client }},{{ status }}"
     }
   },
-  "interarrival": { ... },
   "states": [ ... ],
   "emitters": [ ... ]
 }
