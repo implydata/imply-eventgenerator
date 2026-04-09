@@ -45,7 +45,7 @@ Write out the lifecycle as a simple flow before touching JSON. Focus on:
 
 ## Step 3 — Map phases to state types
 
-Each phase in your sketch maps to one of five state types. This is the BPMN-ey mapping at the heart of the engine:
+Each phase in your sketch maps to one of five state types, grounded in [BPMN](https://en.wikipedia.org/wiki/Business_Process_Model_and_Notation) concepts:
 
 | What happens in this phase | State type |
 | --- | --- |
