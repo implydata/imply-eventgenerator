@@ -2,7 +2,7 @@
 
 > Building a new config? See [How to build a config](./how-to-build-a-config.md) for the step-by-step design process. This page is the field-level reference.
 
-A generator configuration is a JSON document passed to the generator via `-c`. Each concurrent worker (`-m`) runs one independent Actor — one lifecycle from the initial `event:start:timer` state to `event:end`. Activity states emit records; `event:intermediate:timer` states advance the clock without emitting.
+A generator configuration is a JSON document passed to the generator via `-c`. Each concurrent worker (`-m`) runs one independent Actor — one lifecycle from the initial `event:start:timer` state to `event:end`.
 
 See [`presets/configs/`](../presets/configs/) for ready-to-use examples.
 
@@ -10,11 +10,18 @@ See [`presets/configs/`](../presets/configs/) for ready-to-use examples.
 | --- | --- | --- | --- |
 | [`states`](./states.md) | A list of states that will be used to generate events. | See [`states`](./states.md) | Yes |
 | [`emitters`](./emitters.md) | A list of emitters. | See [`emitters`](./emitters.md) | Yes |
+| [`templates`](./templates.md) | Named Jinja2 output templates, selected at runtime with `-t`. | See [`templates`](./templates.md) | No |
 
-In this example there are three states. `session_start` is an `event:start:timer` that spawns a new worker every second. Each worker emits an event via `emit_event`, then waits 5 seconds in `wait_5s` before emitting again — cycling until the generator stops.
+In this example, `session_start` spawns a new worker every second. Each worker emits an event via `emit_event`, waits 5 seconds in `wait_5s`, then loops back to emit again via the `route` gateway — cycling until the generator stops or the worker exits.
 
 ```json
 {
+  "templates": {
+    "csv": {
+      "header": "time,value",
+      "body": "{{ time }},{{ enum_dim }}"
+    }
+  },
   "states": [
     {
       "name": "session_start",
@@ -32,13 +39,23 @@ In this example there are three states. `session_start` is an `event:start:timer
       "name": "wait_5s",
       "type": "event:intermediate:timer",
       "cardinality_distribution": { "type": "constant", "value": 5 },
-      "next": "emit_event"
-    }
+      "next": "route"
+    },
+    {
+      "name": "route",
+      "type": "gateway:exclusive",
+      "transitions": [
+        { "next": "emit_event", "probability": 0.9 },
+        { "next": "session_end", "probability": 0.1 }
+      ]
+    },
+    { "name": "session_end", "type": "event:end" }
   ],
   "emitters": [
     {
       "name": "example_record_1",
       "dimensions": [
+        { "name": "time", "type": "clock" },
         {
           "name": "enum_dim",
           "type": "enum",
@@ -53,40 +70,60 @@ In this example there are three states. `session_start` is an `event:start:timer
 
 Try this out by saving the above to `example.json`.
 
-The following command will create 10 records and use only one worker:
+The following command generates 10 records with one worker, using a simulated clock:
 
 ```bash
 python generator.py -c example.json -n 10 -m 1 -s "2024-01-01T00:00:00"
 ```
 
-This causes the following output.  Notice that each row is spaced 5 seconds apart, since only one worker is generating results.
+Each row is spaced 5 seconds apart, since only one worker is generating results:
 
 ```json
-{"time":"2025-02-18T09:32:16.416","enum_dim":"A"}
-{"time":"2025-02-18T09:32:21.426","enum_dim":"C"}
-{"time":"2025-02-18T09:32:26.429","enum_dim":"B"}
-{"time":"2025-02-18T09:32:31.434","enum_dim":"C"}
-{"time":"2025-02-18T09:32:36.440","enum_dim":"B"}
-{"time":"2025-02-18T09:32:41.444","enum_dim":"C"}
-{"time":"2025-02-18T09:32:46.449","enum_dim":"B"}
-{"time":"2025-02-18T09:32:51.453","enum_dim":"A"}
-{"time":"2025-02-18T09:32:56.459","enum_dim":"A"}
-{"time":"2025-02-18T09:33:01.464","enum_dim":"B"}
+{"time": "2024-01-01T00:00:00+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:05+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:10+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:15+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:20+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:25+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:31+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:36+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:42+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:47+00:00", "enum_dim": "C"}
 ```
 
-When run with `-m 3`, 3 workers are spawned. Since `session_start` has a `constant` interarrival of 1 second, one worker is spawned per second, meaning rows 1–3 are each from different worker threads, rows 4–6 are those workers in their second cycle, and so on.
+With `-m 3`, one worker is spawned per second. Rows 1–3 are each from a different worker; rows 4–6 are those same workers in their second cycle, and so on:
 
 ```json
-{"time":"2025-02-18T09:35:49.618","enum_dim":"A"}
-{"time":"2025-02-18T09:35:50.623","enum_dim":"B"}
-{"time":"2025-02-18T09:35:51.629","enum_dim":"C"}
-{"time":"2025-02-18T09:35:54.626","enum_dim":"B"}
-{"time":"2025-02-18T09:35:55.626","enum_dim":"C"}
-{"time":"2025-02-18T09:35:56.635","enum_dim":"A"}
-{"time":"2025-02-18T09:35:59.632","enum_dim":"A"}
-{"time":"2025-02-18T09:36:00.627","enum_dim":"C"}
-{"time":"2025-02-18T09:36:01.640","enum_dim":"A"}
-{"time":"2025-02-18T09:36:04.635","enum_dim":"A"}
+{"time": "2024-01-01T00:00:00+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:01+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:02+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:05+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:06+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:07+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:10+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:11+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:12+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:15+00:00", "enum_dim": "C"}
+```
+
+With `-t csv`, the `csv` template is used and the header line is emitted once before the records:
+
+```bash
+python generator.py -c example.json -t csv -n 10 -m 1 -s "2024-01-01T00:00:00"
+```
+
+```text
+time,value
+2024-01-01 00:00:00+00:00,B
+2024-01-01 00:00:05+00:00,C
+2024-01-01 00:00:10+00:00,C
+2024-01-01 00:00:15+00:00,B
+2024-01-01 00:00:20+00:00,A
+2024-01-01 00:00:25+00:00,A
+2024-01-01 00:00:31+00:00,A
+2024-01-01 00:00:36+00:00,C
+2024-01-01 00:00:42+00:00,B
+2024-01-01 00:00:47+00:00,C
 ```
 
 ## See Also

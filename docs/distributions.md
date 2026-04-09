@@ -4,7 +4,7 @@
 
 Distribution JSON objects define the distribution pattern to follow when creating synthetic data.
 
-They appear in emitter `dimensions` lists, and in `cardinality_distribution` fields of `event:start:timer` and `event:intermediate:timer` states.
+They appear in emitter `dimensions` lists, and in `cardinality_distribution` fields - including `event:start:timer` and `event:intermediate:timer` states.
 
 | Field | Use | [`timestamp`](./types/timestamp.md) | [`string`](./types/string.md) | [`int`](./types/int.md) | [`float`](./types/float.md) | [`ipaddress`](./types/ipaddress.md) |
 | --- | --- | --- | --- | --- | --- | --- |

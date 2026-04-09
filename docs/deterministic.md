@@ -8,7 +8,9 @@ This is useful for generating consistent sample datasets, reproducible test fixt
 
 The `--seed` argument accepts an integer that seeds both random number generators used by the generator (Python's `random` module and NumPy's `np.random`).
 
-When combined with simulated time (`-s`), thread execution is deterministically serialized via the Clock's sorted event queue. This guarantees the same thread interleaving and the same RNG call sequence on every run, producing identical output.
+Without `--seed`, the generator uses unseeded random state and produces different output on each run.
+
+When combined with simulated time (`-s`), thread execution is deterministically serialized via the Clock's sorted event queue. This guarantees the same thread interleaving and the same RNG call sequence on every run, producing identical output. `--seed` _can_ be used without `-s` (real-time mode), but deterministic output is only guaranteed in simulated time mode as real-time thread scheduling is non-deterministic.
 
 ## Usage
 
@@ -38,8 +40,3 @@ python generator.py \
 ```
 
 Running this command again with the same arguments produces identical output. Changing the start time (`-s`) but keeping the same seed produces the same data with different timestamps.
-
-## Notes
-
-- Without `--seed`, the generator uses unseeded random state and produces different output on each run.
-- `--seed` can be used without `-s` (real-time mode), but deterministic output is only guaranteed in simulated time mode because real-time thread scheduling is non-deterministic.
