@@ -287,7 +287,7 @@ Terminates the worker. No fields other than `name` and `type` are permitted. The
 }
 ```
 
-Every config should have exactly one `event:end` state. All paths through the state machine must eventually route to it.
+Every config must have at least one `event:end` state. Configs with multiple exit paths may have multiple `event:end` states — one per terminal path is valid. All paths through the state machine must eventually route to an `event:end`.
 
 ---
 
@@ -391,6 +391,35 @@ flowchart TD
   ]
 }
 ```
+
+---
+
+## Variable scope
+
+Variables set in `activity` states are **per-worker and per-lifecycle**:
+
+- Each worker starts with an empty variable namespace.
+- Variables persist for the entire lifetime of that worker — once set, a variable is available in every subsequent activity state in the same lifecycle.
+- Revisiting a state unconditionally **overwrites** the variable's previous value. There is no accumulation or append semantics.
+- When the worker reaches `event:end` and a new lifecycle begins, the namespace is reset to empty.
+
+This means session-level variables (set once in a `setup_*` activity at the start) naturally persist across all subsequent emit states without being redeclared.
+
+---
+
+## Startup validation
+
+Running with `--validate` checks the config before any data is generated. It catches:
+
+- Missing `event:start:timer` or `event:end` state
+- Invalid state types or missing required fields
+- Transition targets that don't exist
+- Gateway probabilities that don't sum to 1.0 (±0.01 tolerance)
+- Emitter dimensions referencing a variable that is never set by any activity
+- Named template not found in the config (when `-t` is specified)
+- Environment variables referenced in a template that are not set
+
+It does **not** catch ordering issues — a variable referenced in an emitter might pass validation even if the execution path reaches the emitter before the variable is set. That will raise a runtime error. Test with `-n 100 -s "2024-01-01T00:00:00"` to surface these.
 
 ---
 

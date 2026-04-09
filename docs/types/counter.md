@@ -2,11 +2,13 @@
 
 When a [field generator](./field-generators.md) type is `counter`, an integer is created that increments with every generation.
 
-Counters are not incremented when missing or null.
+**Counter scope**: each counter is per-worker and per-emitter-dimension-instance. Counters reset to `start` when a new worker lifecycle begins. If a worker visits an emit state multiple times in a single lifecycle, the counter increments on every visit. Two emitters that each define a counter are independent of each other — they do not share state.
+
+Counters are not incremented when the field is missing or null (i.e. `percent_missing` or `percent_nulls` fires).
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `float` | Yes | |
+| `type` | The data type for the dimension. | `counter` | Yes | |
 | `name` | The unique name for the dimension. | String | Yes | |
 | `percent_missing` | The stochastic frequency for omitting this dimension from records (inclusive). | Integer between 0 and 100. | No. | 0 |
 | `percent_nulls` | The stochastic frequency (inclusive) for generating null values. | Integer between 0 and 100. | No. | 0 |
@@ -72,6 +74,7 @@ The second emitter, `example_event_2`, mirrors the same configuration, using dif
     {
       "name": "example_event_1",
       "dimensions": [
+        { "name": "time", "type": "clock" },
         { "name": "default_counter1", "type": "counter" },
         { "name": "start_counter1", "type": "counter", "start": 100 },
         { "name": "increment_counter1", "type": "counter", "increment": 10000 },
@@ -81,20 +84,21 @@ The second emitter, `example_event_2`, mirrors the same configuration, using dif
     {
       "name": "example_event_2",
       "dimensions": [
+        { "name": "time", "type": "clock" },
         { "name": "default_counter2", "type": "counter" },
         { "name": "start_counter2", "type": "counter", "start": 500 },
         { "name": "increment_counter2", "type": "counter", "increment": 50000 },
         { "name": "both_counter2", "type": "counter", "start": 750, "increment": 50 }
       ]
     }
-  ],
+  ]
 }
 ```
 
-Save the above configuration as `example.json` and use the following command to create 10 records with one worker:
+Save the above configuration as `example.json` and use the following command to create 10 records with one worker using a simulated clock:
 
 ```bash
-python3 src/generator.py -f example.json -n 10 -m 1
+python generator.py -c example.json -n 10 -m 1 -s "2024-01-01T00:00:00"
 ```
 
 This is an example of the output using one worker.

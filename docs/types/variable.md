@@ -1,12 +1,16 @@
 # Worker variables
 
-When a worker encounters an [emitter dimension](./emitters.md#dimensions) with a `type` of `variable`, the worker variable is used, rather than a new value value being created.
+Use `variable` in an emitter's `dimensions` list to output the current value of a worker variable that was set by an earlier activity state.
+
+**Context restriction**: `variable` is only valid in emitter `dimensions`. Using it in a state's `variables` list (where field generators are used to *set* variables) causes a validation error.
+
+**Runtime error**: if the referenced variable has not been set by the time the emitter runs, the generator raises a `KeyError`. This is not always caught by `--validate` — if the execution path can reach the emitter before the activity that sets the variable, the error will only appear at runtime. Always set variables in a `setup_*` activity that runs before any emit state that references them.
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `float` | Yes | |
+| `type` | The data type for the dimension. | `variable` | Yes | |
 | `name` | The unique name for the dimension. | String | Yes | |
-| `variable` | The name of a [state variable](./generator-config.md#variables). | String | Yes | |
+| `variable` | The name of a worker variable set in an activity state's `variables` list. | String | Yes | |
 
 In the following example, `session_start` spawns a new worker every 0.2 seconds. A `setup_session` activity sets `var_client_ip` and `var_account_code` once per session and emits an initial click. A `gateway:exclusive` then routes 70% of the time to another click (after a 1-second pause) and 30% to `session_end`.
 
@@ -76,6 +80,7 @@ Both activities use the `click` emitter, which contains:
     {
       "name": "click",
       "dimensions": [
+        { "name": "time", "type": "clock" },
         { "name": "client_ip", "type": "variable", "variable": "var_client_ip" },
         { "name": "account_code", "type": "variable", "variable": "var_account_code" },
         {
@@ -97,14 +102,14 @@ Both activities use the `click` emitter, which contains:
         }
       ]
     }
-  ],
+  ]
 }
 ```
 
-Save the JSON above as `example.json` in the `config_file` folder and run it with the following command.
+Save the JSON above as `example.json` and run it with the following command.
 
 ```bash
-python3 src/generator.py -f example.json -n 15 -m 2 -s "2009-05-21:08:00:10"
+python generator.py -c example.json -n 15 -m 2 -s "2009-05-21T08:00:10"
 ```
 
 * `-n 15` specifies a maximum of 15 records.

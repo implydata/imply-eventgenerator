@@ -15,10 +15,12 @@ Without `--schedule`, the generator runs at full capacity (`-m` workers) at all 
 The schedule defines a multiplier between 0 and 1 for any point in time. The generator applies this to `-m` to compute the effective worker cap:
 
 ```text
-effective workers = -m × schedule_multiplier
+effective workers = max(1, floor(-m × schedule_multiplier))
 ```
 
 At peak (multiplier = 1.0), the full `-m` is in effect. At off-peak (e.g. multiplier = 0.2), only 20% of `-m` workers are active. This means **`-m` sets the peak; the schedule shapes everything below it**.
+
+The effective worker count is always at least 1 — even at the lowest schedule multiplier, one worker is always running.
 
 ## The ceiling
 
@@ -46,7 +48,7 @@ A realistic e-commerce traffic pattern: weekday afternoons are busiest, evenings
 | Saturday | 14:00 | 0.56 |
 | Sunday | 13:00 | 0.44 |
 
-Days not listed (Wednesday, Thursday) fall back to a flat baseline. All weights are normalised so the highest value across the week is 1.0.
+Days not listed (Wednesday, Thursday) use the nearest prior defined day — walking backwards through the week with wraparound. Wednesday and Thursday both fall back to Tuesday's profile. All weights are normalised so the highest value across the week is 1.0.
 
 ## Writing your own schedule
 
@@ -76,7 +78,7 @@ A schedule file is a JSON object with a `type` field.
 ```
 
 - `days` keys are ISO weekday numbers: `1` = Monday … `7` = Sunday
-- Days not listed in `days` produce a multiplier of 0 (no active workers)
+- Days not listed in `days` **do not produce zero** — the generator walks backwards through the week (with wraparound) to find the nearest prior defined day and uses that profile. In the example above, Tuesday (`"2"`) covers Wednesday and Thursday as well as Tuesday.
 - Each entry is a Gaussian component: `utc_hour` is the centre, `sigma` is the width in hours, `weight` is the peak multiplier for that component
 - Multiple components in the same day are summed, then clamped to [0, 1]
 - Weights should be normalised so the maximum across the whole week is 1.0 — otherwise `-m` will never be fully utilised even at peak
