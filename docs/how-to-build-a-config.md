@@ -286,7 +286,7 @@ Config errors (bad field references, wrong distributions, missing variables) oft
 
 ## Step 10 — Set `-m` correctly (Little's Law)
 
-`-m` is a concurrency **cap**, not a volume knob. Volume is controlled by the interarrival mean. The maximum useful `-m` is determined by Little's Law:
+`-m` caps the number of simultaneously active sessions. When set below the natural concurrency (L = λW), it reduces throughput in both real-time and simulated modes. When at or above L, it has no effect on throughput — the interarrival mean is the binding constraint. The crossover point is determined by Little's Law:
 
 ```bash
 max -m = W / mean

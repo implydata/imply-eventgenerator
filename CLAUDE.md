@@ -6,7 +6,8 @@ Every config must have an agreed **Actor** before any JSON is written. An Actor 
 
 - A config can have multiple Actor *types* (e.g. Human, Hacker, Bot in the ecommerce preset), routed at session start via a routing state such as `global_init`.
 - All Actor types share the same `-m` worker pool, capped by Little's Law.
-- `-m` is a concurrency *cap*, not a volume knob. Volume is controlled by interarrival `mean`.
+- `-m` caps the number of simultaneously active sessions. When set below the natural concurrency (L = λW), it reduces throughput — in both real-time and simulated modes. When at or above L, it has no effect on throughput; the interarrival `mean` is the binding constraint.
+- In simulated mode, the Clock serialises threads for **time-ordering** (advancing simulated time in scheduled-event order). This is separate from the concurrency cap: the spawning thread still enforces `effective_max` and sleeps 5 simulated seconds when at capacity. Do not conflate time-ordering serialisation with bypassing the concurrency constraint.
 
 ## Preset structure
 

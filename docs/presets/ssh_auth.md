@@ -63,4 +63,4 @@ Session dwell time is drawn from an exponential distribution with mean 600 secon
 | Base arrival rate (λ = 1/mean) | 0.1 connections/sec |
 | Maximum useful `-m` (L = λW) | ~38 |
 
-Setting `-m` above ~38 has no effect — connections complete faster than new ones arrive to fill the pool.
+Setting `-m` above ~38 has no effect in either mode — connections complete faster than new ones arrive, so the natural concurrency never fills the pool.

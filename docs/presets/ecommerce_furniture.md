@@ -177,4 +177,4 @@ The loop continues with 98% probability, averaging ~50 crawl requests per sessio
 | Base arrival rate (λ = 1/mean) | ~0.33 sessions/sec |
 | Maximum useful `-m` (L = λW) | ~415 |
 
-Setting `-m` above ~415 has no effect — sessions complete faster than new ones arrive to fill the pool.
+Setting `-m` above ~415 has no effect in either mode — sessions complete faster than new ones arrive, so the natural concurrency never fills the pool.

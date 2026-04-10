@@ -53,4 +53,4 @@ flowchart LR
 | Base arrival rate (λ = 1/mean) | ~2.0 connections/sec |
 | Maximum useful `-m` (L = λW) | ~25 |
 
-Setting `-m` above ~25 has no effect — connections are short-lived and complete faster than new ones arrive.
+Setting `-m` above ~25 has no effect in either mode — connections complete faster than new ones arrive, so the natural concurrency never fills the pool.

@@ -60,7 +60,7 @@ flowchart TD
     H --> Z
 ```
 
-The `ringing` state models real ring time (5–30 s) before the outcome is determined. Answered calls spend an additional ~3 minutes in `answered` before the CDR is emitted — so in real-time mode, `-m` controls how many calls are genuinely in progress simultaneously.
+The `ringing` state models real ring time (5–30 s) before the outcome is determined. Answered calls spend an additional ~3 minutes in `answered` before the CDR is emitted — so `-m` controls how many calls are genuinely in progress simultaneously, in both real-time and simulated modes.
 
 ## Concurrency (`-m`)
 
@@ -71,4 +71,4 @@ The `ringing` state models real ring time (5–30 s) before the outcome is deter
 | Base arrival rate (λ = 1/mean) | ~0.033 calls/sec |
 | Maximum useful `-m` (L = λW) | ~5 |
 
-At the default interarrival rate, only ~5 calls are naturally in flight at any moment. To model a busier PBX, lower the `interarrival` mean in the config.
+At the default interarrival rate, only ~5 calls are naturally in flight at any moment, in either mode. Setting `-m` above ~5 has no effect on throughput. To model a busier PBX, lower the `interarrival` mean in the config.
