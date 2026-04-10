@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Empirically measure how -m affects throughput, auto-detecting the Little's Law ceiling.
+"""Empirically measure how -m affects throughput, finding the concurrency ceiling.
 
-Two-phase approach:
+Three-phase approach:
   1. Discovery: geometrically doubles -m from --start-m until row count plateaus.
-     This locates the Little's Law ceiling without requiring you to know L in advance.
-  2. Sampling: selects up to --samples evenly log-spaced -m values across the discovered
-     range [start_m, 2 × plateau_m] and re-runs those for the final table.
+  2. Refinement: binary-searches between the last non-plateau and first plateau value
+     to pinpoint the ceiling precisely (within ~5%).
+  3. Sampling: selects up to --samples evenly log-spaced -m values across
+     [start_m, 2 × ceiling] and runs those for the final table.
 
 Within each run the simulated clock is tracked by reading the clock field from output
 lines, giving a real progress bar (% of simulated window elapsed) rather than a spinner.
 
 If the config has an ambiguous clock field, pass --clock-field explicitly.
 
-Outputs CSV by default; use --markdown for a table suitable for preset docs.
+Outputs CSV to stdout and an empirical summary (ceiling, regenerate command) to stderr.
 
 Usage:
     python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start
@@ -24,6 +25,7 @@ import argparse
 import csv
 import json
 import math
+import os
 import subprocess
 import sys
 import time
@@ -48,7 +50,6 @@ DEFAULT_SEED = 42
 DEFAULT_START = "2024-01-01T00:00:00"
 DEFAULT_DURATION = "PT6H"
 PLATEAU_THRESHOLD = 0.10
-DEFAULT_PLATEAU_CONFIRM = 2
 DEFAULT_MAX_M = 100_000
 DEFAULT_SAMPLES = 10
 
@@ -168,6 +169,15 @@ def is_plateau(prev_rows, curr_rows, threshold):
 
 
 
+def nice_ceil(value, headroom=0.15):
+    """Round value × (1 + headroom) up to 2 significant figures."""
+    raw = value * (1 + headroom)
+    if raw <= 0:
+        return 1
+    magnitude = 10 ** (math.floor(math.log10(raw)) - 1)
+    return math.ceil(raw / magnitude) * magnitude
+
+
 def log_spaced_integers(lo, hi, n):
     """Up to n distinct integers, log-spaced from lo to hi inclusive."""
     if lo >= hi or n <= 1:
@@ -203,13 +213,14 @@ def main():
                         help=f"Upper bound on -m during discovery. Default: {DEFAULT_MAX_M:,}")
     parser.add_argument("--plateau-threshold", type=float, default=PLATEAU_THRESHOLD,
                         help=f"Row-growth fraction below which a step is plateau. Default: {PLATEAU_THRESHOLD}")
-    parser.add_argument("--plateau-confirm", type=int, default=DEFAULT_PLATEAU_CONFIRM,
-                        help=f"Consecutive plateau readings before stopping. Default: {DEFAULT_PLATEAU_CONFIRM}")
+
     parser.add_argument("--samples", type=int, default=DEFAULT_SAMPLES,
                         help=f"Points in the final table. Default: {DEFAULT_SAMPLES}")
     parser.add_argument("--clock-field", default=None,
                         help="JSON field name carrying the simulated clock timestamp "
                              "(required if the config has multiple clock fields)")
+    parser.add_argument("--csv", action="store_true",
+                        help="Output raw CSV instead of the default markdown block")
     args = parser.parse_args()
 
     # --- Load config and resolve clock field ---
@@ -268,7 +279,6 @@ def main():
 
         cache = {}  # m -> (rows, elapsed) — reused in sampling phase
         plateau_m = None
-        plateau_run = 0
         prev_rows = None
         last_non_plateau_m = args.start_m
         m = args.start_m
@@ -289,13 +299,9 @@ def main():
             )
 
             if plat:
-                if plateau_m is None:
-                    plateau_m = m
-                plateau_run += 1
-                if plateau_run >= args.plateau_confirm:
-                    break
+                plateau_m = m
+                break
             else:
-                plateau_run = 0
                 last_non_plateau_m = m
 
             prev_rows = rows
@@ -393,31 +399,64 @@ def main():
     # ----------------------------------------------------------------
     # Output
     # ----------------------------------------------------------------
-    print()
-    writer = csv.DictWriter(
-        sys.stdout,
-        fieldnames=["m", "rows", "elapsed_s"],
-        lineterminator="\n",
-    )
-    writer.writeheader()
-    for r in results:
-        writer.writerow({
-            "m": r["m"],
-            "rows": r["rows"],
-            "elapsed_s": f"{r['elapsed_s']:.1f}",
-        })
-
-    # Summary to stderr — values needed for the preset doc Concurrency section
     plateau_rows = cache[plateau_m][0] if plateau_m in cache else None
-    plateau_rows_str = f"{plateau_rows:,} rows at plateau" if plateau_rows is not None else "rows unknown"
     clock_arg = f" --clock-field {args.clock_field}" if args.clock_field else ""
     regen_cmd = f"python tools/bench_config.py -c {args.config}{clock_arg}"
-    err.print()
-    err.print("[bold]── Empirical summary ──────────────────────────────────────[/bold]")
-    err.print(f"  Empirical ceiling:  -m = [bold]{plateau_m:,}[/bold]  ({plateau_rows_str})")
-    err.print(f"  Duration used:      {args.duration}  (seed={args.seed})")
-    err.print(f"  To regenerate:      {regen_cmd}")
-    err.print("[bold]────────────────────────────────────────────────────────────[/bold]")
+
+    print()
+
+    if args.csv:
+        writer = csv.DictWriter(
+            sys.stdout,
+            fieldnames=["m", "rows", "elapsed_s"],
+            lineterminator="\n",
+        )
+        writer.writeheader()
+        for r in results:
+            writer.writerow({
+                "m": r["m"],
+                "rows": r["rows"],
+                "elapsed_s": f"{r['elapsed_s']:.1f}",
+            })
+        plateau_rows_str = f"{plateau_rows:,} rows at plateau" if plateau_rows is not None else "rows unknown"
+        err.print()
+        err.print("[bold]── Empirical summary ──────────────────────────────────────[/bold]")
+        err.print(f"  Empirical ceiling:  -m = [bold]{plateau_m:,}[/bold]  ({plateau_rows_str})")
+        err.print(f"  Duration used:      {args.duration}  (seed={args.seed})")
+        err.print(f"  To regenerate:      {regen_cmd}")
+        err.print("[bold]────────────────────────────────────────────────────────────[/bold]")
+    else:
+        config_name = os.path.splitext(os.path.basename(args.config))[0]
+        y_max = nice_ceil(plateau_rows) if plateau_rows else 1000
+
+        x_vals = [str(r["m"]) for r in results]
+        y_vals = [str(r["rows"]) for r in results]
+
+        table_rows = "\n".join(
+            f"| {r['m']:,} | {r['rows']:,} | {r['elapsed_s']:.1f} |"
+            for r in results
+        )
+
+        print(
+            f"The `-m` ceiling is ~{plateau_m:,}. Setting `-m` above this has no effect"
+            f" — the worker pool is never fully used.\n"
+            f"\n"
+            f"The table below shows how output scales with `-m` (`--seed {args.seed}`,"
+            f" no schedule, {args.duration} simulated window)."
+            f" To regenerate: `{regen_cmd}`.\n"
+            f"\n"
+            f"| `-m` | Rows ({args.duration}) | Wall-clock (s) |\n"
+            f"| ---: | ---: | ---: |\n"
+            f"{table_rows}\n"
+            f"\n"
+            f"```mermaid\n"
+            f"xychart-beta\n"
+            f"    title \"{config_name} — rows vs -m ({args.duration}, seed={args.seed})\"\n"
+            f"    x-axis [{', '.join(x_vals)}]\n"
+            f"    y-axis \"Rows\" 0 --> {y_max}\n"
+            f"    line [{', '.join(y_vals)}]\n"
+            f"```"
+        )
 
 
 

@@ -64,11 +64,26 @@ The `ringing` state models real ring time (5–30 s) before the outcome is deter
 
 ## Concurrency (`-m`)
 
-| Little's Law component | Value |
-| --- | --- |
-| Average session duration (W) | ~144 seconds |
-| Interarrival mean | 30 s |
-| Base arrival rate (λ = 1/mean) | ~0.033 calls/sec |
-| Maximum useful `-m` (L = λW) | ~5 |
+The `-m` ceiling is ~9. Setting `-m` above this has no effect — the worker pool is never fully used. To model a busier PBX, lower the `interarrival` mean in the config.
 
-At the default interarrival rate, only ~5 calls are naturally in flight at any moment, in either mode. Setting `-m` above ~5 has no effect on throughput. To model a busier PBX, lower the `interarrival` mean in the config.
+The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/pbx_calls.json`.
+
+| `-m` | Rows (PT6H) | Wall-clock (s) |
+| ---: | ---: | ---: |
+| 1 | 140 | 0.2 |
+| 2 | 254 | 0.2 |
+| 3 | 404 | 0.2 |
+| 4 | 492 | 0.2 |
+| 5 | 572 | 0.2 |
+| 7 | 660 | 0.2 |
+| 9 | 721 | 0.2 |
+| 13 | 773 | 0.2 |
+| 18 | 773 | 0.2 |
+
+```mermaid
+xychart-beta
+    title "pbx_calls — rows vs -m (PT6H, seed=42)"
+    x-axis [1, 2, 3, 4, 5, 7, 9, 13, 18]
+    y-axis "Rows" 0 --> 830
+    line [140, 254, 404, 492, 572, 660, 721, 773, 773]
+```

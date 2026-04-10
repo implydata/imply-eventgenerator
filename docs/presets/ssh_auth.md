@@ -56,11 +56,27 @@ Session dwell time is drawn from an exponential distribution with mean 600 secon
 
 ## Concurrency (`-m`)
 
-| Little's Law component | Value |
-| --- | --- |
-| Average session duration (W) | ~381 seconds |
-| Interarrival mean | 10 s |
-| Base arrival rate (λ = 1/mean) | 0.1 connections/sec |
-| Maximum useful `-m` (L = λW) | ~38 |
+The `-m` ceiling is ~66. Setting `-m` above this has no effect — the worker pool is never fully used.
 
-Setting `-m` above ~38 has no effect in either mode — connections complete faster than new ones arrive, so the natural concurrency never fills the pool.
+The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ssh_auth.json`.
+
+| `-m` | Rows (PT6H) | Wall-clock (s) |
+| ---: | ---: | ---: |
+| 1 | 136 | 0.2 |
+| 2 | 296 | 0.2 |
+| 3 | 390 | 0.2 |
+| 5 | 769 | 0.2 |
+| 9 | 1,169 | 0.2 |
+| 15 | 1,988 | 0.3 |
+| 26 | 3,395 | 0.3 |
+| 45 | 5,366 | 0.4 |
+| 77 | 5,450 | 0.4 |
+| 132 | 5,450 | 0.4 |
+
+```mermaid
+xychart-beta
+    title "ssh_auth — rows vs -m (PT6H, seed=42)"
+    x-axis [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
+    y-axis "Rows" 0 --> 6300
+    line [136, 296, 390, 769, 1169, 1988, 3395, 5366, 5450, 5450]
+```

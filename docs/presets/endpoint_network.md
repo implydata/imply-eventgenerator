@@ -73,4 +73,21 @@ flowchart TD
 
 ## Concurrency (`-m`)
 
-All states have zero delay — each worker completes a single packet decision instantaneously. Session duration W ≈ 0, so `-m 1` is always sufficient. Adding workers has no practical effect.
+There is no meaningful `-m` ceiling. Each worker completes a single packet decision with zero delay and immediately exits, so the worker pool is never the bottleneck. `-m 1` is always sufficient; raising it has no effect on throughput.
+
+The table below shows expected output volume (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/endpoint_network.json`.
+
+| `-m` | Rows (PT6H) | Wall-clock (s) |
+| ---: | ---: | ---: |
+| 1 | 71,928 | 5.4 |
+| 2 | 71,928 | 5.3 |
+| 3 | 71,928 | 5.3 |
+| 4 | 71,928 | 5.2 |
+
+```mermaid
+xychart-beta
+    title "endpoint_network — rows vs -m (PT6H, seed=42)"
+    x-axis [1, 2, 3, 4]
+    y-axis "Rows" 0 --> 83000
+    line [71928, 71928, 71928, 71928]
+```

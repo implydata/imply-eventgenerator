@@ -170,11 +170,27 @@ The loop continues with 98% probability, averaging ~50 crawl requests per sessio
 
 ## Concurrency (`-m`)
 
-| Little's Law component | Value |
-| --- | --- |
-| Average session duration (W) | ~1,244 seconds (~21 minutes) |
-| Interarrival mean | 3.0 s |
-| Base arrival rate (λ = 1/mean) | ~0.33 sessions/sec |
-| Maximum useful `-m` (L = λW) | ~415 |
+The `-m` ceiling is ~528. Setting `-m` above this has no effect — the worker pool is never fully used.
 
-Setting `-m` above ~415 has no effect in either mode — sessions complete faster than new ones arrive, so the natural concurrency never fills the pool.
+The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce_furniture.json`.
+
+| `-m` | Rows (PT6H) | Wall-clock (s) |
+| ---: | ---: | ---: |
+| 1 | 178 | 0.2 |
+| 2 | 393 | 0.2 |
+| 5 | 1,002 | 0.2 |
+| 10 | 1,889 | 0.3 |
+| 22 | 4,125 | 0.4 |
+| 48 | 9,817 | 0.7 |
+| 104 | 20,167 | 1.3 |
+| 225 | 42,012 | 2.6 |
+| 487 | 71,882 | 4.6 |
+| 1,056 | 72,343 | 4.7 |
+
+```mermaid
+xychart-beta
+    title "ecommerce_furniture — rows vs -m (PT6H, seed=42)"
+    x-axis [1, 2, 5, 10, 22, 48, 104, 225, 487, 1056]
+    y-axis "Rows" 0 --> 82000
+    line [178, 393, 1002, 1889, 4125, 9817, 20167, 42012, 71882, 72343]
+```

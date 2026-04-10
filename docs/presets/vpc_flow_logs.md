@@ -46,14 +46,9 @@ flowchart LR
 
 ## Concurrency (`-m`)
 
-| Little's Law component | Value |
-| --- | --- |
-| Average session duration (W) | ~13 seconds |
-| Interarrival mean | 0.5 s |
-| Base arrival rate (λ = 1/mean) | ~2.0 connections/sec |
-| Natural concurrency (L = λW) | ~66 |
+The `-m` ceiling is ~66. Setting `-m` above this has no effect — the worker pool is never fully used.
 
-Empirical measurements below (`--seed 42`, no schedule, PT6H simulated window) show rows scaling linearly with `-m` until the ceiling at ~66, then plateauing. The theoretical L = λW ≈ 25; the empirical ceiling is higher due to session-duration variance. To regenerate: `python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start`.
+The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start`.
 
 | `-m` | Rows (PT6H) | Wall-clock (s) |
 | ---: | ---: | ---: |
@@ -62,16 +57,16 @@ Empirical measurements below (`--seed 42`, no schedule, PT6H simulated window) s
 | 3 | 17,362 | 1.2 |
 | 5 | 28,940 | 1.9 |
 | 9 | 51,778 | 3.3 |
-| 15 | 85,101 | 5.4 |
-| 26 | 140,958 | 8.9 |
-| 45 | 195,269 | 12.4 |
-| 77 | 198,392 | 12.5 |
-| 132 | 198,392 | 12.6 |
+| 15 | 85,101 | 5.3 |
+| 26 | 140,958 | 9.0 |
+| 45 | 195,269 | 12.2 |
+| 77 | 198,392 | 12.6 |
+| 132 | 198,392 | 12.4 |
 
 ```mermaid
 xychart-beta
     title "vpc_flow_logs — rows vs -m (PT6H, seed=42)"
     x-axis [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
-    y-axis "Rows" 0 --> 220000
+    y-axis "Rows" 0 --> 230000
     line [6116, 11771, 17362, 28940, 51778, 85101, 140958, 195269, 198392, 198392]
 ```
