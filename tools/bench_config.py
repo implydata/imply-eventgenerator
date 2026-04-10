@@ -16,7 +16,7 @@ Outputs CSV by default; use --markdown for a table suitable for preset docs.
 
 Usage:
     python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start
-    python tools/bench_config.py -c presets/configs/ecommerce.json --markdown
+    python tools/bench_config.py -c presets/configs/ecommerce.json --duration P1D
     python tools/bench_config.py -c presets/configs/ssh_auth.json --samples 6
 """
 
@@ -46,7 +46,7 @@ err = Console(stderr=True)
 
 DEFAULT_SEED = 42
 DEFAULT_START = "2024-01-01T00:00:00"
-DEFAULT_DURATION = "P7D"
+DEFAULT_DURATION = "PT6H"
 PLATEAU_THRESHOLD = 0.10
 DEFAULT_PLATEAU_CONFIRM = 2
 DEFAULT_MAX_M = 100_000
@@ -121,6 +121,7 @@ def run_one(config_path, m, duration_str, start_str, seed,
         cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
         text=True, bufsize=1,
     ) as proc:
+        assert proc.stdout is not None
         for raw in proc.stdout:
             raw = raw.rstrip("\n")
             if not raw:
@@ -166,6 +167,7 @@ def is_plateau(prev_rows, curr_rows, threshold):
     return (curr_rows - prev_rows) / prev_rows < threshold
 
 
+
 def log_spaced_integers(lo, hi, n):
     """Up to n distinct integers, log-spaced from lo to hi inclusive."""
     if lo >= hi or n <= 1:
@@ -208,8 +210,6 @@ def main():
     parser.add_argument("--clock-field", default=None,
                         help="JSON field name carrying the simulated clock timestamp "
                              "(required if the config has multiple clock fields)")
-    parser.add_argument("--markdown", action="store_true",
-                        help="Output a markdown table instead of CSV")
     args = parser.parse_args()
 
     # --- Load config and resolve clock field ---
@@ -264,31 +264,27 @@ def main():
         # ----------------------------------------------------------------
         # Phase 1: discovery (geometric doubling)
         # ----------------------------------------------------------------
-        disc_task = progress.add_task(
-            f"[cyan]Phase 1 discovery  -m {args.start_m:,}", total=None
-        )
-        run_task = progress.add_task("[dim]current run", total=100.0)
+        disc_task = progress.add_task("[cyan]Phase 1 — discovery", total=None)
 
+        cache = {}  # m -> (rows, elapsed) — reused in sampling phase
         plateau_m = None
         plateau_run = 0
         prev_rows = None
         m = args.start_m
 
         while m <= args.max_m:
-            progress.update(
-                disc_task,
-                description=f"[cyan]Phase 1 discovery  -m {m:,}",
-            )
-            progress.update(run_task, completed=0.0,
-                            description=f"[dim]-m {m:,}")
+            progress.update(disc_task, description=f"[cyan]Phase 1 — discovery  -m {m:,}")
+            run_task = progress.add_task(f"[dim]disc  -m {m:>8,}", total=100.0)
 
             rows, elapsed = run_one(m=m, **run_kwargs,
                                     progress=progress, run_task=run_task)
+            cache[m] = (rows, elapsed)
 
             plat = is_plateau(prev_rows, rows, args.plateau_threshold)
-            progress.print(
-                f"  disc  -m [bold]{m:>8,}[/bold]  {rows:>10,} rows  {elapsed:5.1f}s"
-                + ("  ← plateau" if plat else "")
+            suffix = "  [yellow]← plateau[/yellow]" if plat else ""
+            progress.update(
+                run_task, completed=100.0,
+                description=f"disc  -m {m:>8,}  {rows:>10,} rows  {elapsed:.1f}s{suffix}",
             )
 
             if plat:
@@ -296,7 +292,6 @@ def main():
                     plateau_m = m
                 plateau_run += 1
                 if plateau_run >= args.plateau_confirm:
-                    progress.print("[cyan]  plateau confirmed.[/cyan]")
                     break
             else:
                 plateau_run = 0
@@ -310,8 +305,7 @@ def main():
         if plateau_m is None:
             plateau_m = m
 
-        progress.update(disc_task, description="[cyan]Phase 1 complete")
-        progress.remove_task(run_task)
+        progress.update(disc_task, description="[cyan]Phase 1 — complete")
 
         # ----------------------------------------------------------------
         # Phase 2: sampling across discovered range
@@ -319,58 +313,55 @@ def main():
         max_sample = min(plateau_m * 2, args.max_m)
         sample_points = log_spaced_integers(args.start_m, max_sample, args.samples)
 
-        progress.print(
-            f"\n  Sampling {len(sample_points)} points: "
-            f"-m {sample_points[0]:,} → {sample_points[-1]:,}  "
-            f"(plateau at ~{plateau_m:,})\n"
-        )
-
         sample_task = progress.add_task(
-            "[green]Phase 2 sampling", total=len(sample_points)
+            f"[green]Phase 2 — sampling  (plateau ~{plateau_m:,})",
+            total=len(sample_points),
         )
-        run_task = progress.add_task("[dim]current run", total=100.0)
 
         prev_rows = None
         for m in sample_points:
-            progress.update(run_task, completed=0.0,
-                            description=f"[dim]-m {m:,}")
-
-            rows, elapsed = run_one(m=m, **run_kwargs,
-                                    progress=progress, run_task=run_task)
+            if m in cache:
+                rows, elapsed = cache[m]
+                run_task = progress.add_task(f"[dim]sample-m {m:>8,}", total=100.0)
+                progress.update(
+                    run_task, completed=100.0,
+                    description=f"sample -m {m:>8,}  {rows:>10,} rows  (cached)",
+                )
+            else:
+                run_task = progress.add_task(f"[dim]sample -m {m:>8,}", total=100.0)
+                rows, elapsed = run_one(m=m, **run_kwargs,
+                                        progress=progress, run_task=run_task)
+                progress.update(
+                    run_task, completed=100.0,
+                    description=f"sample -m {m:>8,}  {rows:>10,} rows  {elapsed:.1f}s",
+                )
 
             results.append({"m": m, "rows": rows, "elapsed_s": elapsed})
-            progress.print(
-                f"  sample  -m [bold]{m:>8,}[/bold]  {rows:>10,} rows  "
-                f"{elapsed:5.1f}s"
-            )
             progress.advance(sample_task, 1)
             prev_rows = rows
 
-        progress.update(run_task, description="[dim]done")
-        progress.update(sample_task, description="[green]Phase 2 complete")
+        progress.update(sample_task, description="[green]Phase 2 — complete")
 
     # ----------------------------------------------------------------
     # Output
     # ----------------------------------------------------------------
     print()
-    if args.markdown:
-        print(f"| `-m` | Rows ({args.duration}) | Wall-clock (s) |")
-        print(f"| ---: | ---: | ---: |")
-        for r in results:
-            print(f"| {r['m']:,} | {r['rows']:,} | {r['elapsed_s']:.1f} |")
-    else:
-        writer = csv.DictWriter(
-            sys.stdout,
-            fieldnames=["m", "rows", "elapsed_s"],
-            lineterminator="\n",
-        )
-        writer.writeheader()
-        for r in results:
-            writer.writerow({
-                "m": r["m"],
-                "rows": r["rows"],
-                "elapsed_s": f"{r['elapsed_s']:.1f}",
-            })
+    writer = csv.DictWriter(
+        sys.stdout,
+        fieldnames=["m", "rows", "elapsed_s"],
+        lineterminator="\n",
+    )
+    writer.writeheader()
+    for r in results:
+        writer.writerow({
+            "m": r["m"],
+            "rows": r["rows"],
+            "elapsed_s": f"{r['elapsed_s']:.1f}",
+        })
+
+
+
+
 
 
 if __name__ == "__main__":
