@@ -142,7 +142,7 @@ Each preset has a companion doc at `docs/presets/<name>.md`. Every preset doc mu
 3. **Templates** — table of available `--template` values and their output
 4. **Output fields** — table of emitted fields and descriptions
 5. Preset-specific sections (product categories, session routing, per-Actor flow diagrams, etc.)
-6. **Concurrency (`-m`)** — Little's Law table showing the upper limit on useful concurrency
+6. **Concurrency (`-m`)** — empirical `-m` ceiling, scaling table, and Mermaid chart (run `tools/bench_config.py` to generate)
 
 Config JSON files live in `presets/configs/`.
 
