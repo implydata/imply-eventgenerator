@@ -32,7 +32,7 @@ Every `docs/presets/<name>.md` must follow this structure:
 3. **Templates** — table of available `--template` values and their output
 4. **Output fields** — table of emitted fields and descriptions
 5. [Preset-specific sections] — e.g. product categories, session routing, per-Actor flow diagrams
-6. **Concurrency (`-m`)** — Little's Law table (W, mean, λ, max useful `-m`). Always required — users need to know there is an upper limit on volume.
+6. **Concurrency (`-m`)** — state the empirical `-m` ceiling plainly ("The `-m` ceiling is ~N"), followed by the empirical scaling table and Mermaid `xychart-beta`. Always required — users need to know there is an upper limit on volume. Run `tools/bench_config.py` to measure it (see Step 10 of `docs/how-to-build-a-config.md`).
 
 ## Keeping docs and code in sync
 
