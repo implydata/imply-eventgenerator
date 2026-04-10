@@ -51,14 +51,27 @@ flowchart LR
 | Average session duration (W) | ~13 seconds |
 | Interarrival mean | 0.5 s |
 | Base arrival rate (λ = 1/mean) | ~2.0 connections/sec |
-| Natural concurrency (L = λW) | ~25 |
+| Natural concurrency (L = λW) | ~66 |
 
-Setting `-m` above ~25 has no effect in either mode — connections complete faster than new ones arrive, so the natural concurrency never fills the pool.
+Empirical measurements below (`--seed 42`, no schedule, PT6H simulated window) show rows scaling linearly with `-m` until the ceiling at ~66, then plateauing. The theoretical L = λW ≈ 25; the empirical ceiling is higher due to session-duration variance. To regenerate: `python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start`.
+
+| `-m` | Rows (PT6H) | Wall-clock (s) |
+| ---: | ---: | ---: |
+| 1 | 6,116 | 0.5 |
+| 2 | 11,771 | 0.9 |
+| 3 | 17,362 | 1.2 |
+| 5 | 28,940 | 1.9 |
+| 9 | 51,778 | 3.3 |
+| 15 | 85,101 | 5.4 |
+| 26 | 140,958 | 8.9 |
+| 45 | 195,269 | 12.4 |
+| 77 | 198,392 | 12.5 |
+| 132 | 198,392 | 12.6 |
 
 ```mermaid
 xychart-beta
-    title "vpc_flow_logs — rows vs -m (P7D, seed=42)"
-    x-axis [1, 2, 4, 8, 16, 32, 64, 128, 256]
-    y-axis "Rows" 0 --> 250000
-    line [11000, 22000, 44000, 88000, 176000, 225000, 235000, 235000, 235000]
+    title "vpc_flow_logs — rows vs -m (PT6H, seed=42)"
+    x-axis [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
+    y-axis "Rows" 0 --> 220000
+    line [6116, 11771, 17362, 28940, 51778, 85101, 140958, 195269, 198392, 198392]
 ```
