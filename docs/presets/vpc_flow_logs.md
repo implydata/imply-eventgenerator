@@ -51,6 +51,14 @@ flowchart LR
 | Average session duration (W) | ~13 seconds |
 | Interarrival mean | 0.5 s |
 | Base arrival rate (λ = 1/mean) | ~2.0 connections/sec |
-| Maximum useful `-m` (L = λW) | ~25 |
+| Natural concurrency (L = λW) | ~25 |
 
 Setting `-m` above ~25 has no effect in either mode — connections complete faster than new ones arrive, so the natural concurrency never fills the pool.
+
+```mermaid
+xychart-beta
+    title "vpc_flow_logs — rows vs -m (placeholder)"
+    x-axis [1, 2, 4, 8, 16, 32, 64]
+    y-axis "Rows" 0 --> 35000
+    line [1000, 2000, 4000, 8000, 16000, 28000, 32000]
+```
