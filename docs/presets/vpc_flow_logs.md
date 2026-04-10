@@ -57,8 +57,8 @@ Setting `-m` above ~25 has no effect in either mode — connections complete fas
 
 ```mermaid
 xychart-beta
-    title "vpc_flow_logs — rows vs -m (placeholder)"
-    x-axis [1, 2, 4, 8, 16, 32, 64]
-    y-axis "Rows" 0 --> 35000
-    line [1000, 2000, 4000, 8000, 16000, 28000, 32000]
+    title "vpc_flow_logs — rows vs -m (P7D, seed=42)"
+    x-axis [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    y-axis "Rows" 0 --> 250000
+    line [11000, 22000, 44000, 88000, 176000, 225000, 235000, 235000, 235000]
 ```
