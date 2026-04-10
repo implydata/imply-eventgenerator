@@ -3,3 +3,4 @@ numpy
 sortedcontainers
 isodate
 jinja2
+rich

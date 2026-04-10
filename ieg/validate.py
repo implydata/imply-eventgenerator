@@ -20,14 +20,6 @@ def validate_config(config, template_name=None):
     """
     valid = True
 
-    # Top-level required fields
-    if 'interarrival' not in config:
-        logger.error("Config missing required field 'interarrival'")
-        valid = False
-    else:
-        if not validate_distribution_desc(config['interarrival'], "interarrival"):
-            valid = False
-
     # Emitters
     emitter_names = set()
     if 'emitters' not in config:
@@ -61,18 +53,35 @@ def validate_config(config, template_name=None):
         logger.error("Config 'states' must be a non-empty list")
         valid = False
     else:
-        # Collect state names first (needed for cross-cutting checks)
+        # Collect state names and types first (needed for cross-cutting checks)
         for state in config['states']:
             if 'name' in state:
                 state_names.add(state['name'])
 
-        # Collect all variable names set by any state
+        end_state_names = {s['name'] for s in config['states'] if s.get('type') == 'event:end' and 'name' in s}
+
+        # Cross-cutting: exactly one event:start:timer
+        start_states = [s for s in config['states'] if s.get('type') == 'event:start:timer']
+        if len(start_states) == 0:
+            logger.error("Config has no event:start:timer state")
+            valid = False
+        elif len(start_states) > 1:
+            logger.error("Config has multiple event:start:timer states — only one is allowed")
+            valid = False
+        else:
+            timer_desc = start_states[0].get('cardinality_distribution')
+            if timer_desc and not validate_distribution_desc(timer_desc, "event:start:timer.cardinality_distribution"):
+                valid = False
+
+        # Cross-cutting: at least one event:end
+        if not end_state_names:
+            logger.error("Config has no event:end state")
+            valid = False
+
+        # Collect all variable names set by any state (activities only)
         all_set_variables = set()
         for state in config['states']:
             for var in state.get('variables', []):
-                if 'name' in var:
-                    all_set_variables.add(var['name'])
-            for var in state.get('variables_on_entry', []):
                 if 'name' in var:
                     all_set_variables.add(var['name'])
 
@@ -81,20 +90,17 @@ def validate_config(config, template_name=None):
             ctx = f"state '{state.get('name', f'[{i}]')}'"
             if not State.validate_desc(state, emitter_names, ctx):
                 valid = False
-            if 'delay' in state:
-                if not validate_distribution_desc(state['delay'], f"{ctx} delay"):
+            state_type = state.get('type')
+            if state_type == 'event:intermediate:timer' and 'cardinality_distribution' in state:
+                if not validate_distribution_desc(state['cardinality_distribution'], f"{ctx} cardinality_distribution"):
+                    valid = False
+            if state_type == 'event:start:timer' and 'cardinality_distribution' in state:
+                if not validate_distribution_desc(state['cardinality_distribution'], f"{ctx} cardinality_distribution"):
                     valid = False
             for var in state.get('variables', []):
                 vctx = f"{ctx}, variable '{var.get('name', '?')}'"
                 if var.get('type', '').lower() == 'variable':
                     logger.error("%s: type 'variable' is not valid in a state's 'variables' block — it can only be used in emitter dimensions", vctx)
-                    valid = False
-                elif not validate_dimension_desc(var, vctx):
-                    valid = False
-            for var in state.get('variables_on_entry', []):
-                vctx = f"{ctx}, variables_on_entry '{var.get('name', '?')}'"
-                if var.get('type', '').lower() == 'variable':
-                    logger.error("%s: type 'variable' is not valid in a state's 'variables_on_entry' block — it can only be used in emitter dimensions", vctx)
                     valid = False
                 elif not validate_dimension_desc(var, vctx):
                     valid = False
@@ -104,8 +110,13 @@ def validate_config(config, template_name=None):
             sname = state.get('name', '?')
             for trans in state.get('transitions', []):
                 nxt = trans.get('next', '')
-                if nxt.lower() != 'stop' and nxt not in state_names:
+                if nxt not in state_names:
                     logger.error("state '%s': transition to undefined state '%s'", sname, nxt)
+                    valid = False
+            if 'next' in state:
+                nxt = state['next']
+                if nxt not in state_names:
+                    logger.error("state '%s': 'next' points to undefined state '%s'", sname, nxt)
                     valid = False
 
         # Cross-cutting: variable references in emitter dimensions
@@ -121,30 +132,32 @@ def validate_config(config, template_name=None):
                         )
                         valid = False
 
-        # Cross-cutting: infinite loop detection via reachability to 'stop'
-        # A state can escape if it has any path (direct or indirect) to 'stop'
-        can_escape = set()
+        def outgoing(state):
+            """All next-state names from a state, regardless of how they're expressed."""
+            nxts = [t.get('next', '') for t in state.get('transitions', [])]
+            if 'next' in state:  # activity, event:start:timer, event:intermediate:timer
+                nxts.append(state['next'])
+            return [n for n in nxts if n in state_names]
+
+        # Cross-cutting: infinite loop detection — can a state reach an event:end?
+        can_escape = set(end_state_names)
         for state in config['states']:
-            for trans in state.get('transitions', []):
-                if trans.get('next', '').lower() == 'stop':
-                    can_escape.add(state.get('name', ''))
-                    break
+            if any(n in end_state_names for n in outgoing(state)):
+                can_escape.add(state.get('name', ''))
         changed = True
         while changed:
             changed = False
             for state in config['states']:
                 sname = state.get('name', '')
                 if sname not in can_escape:
-                    for trans in state.get('transitions', []):
-                        if trans.get('next', '') in can_escape:
-                            can_escape.add(sname)
-                            changed = True
-                            break
+                    if any(n in can_escape for n in outgoing(state)):
+                        can_escape.add(sname)
+                        changed = True
 
-        # Find states reachable from the initial state (first state in list)
-        if config['states']:
+        # Find states reachable from event:start:timer
+        if start_states:
             reachable = set()
-            frontier = {config['states'][0].get('name', '')}
+            frontier = {start_states[0].get('name', '')}
             while frontier:
                 sname = frontier.pop()
                 if sname in reachable:
@@ -152,16 +165,13 @@ def validate_config(config, template_name=None):
                 reachable.add(sname)
                 state = next((s for s in config['states'] if s.get('name') == sname), None)
                 if state:
-                    for trans in state.get('transitions', []):
-                        nxt = trans.get('next', '')
-                        if nxt.lower() != 'stop' and nxt in state_names:
-                            frontier.add(nxt)
+                    for nxt in outgoing(state):
+                        frontier.add(nxt)
 
             for sname in sorted(reachable - can_escape):
-                logger.warning("state '%s': no path to 'stop' — potential infinite loop", sname)
-                # do NOT set valid = False — code runs fine, just never terminates
+                logger.warning("state '%s': no path to event:end — potential infinite loop", sname)
             for sname in sorted(state_names - reachable):
-                logger.warning("state '%s': unreachable from the initial state", sname)
+                logger.warning("state '%s': unreachable from event:start:timer", sname)
 
     # Templates block validation
     templates = config.get('templates', {})

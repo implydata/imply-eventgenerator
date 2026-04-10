@@ -29,6 +29,24 @@ For more examples and test cases, see [`test.sh`](./test.sh).
 
 The `presets/` folder contains ready-to-use configs with [embedded output templates](docs/templates.md) — use `-t` to select an output format by name. See [presets/README.md](presets/README.md) for details.
 
+## Documentation
+
+**Building your own config?** Start here:
+
+- [How to build a config](docs/how-to-build-a-config.md) — step-by-step from concept to tested config, with a worked example
+- [Common patterns](docs/patterns.md) — variable persistence, multi-record sessions, flow duration
+- [Best practices](docs/best-practices.md) — naming conventions, the synthetic clock, common pitfalls
+
+**Reference** — field-level lookup for all config options:
+
+- [States](docs/states.md) — all five state types and their fields
+- [Emitters](docs/emitters.md) — record output configuration
+- [Field generators](docs/field-generators.md) — all field generator types
+- [Distributions](docs/distributions.md) — uniform, exponential, normal, gmm_temporal
+- [Templates](docs/templates.md) — Jinja2 output templates
+- [Schedules](docs/schedules.md) — time-of-day traffic variation
+- [Deterministic output](docs/deterministic.md) — reproducible generation with `--seed`
+
 ## Command-line reference
 
 Run the `generator.py` script from the command line with Python.
@@ -49,9 +67,8 @@ python generator.py \
 
 | Argument | Description |
 | --- | --- |
-| [`-c`](#generator-configuration) | The name of the file in the `config_file` folder containing the [generator configuration](#generator-configuration). |
-| [`-t` / `--template`](docs/templates.md) | A named output template embedded in the generator config. Mutually exclusive with `-f`. See [output templates](docs/templates.md). |
-| [`-f`](#output-format) | **(Deprecated)** A file that contains a pattern that can be used to format the output records. Use `-t` instead. |
+| [`-c`](#generator-configuration) | Path to the generator configuration JSON file. See [generator configuration reference](docs/generator-config.md). |
+| [`-t` / `--template`](docs/templates.md) | A named output template embedded in the generator config. See [output templates](docs/templates.md). |
 | [`-s`](#simulated-time) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
 | [`-m`](#generator-configuration) | The maximum number of workers to create. Defaults to 100. |
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
@@ -60,35 +77,25 @@ python generator.py \
 | `--debug` | Enable debug logging. Outputs detailed thread scheduling and event queue information to stderr. |
 | [`--seed`](docs/deterministic.md) | An integer seed for deterministic data generation. Use with `-s` for fully reproducible output. |
 
-You can also run the generator as an HTTP service. See the [server API reference](docs/server.md) for details.
-
 ### Generator configuration
 
-The [generator configuration](docs/generator-config.md) is a JSON document that sets how the data generator will execute. When the `-f` option is used, the generator configuration will be read from a file, otherwise the generator configuration will be read from `stdin`.
-
-A generator configuration follows this structure:
+The [generator configuration](docs/generator-config.md) is a JSON document passed via `-c`. It contains two top-level arrays:
 
 ```json
 {
   "states": [ ... ],
-  "emitters": [ ... ],
-  "interarrival": { }
+  "emitters": [ ... ]
 }
 ```
 
-The sections of the JSON document concern what each data generator worker will do.
+- A list of [`states`](docs/states.md) that each worker traverses. The first state controls interarrival pacing; subsequent states set variables, emit records, route between paths, and terminate.
+- A list of [`emitters`](docs/emitters.md) that define output record shape. Each dimension uses a [field generator](docs/field-generators.md) to produce values, controlled by [distributions](docs/distributions.md).
 
-* A list of [`states`](docs/states.md) that a worker can transition through.
-* A list of [`emitters`](docs/emitters.md), listing the dimensions that will be output by a worker and what data they will contain. Each dimension uses a [field generator](docs/field-generators.md) to produce values, controlled by [distributions](docs/distributions.md).
-* The `interarrival` time, controlling how often a new worker is spawned. The default maximum number of workers is 100, unless the `-m` argument is used.
-
-For full details, see the [generator configuration reference](docs/generator-config.md). See also [common patterns](docs/patterns.md) and [best practices](docs/best-practices.md) for building configurations.
+Each concurrent worker (`-m`) runs one independent Actor — one lifecycle from the initial `event:start:timer` to `event:end`. For the full design process, see [how to build a config](docs/how-to-build-a-config.md).
 
 ### Output format
 
 Configs that include a `templates` block (such as those in `presets/configs/`) support named output templates selected with `--template`. Templates use Jinja2 and can produce JSON, CSV, NCSA combined logs, and more from a single config. See the [output templates reference](docs/templates.md).
-
-For configs without a `templates` block, use `-f` to supply an external format file — a text file with field names in braces (`{{` and `}}`). Format files support datetime formatting and environment variable substitution. See the [format file reference](docs/formats.md).
 
 ### Generation limits
 

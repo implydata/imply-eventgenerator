@@ -74,18 +74,36 @@ Each session is routed at startup by `global_init` (no event emitted):
 | Hacker | 0.1% | Automated scanner probing for vulnerabilities |
 | Bot | 0.2% | Web crawler indexing site content |
 
+```mermaid
+flowchart LR
+    A(["<b>session_start</b><br/>event:start:timer"]) --> B["<b>global_init</b><br/>activity"]
+    B --> C{"<b>route_session</b><br/>gateway:exclusive"}
+    C -->|"99.7%"| D["Human flow"]
+    C -->|"0.1%"| E["Hacker flow"]
+    C -->|"0.2%"| F["Bot flow"]
+```
+
 ---
 
 ## Human flow
 
-```text
-global_init ──→ initial_human ──→ browse_products ──→ browse_cat_* ⟲
-                                        ↓                    ↓
-                                    not_found           add_to_cart
-                                        ↓                    ↓
-                                  browse_products       checkout ──→ thank_you ──→ stop
-                                                             ↓
-                                                         try_again ──→ checkout
+```mermaid
+flowchart TD
+    A["<b>initial_human</b><br/>activity"] --> B{"<b>browse_products</b><br/>gateway:exclusive"}
+    B -->|"exit"| Z(["<b>session_end</b><br/>event:end"])
+    B -->|"not found"| D["<b>not_found</b><br/>activity"]
+    B --> C["<b>browse_cat_*</b><br/>activity"]
+    D --> B
+    C -->|"self-loop"| C
+    C -->|"back"| B
+    C -->|"exit"| Z
+    C --> E["<b>add_to_cart</b><br/>activity"]
+    E -->|"exit"| Z
+    E --> F["<b>checkout</b><br/>activity"]
+    F --> G["<b>thank_you</b><br/>activity"]
+    G --> Z
+    F --> H["<b>try_again</b><br/>activity"]
+    H --> F
 ```
 
 `initial_human` emits the homepage (`/`) hit and sets session-level properties — IP address, browser user-agent, cookie, and HTTP version — which persist unchanged for the rest of the session.
@@ -96,10 +114,11 @@ From `browse_products` the worker selects a product category (`browse_cat_indoor
 
 ## Hacker flow
 
-```text
-global_init ──→ hacker_start ──→ hacker ⟲(99%)
-                                      ↓(1%)
-                                     stop
+```mermaid
+flowchart LR
+    A["<b>hacker_start</b><br/>activity"] --> B["<b>hacker</b><br/>activity"]
+    B -->|"99%"| B
+    B -->|"1%"| Z(["<b>session_end</b><br/>event:end"])
 ```
 
 `hacker_start` fires once on session entry (no event emitted) to pin the session-level properties:
@@ -123,10 +142,11 @@ The loop continues with 99% probability, averaging ~100 probe requests per sessi
 
 ## Bot flow
 
-```text
-global_init ──→ bot_start ──→ bot ⟲(98%)
-                                  ↓(2%)
-                                 stop
+```mermaid
+flowchart LR
+    A["<b>bot_start</b><br/>activity"] --> B["<b>bot</b><br/>activity"]
+    B -->|"98%"| B
+    B -->|"2%"| Z(["<b>session_end</b><br/>event:end"])
 ```
 
 `bot_start` fires once on session entry (no event emitted) to pin the session-level properties:
@@ -150,11 +170,27 @@ The loop continues with 98% probability, averaging ~50 crawl requests per sessio
 
 ## Concurrency (`-m`)
 
-| Little's Law component | Value |
-| --- | --- |
-| Average session duration (W) | ~819 seconds (~14 minutes) |
-| Interarrival mean | 0.6 s |
-| Base arrival rate (λ = 1/mean) | ~1.67 sessions/sec |
-| Maximum useful `-m` (L = λW) | ~1,365 |
+The `-m` ceiling is ~2,112. Setting `-m` above this has no effect — the worker pool is never fully used.
 
-Setting `-m` above ~1,365 has no effect — sessions complete faster than new ones arrive to fill the pool.
+The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce_lighting.json`.
+
+| `-m` | Rows (PT6H) | Wall-clock (s) |
+| ---: | ---: | ---: |
+| 1 | 256 | 0.3 |
+| 3 | 703 | 0.3 |
+| 6 | 1,429 | 0.4 |
+| 16 | 3,670 | 0.5 |
+| 41 | 9,771 | 0.8 |
+| 103 | 24,374 | 1.6 |
+| 261 | 62,009 | 4.0 |
+| 661 | 155,900 | 10.6 |
+| 1,671 | 309,593 | 24.5 |
+| 4,224 | 309,297 | 24.5 |
+
+```mermaid
+xychart-beta
+    title "ecommerce_lighting — rows vs -m (PT6H, seed=42)"
+    x-axis [1, 3, 6, 16, 41, 103, 261, 661, 1671, 4224]
+    y-axis "Rows" 0 --> 360000
+    line [256, 703, 1429, 3670, 9771, 24374, 62009, 155900, 309593, 309297]
+```

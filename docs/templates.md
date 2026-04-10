@@ -27,7 +27,6 @@ Templates live in a top-level `templates` object in the generator config, keyed 
       "body": "{{ time.timestamp()|int }},{{ client }},{{ status }}"
     }
   },
-  "interarrival": { ... },
   "states": [ ... ],
   "emitters": [ ... ]
 }
@@ -42,7 +41,7 @@ Each template has:
 
 ## Template syntax
 
-Templates use [Jinja2](https://jinja.palletsprojects.com/). Every emitter dimension is available by name as a template variable.
+Templates are rendered using [Jinja2](https://jinja.palletsprojects.com/), a Python templating engine. Each `body` (and `header`) string is a Jinja2 template: expressions in `{{ }}` are replaced with field values, and control structures like `{% if %}` are supported. Every emitter dimension is available by name as a template variable.
 
 ### Field values
 
@@ -88,17 +87,3 @@ python generator.py -c presets/configs/ecommerce.json --template apache:access:j
 ```
 
 This checks that the named template exists and that all referenced environment variables are set.
-
-## Relationship to format files (`-f`)
-
-`--template` replaces the need for separate format files in most cases. The key differences:
-
-| | `--template` | `-f` |
-| --- | --- | --- |
-| Template location | Embedded in the config | Separate `.txt` file |
-| Syntax | Jinja2 | Home-grown `{{field\|strftime}}` |
-| Multiple formats from one config | Yes — pick by name | No — one file per format |
-| Datetime formatting | `{{ time.strftime(...) }}` or `{{ time.timestamp()\|int }}` | `{{time\|%d/%b/%Y}}` |
-| Environment variables | `{{ env.VAR }}` | `%VAR%` |
-
-Format files remain fully supported. See [formats.md](formats.md) for the `-f` reference.

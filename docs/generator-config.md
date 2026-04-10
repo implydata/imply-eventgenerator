@@ -1,105 +1,135 @@
 # Generator configurations
 
-Control the behavior of the data generator using a JSON configuration object known as the "Generator Configuration". See the `config_file` folder for [examples](../config_file/examples).
+> Building a new config? See [How to build a config](./how-to-build-a-config.md) for the step-by-step design process. This page is the field-level reference.
 
-Workers traverse a number of [`states`](./states.md) and generate events as they go using [`emitters`](./emitters.md). States may optionally omit an emitter to create non-emitting states useful for routing, delays, or variable setup. Workers are created periodically, according to the `interarrival` time.
+A generator configuration is a JSON document passed to the generator via `-c`. Each concurrent worker (`-m`) runs one independent Actor — one lifecycle from the initial `event:start:timer` state to `event:end`.
+
+See [`presets/configs/`](../presets/configs/) for ready-to-use examples.
 
 | Object | Description | Options | Required? |
 | --- | --- | --- | --- |
 | [`states`](./states.md) | A list of states that will be used to generate events. | See [`states`](./states.md) | Yes |
 | [`emitters`](./emitters.md) | A list of emitters. | See [`emitters`](./emitters.md) | Yes |
-| `interarrival` | The period of time that elapses before the next worker is started. | A [distribution](./distributions.md) object. | Yes |
+| [`templates`](./templates.md) | Named Jinja2 output templates, selected at runtime with `-t`. | See [`templates`](./templates.md) | No |
 
-In this example, there is just one state: `state_1`. When each worker reaches that state, it uses the `example_record_1` emitter to produce an event with one field called `enum_dim`, where the possible values of that field are selected using a uniform distribution from a list of characters. Output is written to stdout.
-
-There is then a `delay` of 5 seconds before a worker picks the next state from a list of possible `transitions`. In this configuration, because the `next` state is the same as the current state, the worker repeatedly enters this state until the generator itself stops.
-
-The `interarrival` distribution is a `constant`, causing new workers to be spawned once every second.
+In this example, `session_start` spawns a new worker every second. Each worker emits an event via `emit_event`, waits 5 seconds in `wait_5s`, then loops back to emit again via the `route` gateway — cycling until the generator stops or the worker exits.
 
 ```json
 {
+  "templates": {
+    "csv": {
+      "header": "time,value",
+      "body": "{{ time }},{{ enum_dim }}"
+    }
+  },
   "states": [
     {
-      "name": "state_1",
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "emit_event"
+    },
+    {
+      "name": "emit_event",
+      "type": "activity",
       "emitter": "example_record_1",
-      "delay": {
-        "type": "constant",
-        "value": 5
-      },
+      "next": "wait_5s"
+    },
+    {
+      "name": "wait_5s",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 5 },
+      "next": "route"
+    },
+    {
+      "name": "route",
+      "type": "gateway:exclusive",
       "transitions": [
-        {
-          "next": "state_1",
-          "probability": 1
-        }
+        { "next": "emit_event", "probability": 0.9 },
+        { "next": "session_end", "probability": 0.1 }
       ]
-    }
+    },
+    { "name": "session_end", "type": "event:end" }
   ],
   "emitters": [
     {
       "name": "example_record_1",
       "dimensions": [
+        { "name": "time", "type": "clock" },
         {
-          "type": "enum",
           "name": "enum_dim",
-          "values": [
-            "A",
-            "B",
-            "C"
-          ],
-          "cardinality_distribution": {
-            "type": "uniform",
-            "min": 0,
-            "max": 2
-          }
+          "type": "enum",
+          "values": ["A", "B", "C"],
+          "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
         }
       ]
     }
-  ],
-  "interarrival": { "type": "constant", "value": 1 }
+  ]
 }
 ```
 
 Try this out by saving the above to `example.json`.
 
-The following command will create 10 records and use only one worker:
+The following command generates 10 records with one worker, using a simulated clock:
 
 ```bash
-python3 src/generator.py -f example.json -n 10 -m 1
+python generator.py -c example.json -n 10 -m 1 -s "2024-01-01T00:00:00"
 ```
 
-This causes the following output.  Notice that each row is spaced 5 seconds apart, since only one worker is generating results.
+Each row is spaced 5 seconds apart, since only one worker is generating results:
 
 ```json
-{"time":"2025-02-18T09:32:16.416","enum_dim":"A"}
-{"time":"2025-02-18T09:32:21.426","enum_dim":"C"}
-{"time":"2025-02-18T09:32:26.429","enum_dim":"B"}
-{"time":"2025-02-18T09:32:31.434","enum_dim":"C"}
-{"time":"2025-02-18T09:32:36.440","enum_dim":"B"}
-{"time":"2025-02-18T09:32:41.444","enum_dim":"C"}
-{"time":"2025-02-18T09:32:46.449","enum_dim":"B"}
-{"time":"2025-02-18T09:32:51.453","enum_dim":"A"}
-{"time":"2025-02-18T09:32:56.459","enum_dim":"A"}
-{"time":"2025-02-18T09:33:01.464","enum_dim":"B"}
+{"time": "2024-01-01T00:00:00+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:05+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:10+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:15+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:20+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:25+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:31+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:36+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:42+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:47+00:00", "enum_dim": "C"}
 ```
 
-When run with the `-m 3`, 3 workers are spawned. Since `interarrival` is a `constant` of 1 second, one worker is spawned every second, meaning that rows 1 through 3 are each from different worker threads, and rows 4 through 6 are those workers in their second state, 7 through 9 in their third state, and so on.
+With `-m 3`, one worker is spawned per second. Rows 1–3 are each from a different worker; rows 4–6 are those same workers in their second cycle, and so on:
 
 ```json
-{"time":"2025-02-18T09:35:49.618","enum_dim":"A"}
-{"time":"2025-02-18T09:35:50.623","enum_dim":"B"}
-{"time":"2025-02-18T09:35:51.629","enum_dim":"C"}
-{"time":"2025-02-18T09:35:54.626","enum_dim":"B"}
-{"time":"2025-02-18T09:35:55.626","enum_dim":"C"}
-{"time":"2025-02-18T09:35:56.635","enum_dim":"A"}
-{"time":"2025-02-18T09:35:59.632","enum_dim":"A"}
-{"time":"2025-02-18T09:36:00.627","enum_dim":"C"}
-{"time":"2025-02-18T09:36:01.640","enum_dim":"A"}
-{"time":"2025-02-18T09:36:04.635","enum_dim":"A"}
+{"time": "2024-01-01T00:00:00+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:01+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:02+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:05+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:06+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:07+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:10+00:00", "enum_dim": "A"}
+{"time": "2024-01-01T00:00:11+00:00", "enum_dim": "C"}
+{"time": "2024-01-01T00:00:12+00:00", "enum_dim": "B"}
+{"time": "2024-01-01T00:00:15+00:00", "enum_dim": "C"}
+```
+
+With `-t csv`, the `csv` template is used and the header line is emitted once before the records:
+
+```bash
+python generator.py -c example.json -t csv -n 10 -m 1 -s "2024-01-01T00:00:00"
+```
+
+```text
+time,value
+2024-01-01 00:00:00+00:00,B
+2024-01-01 00:00:05+00:00,C
+2024-01-01 00:00:10+00:00,C
+2024-01-01 00:00:15+00:00,B
+2024-01-01 00:00:20+00:00,A
+2024-01-01 00:00:25+00:00,A
+2024-01-01 00:00:31+00:00,A
+2024-01-01 00:00:36+00:00,C
+2024-01-01 00:00:42+00:00,B
+2024-01-01 00:00:47+00:00,C
 ```
 
 ## See Also
 
-- [States Documentation](states.md) - Detailed state configuration guide
-- [Emitters Documentation](emitters.md) - Emitter configuration reference
-- [Common Patterns](patterns.md) - State machine patterns and techniques for building realistic configurations
-- [Best Practices](best-practices.md) - Configuration guidelines, naming conventions, and development workflow
+- [How to build a config](how-to-build-a-config.md) — step-by-step design guide
+- [States](states.md) — state type reference
+- [Emitters](emitters.md) — emitter field reference
+- [Common patterns](patterns.md) — state machine patterns
+- [Best practices](best-practices.md) — naming conventions and pitfalls

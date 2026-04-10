@@ -52,6 +52,42 @@ TCP/ICMP-specific fields (`tcpflags`, `tcpsyn`, `tcpack`, `tcpwin`, `icmptype`, 
 
 RDP and SMB reflect realistic internet exposure: RDP is a common brute-force target, and SMB should never be reachable from the internet.
 
+## State machine
+
+Each worker represents one packet decision — instantaneous, no timer states. The Actor is routed to a traffic-type emit state based on the configured mix, emits one record, and stops.
+
+```mermaid
+flowchart TD
+    A(["<b>connection_start</b><br/>event:start:timer"]) --> B["<b>setup_connection</b><br/>activity"]
+    B --> C{"<b>route_traffic_type</b><br/>gateway:exclusive"}
+    C -->|"30% HTTPS"| D["<b>emit_https</b><br/>activity"]
+    C -->|"20% RDP"| E["<b>emit_rdp</b><br/>activity"]
+    C -->|"15% HTTP"| F["<b>emit_http</b><br/>activity"]
+    C -->|"10% SMB"| G["<b>emit_smb</b><br/>activity"]
+    C -->|"10% Win Update"| H["<b>emit_winupdate</b><br/>activity"]
+    C -->|"8% SMTP"| I["<b>emit_smtp</b><br/>activity"]
+    C -->|"4% DNS"| J["<b>emit_dns</b><br/>activity"]
+    C -->|"3% port scan"| K["<b>emit_portscan</b><br/>activity"]
+    D & E & F & G & H & I & J & K --> Z(["<b>connection_end</b><br/>event:end"])
+```
+
 ## Concurrency (`-m`)
 
-All states have zero delay — each worker completes a single packet decision instantaneously. Session duration W ≈ 0, so `-m 1` is always sufficient. Adding workers has no practical effect.
+There is no meaningful `-m` ceiling. Each worker completes a single packet decision with zero delay and immediately exits, so the worker pool is never the bottleneck. `-m 1` is always sufficient; raising it has no effect on throughput.
+
+The table below shows expected output volume (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/endpoint_network.json`.
+
+| `-m` | Rows (PT6H) | Wall-clock (s) |
+| ---: | ---: | ---: |
+| 1 | 71,928 | 5.4 |
+| 2 | 71,928 | 5.3 |
+| 3 | 71,928 | 5.3 |
+| 4 | 71,928 | 5.2 |
+
+```mermaid
+xychart-beta
+    title "endpoint_network — rows vs -m (PT6H, seed=42)"
+    x-axis [1, 2, 3, 4]
+    y-axis "Rows" 0 --> 83000
+    line [71928, 71928, 71928, 71928]
+```

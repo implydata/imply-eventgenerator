@@ -1,9 +1,13 @@
-"""IEG classes and functions."""
+"""Core engine: Clock, DataDriver, and record rendering.
+
+Clock manages simulated and real-time scheduling across worker threads.
+DataDriver is the top-level driver: it parses a generator config, builds the
+state machine, spawns worker threads, and writes rendered records to stdout.
+"""
 
 import json
 import logging
 import os
-import re
 import sys
 import threading
 import time
@@ -20,9 +24,6 @@ from ieg.validate import validate_config
 from jinja2 import Environment, Undefined, UndefinedError
 
 logger = logging.getLogger('ieg')
-
-# Update TEMPLATE_REGEX to capture optional strftime format
-TEMPLATE_REGEX = re.compile(r"{{\s*([^|}]+)(?:\|([^}]+))?\s*}}")
 
 
 class _StrictEnv:
@@ -44,18 +45,6 @@ class _StrictEnv:
 
 _jinja_env = Environment(undefined=Undefined)
 _jinja_env.globals['env'] = _StrictEnv()
-
-def render_env_variables(config):
-    """
-    Replace placeholders in the configuration with environment variable values.
-    Placeholders should be in the format %VARIABLE_NAME%.
-    """
-    if isinstance(config, dict):
-        return {k: render_env_variables(v) for k, v in config.items()}
-    elif isinstance(config, str):
-        return re.sub(r"%(\w+)%", lambda match: os.getenv(match.group(1), match.group(0)), config)
-    else:
-        return config
 
 class FutureEvent:
     """A future event in the simulation clock, used to manage simulated time ordering."""
@@ -93,7 +82,15 @@ class FutureEvent:
         self.event.set()
 
 class Clock:
-    """Manages time for the data generation process, supporting real-time and simulated modes."""
+    """Manages time for all worker threads, supporting real-time and simulated modes.
+
+    In simulated mode (time_type != 'REAL'), threads coordinate via a shared sorted
+    event queue: each sleeping thread registers a FutureEvent, and only the thread
+    with the earliest scheduled time is allowed to run. This produces deterministic,
+    serialised output when combined with --seed.
+
+    In real-time mode, sleep() delegates to time.sleep() with no coordination.
+    """
 
     future_events = SortedList()
     active_threads = 0
@@ -189,7 +186,7 @@ class Clock:
 
     def sleep(self, delta):
         """Sleep for delta seconds. In simulated mode, advances sim time instead of waiting."""
-        if delta < 0:
+        if delta <= 0:
             return
         if self.time_type != 'REAL': # Simulated time
             self.lock.acquire()
@@ -219,7 +216,7 @@ class Clock:
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
-    def __init__(self, name, config, runtime, total_recs, time_type, start_time, max_entities, record_format, schedule_config=None, template_name=None):
+    def __init__(self, name, config, runtime, total_recs, time_type, start_time, max_entities, schedule_config=None, template_name=None):
         self.name = name
         self.config = config
 
@@ -232,7 +229,6 @@ class DataDriver:
         self.start_time = start_time
         self.max_entities = max_entities
         self.status_msg = 'Creating...'
-        self.record_format = record_format
         self.header = None
         self.jinja_template = None
 
@@ -245,13 +241,6 @@ class DataDriver:
             self.jinja_template = _jinja_env.from_string(tmpl['body'])
             if self.header is None and 'header' in tmpl:
                 self.header = tmpl['header']
-
-        if self.record_format:
-            self.record_format = render_env_variables(record_format)
-            if isinstance(self.record_format, str):
-                unresolved = re.findall(r"%(\w+)%", self.record_format)
-                if unresolved:
-                    raise ValueError(f"Record format file contains unresolved environment variables: {', '.join(unresolved)}")
 
         #
         # Set up the global clock
@@ -273,10 +262,6 @@ class DataDriver:
         # Remove type validation and default to generator
         self.type = 'generator'
 
-        # Set up the interarrival rate
-        rate = self.config['interarrival']
-        self.rate_delay = parse_distribution(rate, clock=self.global_clock)
-
         # Set up emitters list
         self.emitters = {}
         for emitter in self.config['emitters']:
@@ -292,6 +277,9 @@ class DataDriver:
         self.states = {}
         for state in state_desc:
             name = state['name']
+            state_type = state.get('type')
+            if state_type is None:
+                raise RuntimeError(f"State '{state.get('name', '?')}' is missing required field 'type'.")
             # Make emitter optional - handle both missing field and explicit null
             emitter_name = state.get('emitter')  # Returns None if not present
             if emitter_name is not None:
@@ -302,81 +290,46 @@ class DataDriver:
                 variables = []
             else:
                 variables = get_variables(state['variables'], self.global_clock)
-            # Parse variables_on_entry (captured before delay)
-            if 'variables_on_entry' not in state.keys():
-                variables_on_entry = []
+            _zero = {'type': 'constant', 'value': 0}
+            if state_type == 'event:end':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = []
+            elif state_type == 'event:start:timer':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = [Transition(state['next'], 1.0)]
+            elif state_type == 'event:intermediate:timer':
+                delay = parse_distribution(state['cardinality_distribution'], clock=self.global_clock)
+                transitions = [Transition(state['next'], 1.0)]
+            elif state_type == 'activity':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = [Transition(state['next'], 1.0)]
+            elif state_type == 'gateway:exclusive':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = Transition.parse_transitions(state['transitions'])
             else:
-                variables_on_entry = get_variables(state['variables_on_entry'], self.global_clock)
-            delay = parse_distribution(state['delay'], clock=self.global_clock)
-            transitions = Transition.parse_transitions(state['transitions'])
-            this_state = State(name, dimensions, delay, transitions, variables, variables_on_entry)
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = Transition.parse_transitions(state.get('transitions', []))
+            this_state = State(name, state_type, dimensions, delay, transitions, variables)
             self.states[name] = this_state
-            if self.initial_state is None:
+            if state_type == 'event:start:timer':
                 self.initial_state = this_state
 
+        if self.initial_state is None:
+            raise RuntimeError("Config has no event:start:timer state.")
 
-    @staticmethod
-    def get_value(record, key, default=""):
-        """
-        Retrieve the value for a given key from the record dictionary.
-        Supports nested keys using dot notation (e.g., "field.subfield").
-        Returns the default value if the key is missing.
-        """
-        keys = key.split(".")  # Split the key by dots for nested access
-        value = record
-        for k in keys:
-            if isinstance(value, dict) and k in value:
-                value = value[k]
-            else:
-                return default  # Return default if key is missing
-        return value
+        # Interarrival rate comes from the event:start:timer state's cardinality_distribution field
+        timer_desc = next(s for s in state_desc if s.get('type') == 'event:start:timer')
+        self.rate_delay = parse_distribution(timer_desc['cardinality_distribution'], clock=self.global_clock)
 
-    def render_template(self, template, record):
-        """
-        Replace placeholders in the template with values from the record.
-        Supports optional strftime formatting for datetime values.
-        """
-        def replace_placeholder(match):
-            key = match.group(1)  # Placeholder name (e.g., "time")
-            format_str = match.group(2)  # Optional strftime format (e.g., "%Y-%m-%d")
-            value = self.get_value(record, key)  # Retrieve the value from the record
-
-            if isinstance(value, datetime) and format_str:
-                try:
-                    return value.strftime(format_str)  # Apply strftime if format is provided
-                except ValueError as e:
-                    raise ValueError(f"Invalid strftime format '{format_str}' for key '{key}': {e}")
-            return str(value) if value is not None else ''  # Default to string conversion
-
-        return TEMPLATE_REGEX.sub(replace_placeholder, template)
-
-    def apply_pattern(self, pattern, record):
-        """Recursively apply template rendering to a pattern structure."""
-        if isinstance(pattern, dict):
-            return {k: self.apply_pattern(v, record) for k, v in pattern.items()}
-        elif isinstance(pattern, str):
-            return self.render_template(pattern, record)
-        else:
-            return pattern
 
     def render_record(self, record):
-        """Format a record as JSON or using the configured record format template."""
+        """Render a record as a Jinja2 template string, or plain JSON if no template is active."""
         if self.jinja_template is not None:
             return self.jinja_template.render(**record)
-
-        if not self.record_format:
-            # If no record format is provided, return the record as a JSON string.
-            for key, value in record.items():
-                if isinstance(value, datetime):
-                    record[key] = value.isoformat()
-            return json.dumps(record)
-
-        try:
-            # Apply the pattern using the new approach
-            formatted_record = self.apply_pattern(self.record_format, record)
-        except Exception as e:
-            raise ValueError(f"Error formatting record with pattern: {e}")
-        return formatted_record
+        for key, value in record.items():
+            if isinstance(value, datetime):
+                record[key] = value.isoformat()
+        return json.dumps(record)
 
     def create_record(self, dimensions, variables):
         """Build a record dict from dimensions and variable values."""
@@ -396,43 +349,42 @@ class DataDriver:
 
     def worker_thread(self):
         """Process the state machine, generating records and sending them to the output target."""
-        logger.debug("Thread %s starting...", threading.current_thread().name)
         self.global_clock.activate_thread()
         current_state = self.initial_state
         variables = {}
         while True:
             if current_state is None:
                 raise RuntimeError("Unexpected error: current state of the state machine is None.")
-            # Process variables_on_entry BEFORE delay
-            self.set_variable_values(variables, current_state.variables_on_entry)
+            if current_state.type == 'event:start:timer':
+                logger.debug("Thread %s starting process instance", threading.current_thread().name)
             # Process delay
             delta = float(current_state.delay.get_sample())
-            #self.status_msg=f"Thread sleeping {delta} seconds. Sim Clock: {self.global_clock.now()}"
             self.global_clock.sleep(delta)
             self.status_msg=f"Running, Sim Clock: {self.global_clock.now()}"
-            # Process regular variables AFTER delay
+            # Set variables (activities only; evaluated before emission)
             self.set_variable_values(variables, current_state.variables)
             # Only emit record if state has dimensions (emitter was specified)
             if current_state.dimensions is not None:
                 record = self.create_record(current_state.dimensions, variables)
-                formatted_record = self.render_record(record)  # Format the record here
-                self.target_printer.print(formatted_record)  # Pass the formatted record to the target printer
+                formatted_record = self.render_record(record)
+                self.target_printer.print(formatted_record)
                 self.sim_control.inc_rec_count()
             if self.sim_control.is_done():
                 break
-            if self.sim_control.is_done():
-                break
             next_state_name = current_state.get_next_state_name()
-            if next_state_name.lower() == 'stop':
+            if next_state_name is None:
                 break
-            current_state = self.states.get(next_state_name)
+            next_state = self.states.get(next_state_name)
+            if next_state is None or next_state.type == 'event:end':
+                logger.debug("Thread %s reached event:end", threading.current_thread().name)
+                break
+            current_state = next_state
 
-        logger.debug("Thread %s done!", threading.current_thread().name)
         self.global_clock.end_thread()
         self.sim_control.remove_entity()
 
     def spawning_thread(self):
-        """Spawn worker threads at the configured interarrival rate."""
+        """Spawn worker threads at the rate set by the event:start:timer's cardinality_distribution."""
         self.global_clock.activate_thread()
 
         # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary

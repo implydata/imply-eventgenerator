@@ -2,18 +2,20 @@
 
 When a [field generator](./field-generators.md) type is `counter`, an integer is created that increments with every generation.
 
-Counters are not incremented when missing or null.
+**Counter scope**: each counter is per-worker and per-emitter-dimension-instance. Counters reset to `start` when a new worker lifecycle begins. If a worker visits an emit state multiple times in a single lifecycle, the counter increments on every visit. Two emitters that each define a counter are independent of each other — they do not share state.
+
+Counters are not incremented when the field is missing or null (i.e. `percent_missing` or `percent_nulls` fires).
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `float` | Yes | |
+| `type` | The data type for the dimension. | `counter` | Yes | |
 | `name` | The unique name for the dimension. | String | Yes | |
 | `percent_missing` | The stochastic frequency for omitting this dimension from records (inclusive). | Integer between 0 and 100. | No. | 0 |
 | `percent_nulls` | The stochastic frequency (inclusive) for generating null values. | Integer between 0 and 100. | No. | 0 |
 | `start` | The starting value for the counter. | Integer | No. | 0 |
 | `increment` | The increment for the counter. | Integer | No. | 1 |
 
-In this example, there are two worker states, `state_1` and `state_2`. There's a 50% probability that, in each state, the other state will be selected next.
+In this example, `session_start` spawns a new worker every second. A `gateway:exclusive` routes 50/50 between two emitters — each preceded by a 0.1-second timer — cycling continuously.
 
 Each state has its own emitter, `state_1` uses `example_event_1`, `state_2` uses `example_event_2`.
 
@@ -28,55 +30,75 @@ The second emitter, `example_event_2`, mirrors the same configuration, using dif
 
 ```json
 {
-  "type": "generator",
   "states": [
     {
-      "name": "state_1",
-      "emitter": "example_event_1",
-      "delay": { "type": "constant", "value": 0.1 },
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "route_emitter"
+    },
+    {
+      "name": "route_emitter",
+      "type": "gateway:exclusive",
       "transitions": [
-        { "next": "state_1", "probability": 0.5 },
-        { "next": "state_2", "probability": 0.5 }
+        { "next": "pause_state_1", "probability": 0.5 },
+        { "next": "pause_state_2", "probability": 0.5 }
       ]
     },
     {
-      "name": "state_2",
+      "name": "pause_state_1",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 0.1 },
+      "next": "emit_state_1"
+    },
+    {
+      "name": "emit_state_1",
+      "type": "activity",
+      "emitter": "example_event_1",
+      "next": "route_emitter"
+    },
+    {
+      "name": "pause_state_2",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 0.1 },
+      "next": "emit_state_2"
+    },
+    {
+      "name": "emit_state_2",
+      "type": "activity",
       "emitter": "example_event_2",
-      "delay": { "type": "constant", "value": 0.1 },
-      "transitions": [
-        { "next": "state_1", "probability": 0.5 },
-        { "next": "state_2", "probability": 0.5 }
-      ]
+      "next": "route_emitter"
     }
   ],
   "emitters": [
     {
       "name": "example_event_1",
       "dimensions": [
-        { "type": "counter", "name": "default_counter1" },
-        { "type": "counter", "name": "start_counter1", "start": 100 },
-        { "type": "counter", "name": "increment_counter1", "increment": 10000 },
-        { "type": "counter", "name": "both_counter1", "start": 250, "increment": 50 }
+        { "name": "time", "type": "clock" },
+        { "name": "default_counter1", "type": "counter" },
+        { "name": "start_counter1", "type": "counter", "start": 100 },
+        { "name": "increment_counter1", "type": "counter", "increment": 10000 },
+        { "name": "both_counter1", "type": "counter", "start": 250, "increment": 50 }
       ]
     },
     {
       "name": "example_event_2",
       "dimensions": [
-        { "type": "counter", "name": "default_counter2" },
-        { "type": "counter", "name": "start_counter2", "start": 500 },
-        { "type": "counter", "name": "increment_counter2", "increment": 50000 },
-        { "type": "counter", "name": "both_counter2", "start": 750, "increment": 50 }
+        { "name": "time", "type": "clock" },
+        { "name": "default_counter2", "type": "counter" },
+        { "name": "start_counter2", "type": "counter", "start": 500 },
+        { "name": "increment_counter2", "type": "counter", "increment": 50000 },
+        { "name": "both_counter2", "type": "counter", "start": 750, "increment": 50 }
       ]
     }
-  ],
-  "interarrival": { "type": "constant", "value": 1 }
+  ]
 }
 ```
 
-Save the above configuration as `example.json` and use the following command to create 10 records with one worker:
+Save the above configuration as `example.json` and use the following command to create 10 records with one worker using a simulated clock:
 
 ```bash
-python3 src/generator.py -f example.json -n 10 -m 1
+python generator.py -c example.json -n 10 -m 1 -s "2024-01-01T00:00:00"
 ```
 
 This is an example of the output using one worker.

@@ -32,13 +32,41 @@ python generator.py -c presets/configs/vpc_flow_logs.json --template aws:cloudwa
 | `action` | `ACCEPT` or `REJECT` |
 | `log_status` | `OK`, `NODATA`, or `SKIPDATA` |
 
+## State machine
+
+Each worker represents one network flow. The Actor captures connection attributes and a start timestamp, waits for the flow duration, then emits a single completed flow record.
+
+```mermaid
+flowchart LR
+    A(["<b>connection_start</b><br/>event:start:timer"]) --> B["<b>setup_flow</b><br/>activity"]
+    B --> C[/"<b>pause_flow_duration</b><br/>event:intermediate:timer"/]
+    C --> D["<b>emit_flow_record</b><br/>activity"]
+    D --> E(["<b>connection_end</b><br/>event:end"])
+```
+
 ## Concurrency (`-m`)
 
-| Little's Law component | Value |
-| --- | --- |
-| Average session duration (W) | ~13 seconds |
-| Interarrival mean | 0.5 s |
-| Base arrival rate (λ = 1/mean) | ~2.0 connections/sec |
-| Maximum useful `-m` (L = λW) | ~25 |
+The `-m` ceiling is ~66. Setting `-m` above this has no effect — the worker pool is never fully used.
 
-Setting `-m` above ~25 has no effect — connections are short-lived and complete faster than new ones arrive.
+The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start`.
+
+| `-m` | Rows (PT6H) | Wall-clock (s) |
+| ---: | ---: | ---: |
+| 1 | 6,116 | 0.5 |
+| 2 | 11,771 | 0.9 |
+| 3 | 17,362 | 1.2 |
+| 5 | 28,940 | 1.9 |
+| 9 | 51,778 | 3.3 |
+| 15 | 85,101 | 5.3 |
+| 26 | 140,958 | 9.0 |
+| 45 | 195,269 | 12.2 |
+| 77 | 198,392 | 12.6 |
+| 132 | 198,392 | 12.4 |
+
+```mermaid
+xychart-beta
+    title "vpc_flow_logs — rows vs -m (PT6H, seed=42)"
+    x-axis [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
+    y-axis "Rows" 0 --> 230000
+    line [6116, 11771, 17362, 28940, 51778, 85101, 140958, 195269, 198392, 198392]
+```

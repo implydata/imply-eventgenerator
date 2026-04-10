@@ -1,1 +1,0 @@
-{__time}\t{username}\t{post_title}\t{views}\t{upvotes}\t{comments}\t{edited}

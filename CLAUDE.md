@@ -6,7 +6,8 @@ Every config must have an agreed **Actor** before any JSON is written. An Actor 
 
 - A config can have multiple Actor *types* (e.g. Human, Hacker, Bot in the ecommerce preset), routed at session start via a routing state such as `global_init`.
 - All Actor types share the same `-m` worker pool, capped by Little's Law.
-- `-m` is a concurrency *cap*, not a volume knob. Volume is controlled by interarrival `mean`.
+- `-m` caps the number of simultaneously active sessions. When set below the natural concurrency (L = λW), it reduces throughput — in both real-time and simulated modes. When at or above L, it has no effect on throughput; the interarrival `mean` is the binding constraint.
+- In simulated mode, the Clock serialises threads for **time-ordering** (advancing simulated time in scheduled-event order). This is separate from the concurrency cap: the spawning thread still enforces `effective_max` and sleeps 5 simulated seconds when at capacity. Do not conflate time-ordering serialisation with bypassing the concurrency constraint.
 
 ## Preset structure
 
@@ -31,15 +32,24 @@ Every `docs/presets/<name>.md` must follow this structure:
 3. **Templates** — table of available `--template` values and their output
 4. **Output fields** — table of emitted fields and descriptions
 5. [Preset-specific sections] — e.g. product categories, session routing, per-Actor flow diagrams
-6. **Concurrency (`-m`)** — Little's Law table (W, mean, λ, max useful `-m`). Always required — users need to know there is an upper limit on volume.
-
-The section structure in `docs/best-practices.md` under "README Files" is outdated — ignore it.
+6. **Concurrency (`-m`)** — state the empirical `-m` ceiling plainly ("The `-m` ceiling is ~N"), followed by the empirical scaling table and Mermaid `xychart-beta`. Always required — users need to know there is an upper limit on volume. Run `tools/bench_config.py` to measure it (see Step 10 of `docs/how-to-build-a-config.md`).
 
 ## Keeping docs and code in sync
 
-The reference docs in `docs/` (especially `emitters.md`, `distributions.md`, `field-generators.md`) define what the engine actually supports. These must stay in sync with the code.
+The reference docs in `docs/` are the authoritative source for what the engine supports. These must stay in sync with the code:
 
-- If a code change adds or modifies a distribution type, emitter option, or field type, update the relevant doc in the same pass — not as a follow-up.
+| Doc | Covers |
+| --- | --- |
+| `states.md` | State type field reference |
+| `emitters.md` | Emitter structure and dimension fields |
+| `distributions.md` | Distribution types and parameters |
+| `field-generators.md` | Index of all field generator types |
+| `docs/types/<type>.md` | Per-type detail — one file per field generator type |
+| `templates.md` | Template syntax and the `templates` block |
+| `schedules.md` | Schedule format and multiplier semantics |
+
+- If a code change adds or modifies a state type, distribution type, emitter option, or field type, update the relevant doc in the same pass — not as a follow-up.
+- `field-generators.md` is an index page; the per-type detail lives in `docs/types/`. When a new field type is added, create `docs/types/<type>.md` **and** add a row to `field-generators.md`.
 - If asked to write a config that uses a distribution or field type not present in `docs/`, **stop and flag it** rather than writing JSON and hoping it works.
 
 ## Testing configs
@@ -58,4 +68,14 @@ Config errors (bad field references, wrong distributions, missing variables) oft
 
 ## Config JSON authoring
 
-Config files grow large quickly. Keep the code and `docs/` reference docs in sync at all times — if a field or distribution type isn't documented, clarify before using it.
+Before writing any JSON, read `docs/how-to-build-a-config.md` — it walks through the full design process from Actor definition to tested config (Steps 1–10). The reference docs listed above are authoritative on what the engine supports; flag any discrepancy rather than guessing.
+
+## Config JSON style
+
+After writing or editing any config, run the formatter to enforce consistent field ordering and compact/expanded forms:
+
+```bash
+python tools/fmt_config.py presets/configs/<name>.json
+```
+
+The formatter is the authoritative source of style rules. Run `--check` in CI to detect unformatted files. The formatter guarantees no data loss: it compares the parsed original and output structurally before writing, and aborts if they differ.

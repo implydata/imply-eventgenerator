@@ -1,9 +1,15 @@
-"""
-This module provides utilities for parsing and handling distributions.
+"""Distribution classes and parsing utilities for the event generator.
 
-Distributions are used to generate random values based on specified probability
-distributions. This module includes functions for parsing distribution configurations
-and generating samples from them.
+Each Dist* class maps to a distribution type in the config JSON
+(e.g. DistUniform → "type": "uniform"). The main entry points are:
+
+  parse_distribution(desc, clock)      — build a Dist* from a config dict
+  validate_distribution_desc(desc)     — pre-flight validation without constructing
+
+DistGMMTemporal requires a Clock instance for time-of-day modulation and is only
+valid in cardinality_distribution on timer states.
+
+See docs/distributions.md for the config-level reference.
 """
 
 import logging

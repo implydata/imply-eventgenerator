@@ -14,9 +14,9 @@ python generator.py -c presets/configs/ecommerce.json --template apache:access:j
 # CSV
 python generator.py -c presets/configs/ecommerce.json --template csv -n 1000 -s "2025-01-01T00:00"
 
-# With time-of-day variation
+# With time-of-day variation (schedule modulates the -m cap)
 python generator.py -c presets/configs/ecommerce.json --template access_combined \
-  -m 300 --schedule presets/schedules/ecommerce.json
+  -m 300 -s "2025-01-01T00:00" --schedule presets/schedules/ecommerce.json
 ```
 
 ## Templates
@@ -42,7 +42,7 @@ python generator.py -c presets/configs/ecommerce.json --template access_combined
 | `http_method` | HTTP method (`GET`, `POST`, etc.) |
 | `uri_path` | Request path |
 | `uri_query` | Query string (empty if none) |
-| `http_version` | Protocol version (`HTTP/1.1`, `HTTP/2.0`) |
+| `http_version` | Protocol version (`HTTP/1.0`, `HTTP/1.1`, `HTTP/2`) |
 | `status` | HTTP response status code |
 | `bytes_out` | Response bytes |
 | `bytes_in` | Request bytes |
@@ -75,18 +75,36 @@ Each session is routed at startup by `global_init` (no event emitted):
 | Hacker | 0.1% | Automated scanner probing for vulnerabilities |
 | Bot | 0.2% | Web crawler indexing site content |
 
+```mermaid
+flowchart LR
+    A(["<b>session_start</b><br/>event:start:timer"]) --> B["<b>global_init</b><br/>activity"]
+    B --> C{"<b>route_session</b><br/>gateway:exclusive"}
+    C -->|"99.7%"| D["Human flow"]
+    C -->|"0.1%"| E["Hacker flow"]
+    C -->|"0.2%"| F["Bot flow"]
+```
+
 ---
 
 ## Human flow
 
-```text
-global_init ──→ initial_human ──→ browse_products ──→ browse_cat_* ⟲
-                                        ↓                    ↓
-                                    not_found           add_to_cart
-                                        ↓                    ↓
-                                  browse_products       checkout ──→ thank_you ──→ stop
-                                                             ↓
-                                                         try_again ──→ checkout
+```mermaid
+flowchart TD
+    A["<b>initial_human</b><br/>activity"] --> B{"<b>browse_products</b><br/>gateway:exclusive"}
+    B -->|"exit"| Z(["<b>session_end</b><br/>event:end"])
+    B -->|"not found"| D["<b>not_found</b><br/>activity"]
+    B --> C["<b>browse_cat_*</b><br/>activity"]
+    D --> B
+    C -->|"self-loop"| C
+    C -->|"back"| B
+    C -->|"exit"| Z
+    C --> E["<b>add_to_cart</b><br/>activity"]
+    E -->|"exit"| Z
+    E --> F["<b>checkout</b><br/>activity"]
+    F --> G["<b>thank_you</b><br/>activity"]
+    G --> Z
+    F --> H["<b>try_again</b><br/>activity"]
+    H --> F
 ```
 
 `initial_human` emits the homepage (`/`) hit and sets session-level properties — IP address, browser user-agent, cookie, and HTTP version — which persist unchanged for the rest of the session.
@@ -97,10 +115,11 @@ From `browse_products` the worker selects a product category (`browse_cat_electr
 
 ## Hacker flow
 
-```text
-global_init ──→ hacker_start ──→ hacker ⟲(99%)
-                                      ↓(1%)
-                                     stop
+```mermaid
+flowchart LR
+    A["<b>hacker_start</b><br/>activity"] --> B["<b>hacker</b><br/>activity"]
+    B -->|"99%"| B
+    B -->|"1%"| Z(["<b>session_end</b><br/>event:end"])
 ```
 
 `hacker_start` fires once on session entry (no event emitted) to pin the session-level properties:
@@ -124,10 +143,11 @@ The loop continues with 99% probability, averaging ~100 probe requests per sessi
 
 ## Bot flow
 
-```text
-global_init ──→ bot_start ──→ bot ⟲(98%)
-                                  ↓(2%)
-                                 stop
+```mermaid
+flowchart LR
+    A["<b>bot_start</b><br/>activity"] --> B["<b>bot</b><br/>activity"]
+    B -->|"98%"| B
+    B -->|"2%"| Z(["<b>session_end</b><br/>event:end"])
 ```
 
 `bot_start` fires once on session entry (no event emitted) to pin the session-level properties:
@@ -151,11 +171,27 @@ The loop continues with 98% probability, averaging ~50 crawl requests per sessio
 
 ## Concurrency (`-m`)
 
-| Little's Law component | Value |
-| --- | --- |
-| Average session duration (W) | ~1,800 seconds (~30 minutes) |
-| Interarrival mean | 1.0 s |
-| Base arrival rate (λ = 1/mean) | ~1.0 sessions/sec |
-| Maximum useful `-m` (L = λW) | ~1,800 |
+The `-m` ceiling is ~2,112. Setting `-m` above this has no effect — the worker pool is never fully used.
 
-Setting `-m` above ~1,800 has no effect — sessions complete faster than new ones arrive to fill the pool.
+The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce.json`.
+
+| `-m` | Rows (PT6H) | Wall-clock (s) |
+| ---: | ---: | ---: |
+| 1 | 198 | 0.3 |
+| 3 | 628 | 0.3 |
+| 6 | 1,235 | 0.3 |
+| 16 | 3,265 | 0.4 |
+| 41 | 8,492 | 0.8 |
+| 103 | 21,558 | 1.8 |
+| 261 | 54,232 | 4.2 |
+| 661 | 135,637 | 11.4 |
+| 1,671 | 265,407 | 25.6 |
+| 4,224 | 265,029 | 25.6 |
+
+```mermaid
+xychart-beta
+    title "ecommerce — rows vs -m (PT6H, seed=42)"
+    x-axis [1, 3, 6, 16, 41, 103, 261, 661, 1671, 4224]
+    y-axis "Rows" 0 --> 310000
+    line [198, 628, 1235, 3265, 8492, 21558, 54232, 135637, 265407, 265029]
+```

@@ -46,29 +46,44 @@ python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -r
 
 ## State machine
 
-```text
-[start] ──→ initial ──→ ringing (5–30 s)
-                              ↓
-                   ┌──────────┼────────────┐
-                  70%        20%          10%
-                   ↓          ↓            ↓
-               answered   no_answer      busy
-             (~180 s talk)  (emit CDR)  (emit CDR)
-                   ↓            ↓            ↓
-               (emit CDR)     stop         stop
-                   ↓
-                  stop
+```mermaid
+flowchart TD
+    A(["<b>session_start</b><br/>event:start:timer"]) --> B["<b>initial</b><br/>activity"]
+    B --> C[/"<b>ringing</b><br/>event:intermediate:timer (5–30s)"/]
+    C --> D{"<b>call_outcome</b><br/>gateway:exclusive"}
+    D -->|"70%"| E[/"<b>answered</b><br/>event:intermediate:timer (~180s)"/]
+    D -->|"20%"| F["<b>no_answer</b><br/>activity"]
+    D -->|"10%"| G["<b>busy</b><br/>activity"]
+    E --> H["<b>emit_cdr</b><br/>activity"]
+    F --> Z(["<b>call_end</b><br/>event:end"])
+    G --> Z
+    H --> Z
 ```
 
-The `ringing` state models real ring time (5–30 s) before the outcome is determined. Answered calls spend an additional ~3 minutes in `answered` before the CDR is emitted — so in real-time mode, `-m` controls how many calls are genuinely in progress simultaneously.
+The `ringing` state models real ring time (5–30 s) before the outcome is determined. Answered calls spend an additional ~3 minutes in `answered` before the CDR is emitted — so `-m` controls how many calls are genuinely in progress simultaneously, in both real-time and simulated modes.
 
 ## Concurrency (`-m`)
 
-| Little's Law component | Value |
-| --- | --- |
-| Average session duration (W) | ~144 seconds |
-| Interarrival mean | 30 s |
-| Base arrival rate (λ = 1/mean) | ~0.033 calls/sec |
-| Maximum useful `-m` (L = λW) | ~5 |
+The `-m` ceiling is ~9. Setting `-m` above this has no effect — the worker pool is never fully used. To model a busier PBX, lower the `interarrival` mean in the config.
 
-At the default interarrival rate, only ~5 calls are naturally in flight at any moment. To model a busier PBX, lower the `interarrival` mean in the config.
+The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/pbx_calls.json`.
+
+| `-m` | Rows (PT6H) | Wall-clock (s) |
+| ---: | ---: | ---: |
+| 1 | 140 | 0.2 |
+| 2 | 254 | 0.2 |
+| 3 | 404 | 0.2 |
+| 4 | 492 | 0.2 |
+| 5 | 572 | 0.2 |
+| 7 | 660 | 0.2 |
+| 9 | 721 | 0.2 |
+| 13 | 773 | 0.2 |
+| 18 | 773 | 0.2 |
+
+```mermaid
+xychart-beta
+    title "pbx_calls — rows vs -m (PT6H, seed=42)"
+    x-axis [1, 2, 3, 4, 5, 7, 9, 13, 18]
+    y-axis "Rows" 0 --> 830
+    line [140, 254, 404, 492, 572, 660, 721, 773, 773]
+```

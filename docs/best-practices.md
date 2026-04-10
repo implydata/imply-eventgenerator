@@ -96,118 +96,24 @@ Use naming to indicate scope:
 
 ### States
 
-Use descriptive names that indicate purpose:
+Use these prefixes consistently:
 
-#### Pattern: `{purpose}_{phase}_{action}`
+| Prefix | State type | Purpose |
+| --- | --- | --- |
+| `setup_*` | `activity` | Sets variables only, no record emitted |
+| `emit_*` | `activity` | Emits a record (with or without setting variables) |
+| `route_*` | `gateway:exclusive` | Probabilistic routing decision |
+| `pause_*` | `event:intermediate:timer` | Clock advance — queue wait, processing delay, dwell time |
 
-```json
-{
-  "states": [
-    // Traffic pattern + Phase + Action
-    {"name": "web_traffic_connection_setup"},
-    {"name": "web_traffic_syn_activity"},
-    {"name": "web_traffic_syn_emit"},
+The `event:start:timer` is named after the arrival event (`session_start`, `ticket_arrives`). The `event:end` is named after the termination (`session_end`, `ticket_closed`).
 
-    // Generic routing/control states
-    {"name": "initial"},
-    {"name": "route_by_protocol"},
-    {"name": "close_connection"}
-  ]
-}
-```
-
-#### Common State Name Patterns
-
-- **Setup states**: `{pattern}_setup`, `{pattern}_connection_setup`
-- **Activity/delay states**: `{pattern}_activity`, `{pattern}_{phase}_activity`
-- **Emission states**: `{pattern}_emit`, `{pattern}_{phase}_emit`
-- **Routing states**: `initial`, `route_by_{criteria}`
-- **Continue states**: `{pattern}_continue`, `continue_{pattern}`
-- **Termination states**: `close`, `end`, `{pattern}_close`
-
-#### Good Examples
-
-```json
-{
-  "states": [
-    {"name": "initial"},
-    {"name": "web_traffic_connection_setup"},
-    {"name": "web_traffic_syn_activity"},
-    {"name": "web_traffic_syn_emit"},
-    {"name": "web_traffic_data_activity"},
-    {"name": "web_traffic_data_emit"},
-    {"name": "web_traffic_continue"},
-    {"name": "web_traffic_fin_activity"},
-    {"name": "web_traffic_fin_emit"}
-  ]
-}
-```
-
-#### Bad Examples
-
-```json
-{
-  "states": [
-    {"name": "state1"},           // Too vague
-    {"name": "web"},              // Incomplete
-    {"name": "emit"},             // What are we emitting?
-    {"name": "do_something"}      // Not descriptive
-  ]
-}
-```
+See [how-to-build-a-config.md](./how-to-build-a-config.md) for naming applied to a full worked example.
 
 ### Emitters
 
-Use descriptive names matching the log/record type:
-
-```json
-{
-  "emitters": {
-    "vpc_flow_log": [...],
-    "apache_access_log": [...],
-    "api_request": [...],
-    "database_query": [...]
-  }
-}
-```
-
-Avoid generic names like `emitter1`, `log_emitter`, `record`.
+Name emitters after the log or record type they produce: `vpc_flow_log`, `apache_access_log`, `api_request`. Avoid generic names like `emitter1` or `record`.
 
 ## Configuration Organization
-
-### File Structure
-
-For complex configurations, organize logically:
-
-```json
-{
-  "format": "json",
-  "workers": 4,
-  "emitters": {
-    // Group related emitters
-    "vpc_flow_log": [...],
-    "routing_emitter": [...]
-  },
-  "states": [
-    // 1. Initial/routing states
-    {"name": "initial", ...},
-
-    // 2. Group by traffic pattern
-    // Web Traffic
-    {"name": "web_traffic_setup", ...},
-    {"name": "web_traffic_activity", ...},
-    {"name": "web_traffic_emit", ...},
-
-    // API Traffic
-    {"name": "api_traffic_setup", ...},
-    {"name": "api_traffic_activity", ...},
-    {"name": "api_traffic_emit", ...},
-
-    // 3. Termination states
-    {"name": "close", ...}
-  ]
-}
-```
 
 ### Use Comments
 
@@ -215,189 +121,42 @@ Add comments to explain non-obvious logic:
 
 ```json
 {
-  "name": "web_traffic_syn_emit",
-  "comment": "TCP handshake: 3 packets (SYN, SYN-ACK, ACK), ~60 bytes each",
+  "name": "emit_syn",
+  "type": "activity",
+  "_comment": "TCP handshake: 3 packets (SYN, SYN-ACK, ACK), ~60 bytes each",
   "emitter": "vpc_flow_log",
   "variables": [
-    {"name": "var_packets", "type": "constant", "value": 3},
+    {"name": "var_packets", "type": "int:static", "value": 3},
     {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 180, "max": 240}}
-  ]
+  ],
+  "next": "session_end"
 }
 ```
 
-### README Files
+### Preset docs
 
-For each generator configuration, create a companion README named `<config>_README.md` in the `conf/` directory. This allows the README to cover the generator config, format files, and target files together. Use the following standard structure:
+Each preset has a companion doc at `docs/presets/<name>.md`. Every preset doc must follow the standard structure described in [CLAUDE.md](../CLAUDE.md):
 
-```text
-# <Config Name> Generator
+1. Title + one-paragraph description
+2. **Quick start** — copy-paste commands covering common output formats
+3. **Templates** — table of available `--template` values and their output
+4. **Output fields** — table of emitted fields and descriptions
+5. Preset-specific sections (product categories, session routing, per-Actor flow diagrams, etc.)
+6. **Concurrency (`-m`)** — empirical `-m` ceiling, scaling table, and Mermaid chart (run `tools/bench_config.py` to generate)
 
-## Quick Start
-One-liner commands to get output immediately — one for JSON
-(gen only) and one with a format file (gen + form), if available.
-
-## Overview
-What real-world scenario this config simulates.
-
-## Output fields
-Table of dimensions and what they represent.
-
-## State machine
-The flow of states and transitions, ideally with a simple
-text diagram showing the path a worker takes.
-
-## Usage examples
-Copy-paste commands to run the config with common options.
-
-## Use cases
-What this data is good for (testing, demos, analytics, etc.).
-
-## Additional information
-Any domain-specific content such as query examples, detection
-scenarios, or detailed architecture notes.
-```
+Config JSON files live in `presets/configs/`.
 
 ## When to Use Optional Emitters
 
-### Use Optional Emitters For
+`gateway:exclusive` and `event:intermediate:timer` states cannot have an emitter — the validator rejects it. This is by design: routing and time-passing are separate concerns from record emission.
 
-#### 1. Routing States
-
-States that only choose the next path:
-
-```json
-{
-  "name": "initial",
-  "variables": [
-    {"name": "var_account_id", ...}
-  ],
-  "transitions": [
-    {"next": "web_traffic", "probability": 0.5},
-    {"next": "api_traffic", "probability": 0.5}
-  ]
-}
-```
-
-**No emitter needed** - just routing logic.
-
-#### 2. Delay/Activity States
-
-States that only advance time:
-
-```json
-{
-  "name": "flow_activity",
-  "variables": [],
-  "delay": {"type": "exponential", "mean": 5.0},
-  "transitions": [{"next": "flow_emit", "probability": 1.0}]
-}
-```
-
-**No emitter needed** - just delay for flow duration.
-
-#### 3. Setup States
-
-States that initialize variables without emitting:
-
-```json
-{
-  "name": "connection_setup",
-  "variables": [
-    {"name": "var_srcaddr", ...},
-    {"name": "var_dstaddr", ...},
-    {"name": "var_start", "type": "clock"}
-  ],
-  "transitions": [{"next": "activity", "probability": 1.0}]
-}
-```
-
-**No emitter needed** - just variable initialization.
-
-### Don't Use Optional Emitters For
-
-#### States That Should Emit Records
-
-If the state's purpose is to produce output, always specify an emitter:
-
-```json
-{
-  "name": "log_request",
-  "emitter": "access_log",  // Required!
-  "variables": [
-    {"name": "var_status", "type": "enum", "values": [200, 404, 500]}
-  ]
-}
-```
-
-### Migration: Removing Dummy Emitters
-
-If you have a configuration with dummy/routing emitters, you can remove them:
-
-#### Before (with dummy emitter)
-
-```json
-{
-  "emitters": {
-    "routing_emitter": [
-      {"name": "dummy", "type": "string", "distribution": {"type": "constant", "value": ""}}
-    ],
-    "real_log": [...]
-  },
-  "states": [
-    {
-      "name": "initial",
-      "emitter": "routing_emitter",  // Dummy!
-      "variables": [...]
-    }
-  ]
-}
-```
-
-#### After (with optional emitter)
-
-```json
-{
-  "emitters": {
-    "real_log": [...]
-  },
-  "states": [
-    {
-      "name": "initial",
-      // No emitter field - state doesn't emit
-      "variables": [...]
-    }
-  ]
-}
-```
+For `activity` states, the `emitter` field is optional. A `setup_*` activity that only sets variables omits it; an `emit_*` activity always includes it.
 
 ## Variable Design
 
 ### Cardinality Control
 
-Use explicit value lists or ranges to control cardinality:
-
-```json
-{
-  "name": "var_account_id",
-  "type": "enum",
-  "values": ["account-1", "account-2", "account-3"],
-  "probabilities": [0.5, 0.3, 0.2]
-}
-```
-
-**Result**: Only 3 unique account IDs (realistic for testing).
-
-**Alternative** (too many unique values):
-
-```json
-{
-  "name": "var_account_id",
-  "type": "int",
-  "distribution": {"type": "uniform", "min": 1, "max": 1000000000}
-}
-```
-
-**Problem**: Every record has unique account ID (unrealistic).
+Use explicit value lists or bounded ranges to control cardinality. A field like `var_account_id` drawn from `uniform(1, 1000000000)` will produce a unique value on every record — almost always wrong. Prefer an `enum` with a realistic fixed set, or an `int` with `cardinality` set to the number of distinct values you want.
 
 ### Timestamp Variables
 
@@ -452,21 +211,21 @@ Each state should have a single clear purpose:
 ```json
 {
   "states": [
-    {"name": "setup", "variables": [...]},      // Setup only
-    {"name": "activity", "delay": {...}},       // Delay only
-    {"name": "emit", "emitter": "log"}          // Emit only
+    {"name": "setup_session", "type": "activity", "variables": [...]},           // Setup only
+    {"name": "page_timer", "type": "event:intermediate:timer", "cardinality_distribution": {...}},  // Advance clock only
+    {"name": "emit_pageview", "type": "activity", "emitter": "log"}              // Emit only
   ]
 }
 ```
 
-❌ **Bad** (multi-purpose state):
+❌ **Bad** (mixed concerns):
 
 ```json
 {
   "name": "do_everything",
+  "type": "activity",
   "emitter": "log",
-  "variables": [...],  // Too much happening
-  "delay": {...}       // Hard to understand/maintain
+  "variables": [...]  // Hard to understand/maintain when combined with a separate timer state
 }
 ```
 
@@ -480,27 +239,32 @@ Don't redefine variables unnecessarily:
 {
   "states": [
     {
-      "name": "setup",
+      "name": "setup_session",
+      "type": "activity",
       "variables": [
         {"name": "var_session_id", ...}  // Defined once
       ],
-      "transitions": [{"next": "page1", "probability": 1.0}]
+      "next": "emit_page1"
     },
     {
-      "name": "page1",
+      "name": "emit_page1",
+      "type": "activity",
       "emitter": "pageview",
       "variables": [
-        {"name": "var_page", "type": "constant", "value": "home"}
+        {"name": "var_page", "type": "string:static", "value": "home"}
         // var_session_id automatically available
-      ]
+      ],
+      "next": "emit_page2"
     },
     {
-      "name": "page2",
+      "name": "emit_page2",
+      "type": "activity",
       "emitter": "pageview",
       "variables": [
-        {"name": "var_page", "type": "constant", "value": "products"}
+        {"name": "var_page", "type": "string:static", "value": "products"}
         // var_session_id still available
-      ]
+      ],
+      "next": "session_end"
     }
   ]
 }
@@ -533,16 +297,16 @@ Don't redefine variables unnecessarily:
 
 ### Model Realistic Lifecycles
 
-Use Start→Activity→Emit for time-windowed data:
+Use Setup→Timer→Emit for time-windowed data:
 
 ✅ **Good** (realistic duration):
 
 ```json
 {
   "states": [
-    {"name": "start", "variables": [{"name": "var_start", "type": "clock"}]},
-    {"name": "activity", "delay": {"type": "exponential", "mean": 5.0}},
-    {"name": "emit", "emitter": "log", "variables": [{"name": "var_end", "type": "clock"}]}
+    {"name": "setup_flow", "type": "activity", "variables": [{"name": "var_start", "type": "clock"}]},
+    {"name": "flow_timer", "type": "event:intermediate:timer", "cardinality_distribution": {"type": "exponential", "mean": 5.0}},
+    {"name": "emit_flow", "type": "activity", "emitter": "log", "variables": [{"name": "var_end", "type": "clock"}]}
   ]
 }
 ```
@@ -553,7 +317,8 @@ Use Start→Activity→Emit for time-windowed data:
 
 ```json
 {
-  "name": "emit",
+  "name": "emit_flow",
+  "type": "activity",
   "emitter": "log",
   "variables": [
     {"name": "var_start", "type": "clock"},
@@ -739,32 +504,7 @@ See [patterns.md](patterns.md#startactivityemit-pattern-flow-duration)
 {"name": "var_user_id", "type": "enum", "values": ["user1", "user2", "user3", ...]}
 ```
 
-### 5. Using Dummy Emitters
-
-❌ **Problem**: Creating dummy emitters for routing states
-
-```json
-{
-  "emitters": {
-    "dummy": [{"name": "placeholder", "type": "string", "distribution": {"type": "constant", "value": ""}}]
-  },
-  "states": [
-    {"name": "routing", "emitter": "dummy"}  // Wasteful!
-  ]
-}
-```
-
-✅ **Solution**: Use optional emitters (omit emitter field)
-
-```json
-{
-  "states": [
-    {"name": "routing"}  // No emitter field
-  ]
-}
-```
-
-### 6. Missing Variable References
+### 5. Missing Variable References
 
 ❌ **Problem**: Emitter references variable not defined in any state
 
@@ -805,12 +545,14 @@ See [patterns.md](patterns.md#startactivityemit-pattern-flow-duration)
 }
 ```
 
-### 7. Incorrect Transition Probabilities
+### 6. Incorrect Transition Probabilities
 
-❌ **Problem**: Probabilities don't sum to 1.0
+❌ **Problem**: Probabilities in a `gateway:exclusive` don't sum to 1.0
 
 ```json
 {
+  "name": "route_traffic",
+  "type": "gateway:exclusive",
   "transitions": [
     {"next": "state1", "probability": 0.5},
     {"next": "state2", "probability": 0.6}  // Total = 1.1 (wrong!)
@@ -818,16 +560,7 @@ See [patterns.md](patterns.md#startactivityemit-pattern-flow-duration)
 }
 ```
 
-✅ **Solution**: Ensure probabilities sum to exactly 1.0
-
-```json
-{
-  "transitions": [
-    {"next": "state1", "probability": 0.5},
-    {"next": "state2", "probability": 0.5}  // Total = 1.0
-  ]
-}
-```
+✅ **Solution**: Ensure probabilities sum to exactly 1.0. `--validate` will catch this as an error.
 
 ## Summary Checklist
 
@@ -836,8 +569,7 @@ When creating a new configuration:
 - [ ] Use synthetic clock (`-s`) during development
 - [ ] Use descriptive `var_` prefixed variable names
 - [ ] Use descriptive state names indicating purpose
-- [ ] Use optional emitters for routing/delay/setup states
-- [ ] Define common variables in initial state
+- [ ] Define common variables in a `setup_*` activity at the start
 - [ ] Use Start→Activity→Emit for time-windowed data
 - [ ] Control cardinality with enums or limited ranges
 - [ ] Verify transition probabilities sum to 1.0
@@ -848,6 +580,7 @@ When creating a new configuration:
 
 For related information, see:
 
-- [Common Patterns](patterns.md) - State machine patterns and techniques
-- [Generator Configuration](generator-config.md) - Core concepts and field reference
-- [States Documentation](states.md) - Detailed state configuration guide
+- [How to build a config](how-to-build-a-config.md) — step-by-step guide from concept to tested config
+- [Common Patterns](patterns.md) — state machine patterns and techniques
+- [States](states.md) — state type reference with field tables
+- [Field generators](field-generators.md) — all field generator types

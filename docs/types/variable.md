@@ -1,16 +1,20 @@
 # Worker variables
 
-When a worker encounters an [emitter dimension](./emitters.md#dimensions) with a `type` of `variable`, the worker variable is used, rather than a new value value being created.
+Use `variable` in an emitter's `dimensions` list to output the current value of a worker variable that was set by an earlier activity state.
+
+**Context restriction**: `variable` is only valid in emitter `dimensions`. Using it in a state's `variables` list (where field generators are used to *set* variables) causes a validation error.
+
+**Runtime error**: if the referenced variable has not been set by the time the emitter runs, the generator raises a `KeyError`. This is not always caught by `--validate` — if the execution path can reach the emitter before the activity that sets the variable, the error will only appear at runtime. Always set variables in a `setup_*` activity that runs before any emit state that references them.
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `float` | Yes | |
+| `type` | The data type for the dimension. | `variable` | Yes | |
 | `name` | The unique name for the dimension. | String | Yes | |
-| `variable` | The name of a [state variable](./generator-config.md#variables). | String | Yes | |
+| `variable` | The name of a worker variable set in an activity state's `variables` list. | String | Yes | |
 
-In the following example, there are two states, `state_1` and `state_2`. In `state_1`, two variables are created, `var_client_ip` and `var_account_code`. Notice that these conform to the normal configuration for [dimensions in emitters](./emitters.md) - [`ipaddress`](./types/ipaddress.md) and [`string`](./types/string.md) respectively.
+In the following example, `session_start` spawns a new worker every 0.2 seconds. A `setup_session` activity sets `var_client_ip` and `var_account_code` once per session and emits an initial click. A `gateway:exclusive` then routes 70% of the time to another click (after a 1-second pause) and 30% to `session_end`.
 
-Both states use the `click` emitter, which contains:
+Both activities use the `click` emitter, which contains:
 
 * An `enum` dimension to randomly output a request URL.
 * The value of the `var_client_ip` variable, output as the `client_ip` field.
@@ -20,50 +24,68 @@ Both states use the `click` emitter, which contains:
 {
   "states": [
     {
-      "name": "state_1",
+      "name": "session_start",
+      "type": "event:start:timer",
+      "cardinality_distribution": { "type": "constant", "value": 0.2 },
+      "next": "setup_session"
+    },
+    {
+      "name": "setup_session",
+      "type": "activity",
       "emitter": "click",
       "variables": [
         {
-          "type": "ipaddress",
           "name": "var_client_ip",
+          "type": "ipaddress",
           "cardinality": 5,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 5 },
-          "distribution": {
-            "type": "uniform",
-            "min": 184549376,
-            "max": 2127008767
-          }
+          "distribution": { "type": "uniform", "min": 184549376, "max": 2127008767 }
         },
         {
-          "type": "string",
           "name": "var_account_code",
+          "type": "string",
           "length_distribution": { "type": "constant", "value": 5 },
           "cardinality": 0,
           "chars": "ABC123"
         }
       ],
-      "delay": { "type": "constant", "value": 0.5 },
-      "transitions": [ { "next": "state_2", "probability": 1.0 } ]
+      "next": "route_continue"
     },
     {
-      "name": "state_2",
-      "emitter": "click",
-      "delay": { "type": "constant", "value": 1 },
+      "name": "route_continue",
+      "type": "gateway:exclusive",
       "transitions": [
-        { "next": "state_2", "probability": 0.7 },
-        { "next": "stop", "probability": 0.3 }
+        { "next": "pause_click", "probability": 0.7 },
+        { "next": "session_end", "probability": 0.3 }
       ]
+    },
+    {
+      "name": "pause_click",
+      "type": "event:intermediate:timer",
+      "cardinality_distribution": { "type": "constant", "value": 1 },
+      "next": "emit_click"
+    },
+    {
+      "name": "emit_click",
+      "type": "activity",
+      "emitter": "click",
+      "next": "route_continue"
+    },
+    {
+      "name": "session_end",
+      "type": "event:end"
     }
   ],
   "emitters": [
     {
       "name": "click",
       "dimensions": [
-        { "type": "variable", "name": "client_ip", "variable": "var_client_ip" },
-        { "type": "variable", "name": "account_code", "variable": "var_account_code" },
+        { "name": "time", "type": "clock" },
+        { "name": "client_ip", "type": "variable", "variable": "var_client_ip" },
+        { "name": "account_code", "type": "variable", "variable": "var_account_code" },
         {
-          "type": "enum",
           "name": "request",
+          "type": "enum",
           "values": [
             "GET /api/articles",
             "GET /api/articles/42",
@@ -80,15 +102,14 @@ Both states use the `click` emitter, which contains:
         }
       ]
     }
-  ],
-  "interarrival": { "type": "constant", "value": 0.2 }
+  ]
 }
 ```
 
-Save the JSON above as `example.json` in the `config_file` folder and run it with the following command.
+Save the JSON above as `example.json` and run it with the following command.
 
 ```bash
-python3 src/generator.py -f example.json -n 15 -m 2 -s "2009-05-21:08:00:10"
+python generator.py -c example.json -n 15 -m 2 -s "2009-05-21T08:00:10"
 ```
 
 * `-n 15` specifies a maximum of 15 records.
