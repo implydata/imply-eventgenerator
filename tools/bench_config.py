@@ -270,6 +270,7 @@ def main():
         plateau_m = None
         plateau_run = 0
         prev_rows = None
+        last_non_plateau_m = args.start_m
         m = args.start_m
 
         while m <= args.max_m:
@@ -295,6 +296,7 @@ def main():
                     break
             else:
                 plateau_run = 0
+                last_non_plateau_m = m
 
             prev_rows = rows
             next_m = m * 2
@@ -306,6 +308,52 @@ def main():
             plateau_m = m
 
         progress.update(disc_task, description="[cyan]Phase 1 — complete")
+
+        # ----------------------------------------------------------------
+        # Phase 1b: binary-search refinement — narrows the plateau boundary
+        # ----------------------------------------------------------------
+        # Doubling leaves up to a 2× gap. We bisect [last_non_plateau_m, plateau_m]
+        # anchoring each comparison to the known-non-plateau rows so the
+        # is_plateau check stays consistent.
+        lo, hi = last_non_plateau_m, plateau_m
+        lo_rows = cache[lo][0]
+
+        if hi > lo + 1:
+            refine_task = progress.add_task(
+                f"[cyan]Phase 1b — refining  [{lo:,} … {hi:,}]", total=None
+            )
+            while hi > lo + 1 and hi / lo > 1.05:
+                mid = (lo + hi) // 2
+                if mid == lo or mid == hi:
+                    break
+                progress.update(
+                    refine_task,
+                    description=f"[cyan]Phase 1b — refining  [{lo:,} … {hi:,}]  trying {mid:,}",
+                )
+                run_task = progress.add_task(f"[dim]refine -m {mid:>8,}", total=100.0)
+                mid_rows, mid_elapsed = run_one(m=mid, **run_kwargs,
+                                                progress=progress, run_task=run_task)
+                cache[mid] = (mid_rows, mid_elapsed)
+
+                if is_plateau(lo_rows, mid_rows, args.plateau_threshold):
+                    # ceiling is at or before mid
+                    hi = mid
+                    plateau_m = mid
+                    suffix = "  [yellow]← plateau[/yellow]"
+                else:
+                    # ceiling is above mid
+                    lo = mid
+                    lo_rows = mid_rows
+                    suffix = ""
+                progress.update(
+                    run_task, completed=100.0,
+                    description=f"refine -m {mid:>8,}  {mid_rows:>10,} rows  {mid_elapsed:.1f}s{suffix}",
+                )
+
+            progress.update(
+                refine_task,
+                description=f"[cyan]Phase 1b — complete  (ceiling ~{plateau_m:,})",
+            )
 
         # ----------------------------------------------------------------
         # Phase 2: sampling across discovered range
@@ -358,6 +406,18 @@ def main():
             "rows": r["rows"],
             "elapsed_s": f"{r['elapsed_s']:.1f}",
         })
+
+    # Summary to stderr — values needed for the preset doc Concurrency section
+    plateau_rows = cache[plateau_m][0] if plateau_m in cache else None
+    plateau_rows_str = f"{plateau_rows:,} rows at plateau" if plateau_rows is not None else "rows unknown"
+    clock_arg = f" --clock-field {args.clock_field}" if args.clock_field else ""
+    regen_cmd = f"python tools/bench_config.py -c {args.config}{clock_arg}"
+    err.print()
+    err.print("[bold]── Empirical summary ──────────────────────────────────────[/bold]")
+    err.print(f"  Empirical ceiling:  -m = [bold]{plateau_m:,}[/bold]  ({plateau_rows_str})")
+    err.print(f"  Duration used:      {args.duration}  (seed={args.seed})")
+    err.print(f"  To regenerate:      {regen_cmd}")
+    err.print("[bold]────────────────────────────────────────────────────────────[/bold]")
 
 
 
