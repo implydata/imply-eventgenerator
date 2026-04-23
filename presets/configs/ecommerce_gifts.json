@@ -1,0 +1,708 @@
+{
+  "templates": {
+    "apache:access:json": {
+      "body": "{\"time\": {{ time.timestamp()|int }}, \"bytes_in\": {{ bytes_in }}, \"bytes_out\": {{ bytes_out }}, \"cookie\": \"{{ cookie }}\", \"server\": \"{{ server }}\", \"dest_port\": \"{{ dest_port }}\", \"http_content_type\": \"{{ http_content_type }}\", \"http_method\": \"{{ http_method }}\", \"http_referrer\": \"{{ http_referrer }}\", \"http_user_agent\": \"{{ http_user_agent }}\", \"ident\": \"{{ ident }}\", \"response_time_microseconds\": {{ response_time_microseconds }}, \"client\": \"{{ client }}\", \"status\": {{ status }}, \"uri_path\": \"{{ uri_path }}\", \"uri_query\": \"{{ uri_query }}\", \"user\": \"{{ user }}\"}"
+    },
+    "apache:access:kv": {
+      "body": "time={{ time.timestamp()|int }} bytes_in={{ bytes_in }} bytes_out={{ bytes_out }} cookie=\"{{ cookie }}\" server=\"{{ server }}\" dest_port=\"{{ dest_port }}\" http_content_type=\"{{ http_content_type }}\" http_method=\"{{ http_method }}\" http_referrer=\"{{ http_referrer }}\" http_user_agent=\"{{ http_user_agent }}\" ident=\"{{ ident }}\" response_time_microseconds={{ response_time_microseconds }} client=\"{{ client }}\" status={{ status }} uri_path=\"{{ uri_path }}\" uri_query=\"{{ uri_query }}\" user=\"{{ user }}\""
+    },
+    "apache:access:combined": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }} \"{{ http_referrer }}\" \"{{ http_user_agent }}\""
+    },
+    "access_combined": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }} \"{{ http_referrer }}\" \"{{ http_user_agent }}\""
+    },
+    "access_combined_wcookie": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }} \"{{ http_referrer }}\" \"{{ http_user_agent }}\" \"{{ cookie }}\""
+    },
+    "access_common": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }}"
+    },
+    "csv": {
+      "header": "time,bytes_in,bytes_out,cookie,server,dest_port,http_content_type,http_method,http_referrer,http_user_agent,ident,response_time_microseconds,client,status,uri_path,uri_query,user",
+      "body": "{{ time.timestamp()|int }},{{ bytes_in }},{{ bytes_out }},\"{{ cookie }}\",\"{{ server }}\",{{ dest_port }},\"{{ http_content_type }}\",\"{{ http_method }}\",\"{{ http_referrer }}\",\"{{ http_user_agent }}\",\"{{ ident }}\",{{ response_time_microseconds }},{{ client }},{{ status }},\"{{ uri_path }}\",\"{{ uri_query }}\",\"{{ user }}\""
+    },
+    "ms:iis:auto": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }}"
+    },
+    "ms:iis:default:85": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }}"
+    },
+    "ms:iis:default": {
+      "header": "#Fields: date time cs-uri-stem cs-uri-query s-contentpath sc-status s-computername cs(Referer) sc-win32-status sc-bytes cs-bytes TimeTakenMS s-sitename s-ip s-port RequestsPerSecond cs-host c-ip cs-version c-protocol cs-method CPU-Utilization W3WP-PrivateBytes cs-username cs(User-Agent) time-local sc-substatus s-proxy date-local cs(Cookie)",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} - {{ status }} WEB-SERVER {{ http_referrer }} 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }} W3SVC1 {{ server }} {{ dest_port }} - {{ server }} {{ client }} {{ http_version }} - {{ http_method }} - - {{ user }} {{ http_user_agent|replace(' ', '+') }} - 0 - - {{ cookie }}"
+    },
+    "ms:iis:splunk": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken X-Forwarded-For Content-Type https",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }} - {{ http_content_type }} {% if dest_port == '443' %}https{% else %}-{% endif %}"
+    }
+  },
+  "emitters": [
+    {
+      "name": "apache_json_log",
+      "dimensions": [
+        {"name": "time", "type": "clock"},
+        {"name": "cookie", "type": "string:static", "value": "-"},
+        {"name": "ident", "type": "string:static", "value": "-"},
+        {"name": "client", "type": "variable", "variable": "var_client"},
+        {"name": "http_content_type", "type": "variable", "variable": "var_http_content_type"},
+        {"name": "http_method", "type": "variable", "variable": "var_http_method"},
+        {"name": "http_referrer", "type": "variable", "variable": "var_http_referrer"},
+        {"name": "http_user_agent", "type": "variable", "variable": "var_http_user_agent"},
+        {"name": "http_version", "type": "variable", "variable": "var_http_version"},
+        {"name": "status", "type": "variable", "variable": "var_status"},
+        {"name": "uri_path", "type": "variable", "variable": "var_uri_path"},
+        {"name": "uri_query", "type": "variable", "variable": "var_uri_query"},
+        {"name": "user", "type": "variable", "variable": "var_user"},
+        {
+          "name": "dest_port", "type": "enum",
+          "values": ["443", "80", "8080"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "server", "type": "enum",
+          "values": ["10.0.3.10", "10.0.3.11", "10.0.3.12", "10.0.3.13", "10.0.3.14"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        },
+        {
+          "name": "bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 500
+          }
+        },
+        {
+          "name": "bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 10000
+          }
+        },
+        {
+          "name": "response_time_microseconds", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "exponential",
+            "mean": 50000
+          }
+        }
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "session_start", "type": "event:start:timer",
+      "cardinality_distribution": {"type": "exponential", "mean": 1.5},
+      "next": "route_global_init"
+    },
+    {
+      "name": "route_global_init", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "setup_initial_human", "probability": 0.997},
+        {"next": "setup_hacker", "probability": 0.001},
+        {"next": "setup_bot", "probability": 0.002}
+      ]
+    },
+    {
+      "name": "setup_initial_human", "type": "activity",
+      "variables": [
+        {
+          "name": "var_http_version", "type": "enum",
+          "values": ["HTTP/1.0", "HTTP/1.1", "HTTP/2"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        }
+      ],
+      "next": "emit_initial_human"
+    },
+    {
+      "name": "emit_initial_human", "type": "activity",
+      "variables": [
+        {"name": "var_http_content_type", "type": "string:static", "value": "-"},
+        {"name": "var_http_method", "type": "string:static", "value": "GET"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/"},
+        {"name": "var_uri_query", "type": "string:static", "value": ""},
+        {"name": "var_status", "type": "int:static", "value": 200},
+        {
+          "name": "var_http_referrer", "type": "enum",
+          "values": [
+            "https://www.google.com/", "https://www.bing.com/",
+            "https://search.yahoo.com/", "https://duckduckgo.com/",
+            "https://www.pinterest.com/", "https://www.instagram.com/",
+            "https://www.facebook.com/", "https://www.tiktok.com/",
+            "https://www.etsy.com/", "https://www.amazon.com/",
+            "https://www.reddit.com/", "https://www.buzzfeed.com/",
+            "https://www.notonthehighstreet.com/", "https://www.oprahdaily.com/",
+            "https://www.goodhousekeeping.com/", "https://www.cosmopolitan.com/",
+            "https://www.timeout.com/", "https://www.housebeautiful.com/",
+            "https://www.countryliving.com/", "https://www.refinery29.com/",
+            "https://www.theknot.com/", "https://www.youtube.com/",
+            "https://www.ebay.com/", "https://www.retailmenot.com/",
+            "https://www.whatsapp.com/"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
+        },
+        {
+          "name": "var_http_user_agent", "type": "enum",
+          "values": [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/91.0.864.59",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+            "Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 9; SM-A505F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 8.1.0; Nexus 5X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Brave/91.0.4472.124 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 7.1.1; Moto G5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Vivaldi/4.0.2312.27 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 6P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Opera/77.0.4054.172 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 5.1.1; Nexus 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
+        },
+        {
+          "name": "var_user", "type": "enum",
+          "values": [
+            "sophie_hall", "brendan_m", "-", "helen_walsh", "tony_wilson",
+            "grace_taylor", "mark_davis", "abigail_c", "jonathan_b",
+            "rachel_lee", "david_scott", "lisa_martin", "paul_thompson",
+            "amanda_white", "-", "michael_green", "natalie_w", "robert_jones",
+            "caroline_s", "james_baker", "emily_hunt", "steven_ross", "-",
+            "harriet_e", "andrew_miles", "laura_castle", "chris_porter",
+            "elizabeth_k", "philip_stone", "maryann22", "katherine88",
+            "sebastian_l", "isabella_ward", "-", "felicity_c", "george_hill",
+            "zoe_harris", "francis_b", "claudia45", "ben_price", "vanessa_s",
+            "richard73", "leonora99", "patrick_j", "-", "meredith_h",
+            "thomas_ford", "penelope_w", "simon_c", "eleanor02", "cecilia_p",
+            "rupert_b", "harrison_d", "lillian_v", "albert_m", "dorothy_kent"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 55}
+        },
+        {
+          "name": "var_client", "type": "ipaddress",
+          "cardinality": 3000,
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 300}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "pause_browse_products"
+    },
+    {
+      "name": "pause_browse_products", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 20, "max": 60},
+      "next": "emit_browse_products"
+    },
+    {
+      "name": "emit_browse_products", "type": "activity",
+      "variables": [
+        {"name": "var_http_referrer", "type": "string:static", "value": "-"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/products"}
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_products"
+    },
+    {
+      "name": "route_browse_products", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_browse_cat_seasonal", "probability": 0.28},
+        {"next": "pause_browse_cat_accessories", "probability": 0.2},
+        {"next": "pause_browse_cat_home_lifestyle", "probability": 0.18},
+        {"next": "pause_browse_cat_tech_gadgets", "probability": 0.14},
+        {"next": "pause_browse_cat_kids_toys", "probability": 0.09},
+        {"next": "pause_not_found", "probability": 0.02},
+        {"next": "session_end", "probability": 0.09}
+      ]
+    },
+    {
+      "name": "pause_browse_cat_seasonal", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 60, "max": 180},
+      "next": "emit_browse_cat_seasonal"
+    },
+    {
+      "name": "emit_browse_cat_seasonal", "type": "activity",
+      "variables": [
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/seasonal/christmas-gift-box",
+            "/categories/seasonal/birthday-deluxe-hamper",
+            "/categories/seasonal/valentines-rose-set",
+            "/categories/seasonal/mothers-day-floral-box",
+            "/categories/seasonal/fathers-day-grilling-set",
+            "/categories/seasonal/anniversary-keepsake-box",
+            "/categories/seasonal/graduation-memory-book",
+            "/categories/seasonal/new-baby-welcome-basket",
+            "/categories/seasonal/housewarming-gift-set",
+            "/categories/seasonal/holiday-cookie-tin"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_cat_seasonal"
+    },
+    {
+      "name": "route_browse_cat_seasonal", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_add_to_cart", "probability": 0.35},
+        {"next": "pause_browse_cat_seasonal", "probability": 0.35},
+        {"next": "pause_browse_products", "probability": 0.27},
+        {"next": "session_end", "probability": 0.03}
+      ]
+    },
+    {
+      "name": "pause_browse_cat_accessories", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 60, "max": 180},
+      "next": "emit_browse_cat_accessories"
+    },
+    {
+      "name": "emit_browse_cat_accessories", "type": "activity",
+      "variables": [
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/accessories/sterling-pendant-necklace",
+            "/categories/accessories/silk-scarf-collection",
+            "/categories/accessories/leather-card-holder",
+            "/categories/accessories/crystal-stud-earrings",
+            "/categories/accessories/cashmere-wrap-shawl",
+            "/categories/accessories/enamel-bangle-set",
+            "/categories/accessories/monogram-tote-bag",
+            "/categories/accessories/pearl-drop-earrings",
+            "/categories/accessories/vintage-brooch-pin",
+            "/categories/accessories/woven-leather-bracelet"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_cat_accessories"
+    },
+    {
+      "name": "route_browse_cat_accessories", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_add_to_cart", "probability": 0.35},
+        {"next": "pause_browse_cat_accessories", "probability": 0.35},
+        {"next": "pause_browse_products", "probability": 0.27},
+        {"next": "session_end", "probability": 0.03}
+      ]
+    },
+    {
+      "name": "pause_browse_cat_home_lifestyle", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 60, "max": 180},
+      "next": "emit_browse_cat_home_lifestyle"
+    },
+    {
+      "name": "emit_browse_cat_home_lifestyle", "type": "activity",
+      "variables": [
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/home-lifestyle/hand-poured-soy-candle",
+            "/categories/home-lifestyle/linen-photo-frame",
+            "/categories/home-lifestyle/herb-garden-kit",
+            "/categories/home-lifestyle/ceramic-mug-set",
+            "/categories/home-lifestyle/artisan-throw-blanket",
+            "/categories/home-lifestyle/reed-diffuser-set",
+            "/categories/home-lifestyle/bamboo-cheese-board",
+            "/categories/home-lifestyle/personalised-chopping-board",
+            "/categories/home-lifestyle/botanical-art-print",
+            "/categories/home-lifestyle/scented-bath-salts"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_cat_home_lifestyle"
+    },
+    {
+      "name": "route_browse_cat_home_lifestyle", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_add_to_cart", "probability": 0.35},
+        {"next": "pause_browse_cat_home_lifestyle", "probability": 0.35},
+        {"next": "pause_browse_products", "probability": 0.27},
+        {"next": "session_end", "probability": 0.03}
+      ]
+    },
+    {
+      "name": "pause_browse_cat_tech_gadgets", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 60, "max": 180},
+      "next": "emit_browse_cat_tech_gadgets"
+    },
+    {
+      "name": "emit_browse_cat_tech_gadgets", "type": "activity",
+      "variables": [
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/tech-gadgets/wireless-charging-pad",
+            "/categories/tech-gadgets/bluetooth-mini-speaker",
+            "/categories/tech-gadgets/smart-travel-mug",
+            "/categories/tech-gadgets/fitness-tracker-band",
+            "/categories/tech-gadgets/noise-cancelling-earbuds",
+            "/categories/tech-gadgets/portable-solar-charger",
+            "/categories/tech-gadgets/digital-photo-frame",
+            "/categories/tech-gadgets/smart-notebook",
+            "/categories/tech-gadgets/mini-projector",
+            "/categories/tech-gadgets/led-sunrise-alarm"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_cat_tech_gadgets"
+    },
+    {
+      "name": "route_browse_cat_tech_gadgets", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_add_to_cart", "probability": 0.35},
+        {"next": "pause_browse_cat_tech_gadgets", "probability": 0.35},
+        {"next": "pause_browse_products", "probability": 0.27},
+        {"next": "session_end", "probability": 0.03}
+      ]
+    },
+    {
+      "name": "pause_browse_cat_kids_toys", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 60, "max": 180},
+      "next": "emit_browse_cat_kids_toys"
+    },
+    {
+      "name": "emit_browse_cat_kids_toys", "type": "activity",
+      "variables": [
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/kids-toys/wooden-building-blocks",
+            "/categories/kids-toys/science-experiment-kit",
+            "/categories/kids-toys/art-and-craft-set",
+            "/categories/kids-toys/remote-control-car",
+            "/categories/kids-toys/plush-adventure-bear",
+            "/categories/kids-toys/magnetic-puzzle-board",
+            "/categories/kids-toys/musical-instrument-set",
+            "/categories/kids-toys/diy-robot-kit",
+            "/categories/kids-toys/glow-in-dark-star-map",
+            "/categories/kids-toys/outdoor-explorer-kit"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_cat_kids_toys"
+    },
+    {
+      "name": "route_browse_cat_kids_toys", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_add_to_cart", "probability": 0.35},
+        {"next": "pause_browse_cat_kids_toys", "probability": 0.35},
+        {"next": "pause_browse_products", "probability": 0.27},
+        {"next": "session_end", "probability": 0.03}
+      ]
+    },
+    {
+      "name": "pause_add_to_cart", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 10, "max": 30},
+      "next": "emit_add_to_cart"
+    },
+    {
+      "name": "emit_add_to_cart", "type": "activity",
+      "variables": [
+        {"name": "var_uri_path", "type": "string:static", "value": "/cart"}
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_add_to_cart"
+    },
+    {
+      "name": "route_add_to_cart", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_checkout", "probability": 0.3},
+        {"next": "pause_browse_products", "probability": 0.55},
+        {"next": "session_end", "probability": 0.15}
+      ]
+    },
+    {
+      "name": "pause_checkout", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 120, "max": 300},
+      "next": "emit_checkout"
+    },
+    {
+      "name": "emit_checkout", "type": "activity",
+      "variables": [
+        {"name": "var_http_content_type", "type": "string:static", "value": "application/x-www-form-urlencoded"},
+        {"name": "var_http_method", "type": "string:static", "value": "POST"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/checkout"}
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_checkout"
+    },
+    {
+      "name": "route_checkout", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_thank_you", "probability": 0.6},
+        {"next": "pause_try_again", "probability": 0.1},
+        {"next": "session_end", "probability": 0.3}
+      ]
+    },
+    {
+      "name": "pause_thank_you", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 5, "max": 15},
+      "next": "emit_thank_you"
+    },
+    {
+      "name": "emit_thank_you", "type": "activity",
+      "variables": [
+        {"name": "var_http_content_type", "type": "string:static", "value": "-"},
+        {"name": "var_http_method", "type": "string:static", "value": "GET"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/thank-you"}
+      ],
+      "emitter": "apache_json_log",
+      "next": "session_end"
+    },
+    {
+      "name": "pause_try_again", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 30, "max": 90},
+      "next": "emit_try_again"
+    },
+    {
+      "name": "emit_try_again", "type": "activity",
+      "variables": [
+        {"name": "var_uri_path", "type": "string:static", "value": "/try-again"},
+        {"name": "var_status", "type": "int:static", "value": 400}
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_try_again"
+    },
+    {
+      "name": "route_try_again", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_checkout", "probability": 0.95},
+        {"next": "session_end", "probability": 0.05}
+      ]
+    },
+    {
+      "name": "pause_not_found", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 2, "max": 5},
+      "next": "emit_not_found"
+    },
+    {
+      "name": "emit_not_found", "type": "activity",
+      "variables": [
+        {"name": "var_status", "type": "int:static", "value": 404},
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/furniture/oak-dining-table",
+            "/categories/electronics/wireless-headphones",
+            "/categories/clothing/winter-coat",
+            "/categories/automotive/dash-camera",
+            "/categories/garden/lawn-mower",
+            "/categories/books/fiction-bestseller",
+            "/categories/pet-supplies/dog-collar",
+            "/categories/beauty/moisturiser-set",
+            "/categories/sports/running-shoes",
+            "/categories/kitchen/stand-mixer"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 9}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "pause_browse_products"
+    },
+    {
+      "name": "setup_hacker", "type": "activity",
+      "variables": [
+        {"name": "var_http_version", "type": "string:static", "value": "HTTP/1.1"},
+        {"name": "var_user", "type": "string:static", "value": "-"},
+        {
+          "name": "var_http_user_agent", "type": "enum",
+          "values": [
+            "sqlmap/1.7.8#stable (https://sqlmap.org)", "Nikto/2.1.6",
+            "masscan/1.3 (https://github.com/robertdavidgraham/masscan)",
+            "zgrab/0.x", "curl/7.68.0", "python-requests/2.28.1",
+            "Go-http-client/1.1", "Wget/1.21.2"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
+        },
+        {
+          "name": "var_client", "type": "ipaddress",
+          "cardinality": 3,
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        }
+      ],
+      "next": "pause_hacker"
+    },
+    {
+      "name": "pause_hacker", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "exponential", "mean": 0.01},
+      "next": "emit_hacker"
+    },
+    {
+      "name": "emit_hacker", "type": "activity",
+      "variables": [
+        {"name": "var_http_referrer", "type": "string:static", "value": "-"},
+        {
+          "name": "var_http_content_type", "type": "enum",
+          "values": ["-", "application/json", "application/x-www-form-urlencoded"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "var_http_method", "type": "enum",
+          "values": ["GET", "POST", "PUT", "DELETE"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_status", "type": "enum",
+          "values": [403, 404, 500, 401, 400, 502, 503],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 6}
+        },
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/admin", "/login", "/etc/passwd", "/wp-admin", "/sql",
+            "/../../../../etc/shadow", "/cgi-bin/test.cgi", "/.git/config",
+            "/config.php.bak", "/debug.log", "/.env", "/.htaccess",
+            "/.bash_history", "/.ssh/id_rsa", "/private.key", "/backup.sql",
+            "/old/config.php", "/phpinfo.php", "/server-status", "/error.log",
+            "/vulnerable.php", "/admin/login", "/admin/dashboard",
+            "/admin/config", "/admin/settings", "/admin/users", "/admin/backup",
+            "/admin/logs", "/admin/reports", "/admin/test", "/admin/debug",
+            "/admin/hidden", "/admin/secret", "/admin/private",
+            "/admin/passwords", "/admin/keys", "/admin/data", "/admin/files",
+            "/admin/uploads", "/admin/downloads", "/admin/sql", "/admin/db",
+            "/admin/db_backup", "/admin/db_dump", "/admin/db_config",
+            "/admin/db_test", "/admin/db_logs", "/admin/db_debug",
+            "/admin/db_private", "/admin/db_secret", "/admin/db_hidden",
+            "/admin/db_vulnerable", "/admin/db_error", "/admin/db_status",
+            "/admin/db_info", "/admin/db_env", "/admin/db_htaccess",
+            "/admin/db_bash_history", "/admin/db_ssh", "/admin/db_rsa",
+            "/admin/db_key", "/admin/db_backup.sql"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 59}
+        },
+        {
+          "name": "var_uri_query", "type": "enum",
+          "values": [
+            "", "?user=admin'--", "?query=SELECT%20*%20FROM%20users",
+            "?debug=true", "?cmd=whoami"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_hacker"
+    },
+    {
+      "name": "route_hacker", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_hacker", "probability": 0.99},
+        {"next": "session_end", "probability": 0.01}
+      ]
+    },
+    {
+      "name": "setup_bot", "type": "activity",
+      "variables": [
+        {"name": "var_http_version", "type": "string:static", "value": "HTTP/1.1"},
+        {"name": "var_user", "type": "string:static", "value": "-"},
+        {
+          "name": "var_http_user_agent", "type": "enum",
+          "values": [
+            "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+            "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+            "Mozilla/5.0 (compatible; Applebot/0.1; +http://www.apple.com/go/applebot)",
+            "SemrushBot/7~bl", "AhrefsBot/7.0; +https://ahrefs.com/robot/",
+            "DotBot/1.2", "python-requests/2.28.1", "curl/7.68.0",
+            "Scrapy/2.11.0 (+https://scrapy.org)"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 8}
+        },
+        {
+          "name": "var_client", "type": "ipaddress",
+          "cardinality": 5,
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        }
+      ],
+      "next": "pause_bot"
+    },
+    {
+      "name": "pause_bot", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "exponential", "mean": 1.0},
+      "next": "emit_bot"
+    },
+    {
+      "name": "emit_bot", "type": "activity",
+      "variables": [
+        {"name": "var_http_content_type", "type": "string:static", "value": "-"},
+        {"name": "var_http_method", "type": "string:static", "value": "GET"},
+        {"name": "var_http_referrer", "type": "string:static", "value": "-"},
+        {"name": "var_uri_query", "type": "string:static", "value": ""},
+        {"name": "var_user", "type": "string:static", "value": "-"},
+        {
+          "name": "var_status", "type": "enum",
+          "values": [200, 200, 200, 200, 200, 200, 301, 301, 404],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 8}
+        },
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/robots.txt", "/sitemap.xml", "/products", "/categories/seasonal",
+            "/categories/accessories", "/categories/home-lifestyle",
+            "/categories/tech-gadgets", "/categories/kids-toys",
+            "/categories/seasonal/christmas-gift-box",
+            "/categories/seasonal/birthday-deluxe-hamper",
+            "/categories/accessories/sterling-pendant-necklace",
+            "/categories/accessories/silk-scarf-collection",
+            "/categories/home-lifestyle/hand-poured-soy-candle",
+            "/categories/home-lifestyle/linen-photo-frame",
+            "/categories/tech-gadgets/wireless-charging-pad",
+            "/categories/tech-gadgets/bluetooth-mini-speaker",
+            "/categories/kids-toys/wooden-building-blocks",
+            "/categories/kids-toys/science-experiment-kit"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 17}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_bot"
+    },
+    {
+      "name": "route_bot", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_bot", "probability": 0.98},
+        {"next": "session_end", "probability": 0.02}
+      ]
+    },
+    {"name": "session_end", "type": "event:end"}
+  ]
+}
