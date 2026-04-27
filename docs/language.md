@@ -24,7 +24,7 @@ The language has explicit primitives for the things that matter most in syntheti
 | Randomness / distributions | First-class on every numeric field — `uniform`, `exponential`, `normal`, `constant`, and more. See [distributions](distributions.md) |
 | Sequential execution | `next` field on every non-gateway state |
 | Probabilistic branching | `gateway:exclusive` — route to one of several next states by weighted probability |
-| Iteration (FOR-EACH) | `subprocess:multi_instance` — run a child config once per item in a collection; `in` is a literal list or a constant reference |
+| Iteration (FOR-EACH) | `subprocess:multi_instance` — run a child config once per item in a collection; `in` is a literal list or a constant reference; each item is injected into the child namespace before that iteration's run |
 | I/O — emit records | `emitter` on `activity` states. See [emitters](emitters.md) |
 | Timed delay / sleep | `event:intermediate:timer` — advance simulated time without emitting |
 | Concurrency | `-m` worker pool — each worker is an independent agent running the full lifecycle |
@@ -33,7 +33,6 @@ The language has explicit primitives for the things that matter most in syntheti
 
 | Feature | Notes |
 | --- | --- |
-| Iteration with item injection | Each `in` item is injected into the child namespace before each run; child references item values via `"type": "variable"`. Currently items drive iteration count only — their values are ignored. |
 | Subroutines | Call a child config exactly once (no iteration); child receives parent emitters and shares the clock |
 | Conditional branching | Branch on a variable value, not just probability — `gateway:exclusive` is probabilistic only |
 | Arithmetic / expressions | Derive a field value from other field values |
