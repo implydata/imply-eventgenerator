@@ -42,7 +42,7 @@ There are seven state types. Every state must have a `name` and a `type`.
 | `event:intermediate:timer` | Pause between activities | No | No | Yes — `cardinality_distribution` |
 | `activity` | Do work: set variables and/or emit a record | Optional | Optional | No |
 | `gateway:exclusive` | Probabilistic routing | No | No | No |
-| `subprocess:multi_instance` | FOR-EACH loop — run a child config once per item in `in` | No (child emits) | No | No |
+| `subprocess:multi:variables` | FOR-EACH loop — run a child config once per item in `in` | No (child emits) | No | No |
 | `event:end` | Terminate the worker | No | No | No |
 
 List all states in the `states` array of the configuration file. The first entry is the initial state and must be of type `event:start:timer`.
@@ -78,7 +78,7 @@ The first state in every config. Its sole job is to control how fast new workers
 
 ## event:start:message
 
-The entry point for a child config designed for subprocess use. It is the BPMN **Message Start Event** — triggered by the parent passing in a variables package rather than by an independent timer. A config that declares `event:start:message` signals that it expects to receive values from a `subprocess:multi_instance` parent.
+The entry point for a child config designed for subprocess use. It is the BPMN **Message Start Event** — triggered by the parent passing in a variables package rather than by an independent timer. A config that declares `event:start:message` signals that it expects to receive values from a `subprocess:multi:variables` parent.
 
 | Field | Description | Required? |
 | --- | --- | --- |
@@ -297,7 +297,7 @@ Routes the worker to one of several next states based on weighted probabilities.
 
 ---
 
-## subprocess:multi_instance
+## subprocess:multi:variables
 
 A FOR-EACH loop that runs a child config once per item in `in`. The child state machine runs inline in the same worker thread — no new threads, no separate clock. Any records emitted by the child share the parent's simulated time and output stream.
 
@@ -314,7 +314,7 @@ The child runs in the same variable namespace as the parent — variables set in
 | Field | Description | Required? |
 | --- | --- | --- |
 | `name` | Unique name for this state. | Yes |
-| `type` | Must be `"subprocess:multi_instance"`. | Yes |
+| `type` | Must be `"subprocess:multi:variables"`. | Yes |
 | `items` | A non-empty list of iterations. Each item is a list of variable specs — the same format as a `variables` block in an `activity` state. The list length determines how many times the child runs. | Yes |
 | `states` | Path to the child config file (relative to the working directory). | Yes |
 | `next` | Name of the next state after all iterations complete. | Yes |
@@ -322,7 +322,7 @@ The child runs in the same variable namespace as the parent — variables set in
 ```mermaid
 flowchart LR
     A["<b>emit_pageview</b><br/>activity"] --> B
-    B["<b>load_components</b><br/>subprocess:multi_instance"] -->|"×N"| C["<b>child state machine</b><br/>event:start:message"]
+    B["<b>load_components</b><br/>subprocess:multi:variables"] -->|"×N"| C["<b>child state machine</b><br/>event:start:message"]
     C --> B
     B --> D["<b>done</b><br/>event:end"]
 ```
@@ -338,7 +338,7 @@ A child config with `event:start:message` but no `event:start:timer` will fail s
 ```json
 {
   "name": "load_components",
-  "type": "subprocess:multi_instance",
+  "type": "subprocess:multi:variables",
   "items": [
     [{"name": "url", "type": "string:static", "value": "/index.html"}, {"name": "bytes", "type": "int:static", "value": 1247}],
     [{"name": "url", "type": "string:static", "value": "/static/style.css"}, {"name": "bytes", "type": "int:static", "value": 8432}],

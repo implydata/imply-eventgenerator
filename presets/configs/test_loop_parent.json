@@ -115,7 +115,7 @@
       "next": "load_assets"
     },
     {
-      "name": "load_assets", "type": "subprocess:multi_instance",
+      "name": "load_assets", "type": "subprocess:multi:variables",
       "items": [
         [
           {"name": "var_http_content_type", "type": "string:static", "value": "text/css"},

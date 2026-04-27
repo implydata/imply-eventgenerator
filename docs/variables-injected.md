@@ -1,8 +1,8 @@
 # Variables — injected
 
-> Building a new config? See [How to build a config](./how-to-build-a-config.md) for the design process. This page covers how values flow from a parent `subprocess:multi_instance` state into the child's variable namespace.
+> Building a new config? See [How to build a config](./how-to-build-a-config.md) for the design process. This page covers how values flow from a parent `subprocess:multi:variables` state into the child's variable namespace.
 
-The variable namespace is a per-worker dict that persists for the lifetime of each worker lifecycle. Injected variables are values written into that namespace by the parent, for each iteration of a `subprocess:multi_instance` state. The other way to write to the namespace is via [generated variables](./variables-generated.md).
+The variable namespace is a per-worker dict that persists for the lifetime of each worker lifecycle. Injected variables are values written into that namespace by the parent, for each iteration of a `subprocess:multi:variables` state. The other way to write to the namespace is via [generated variables](./variables-generated.md).
 
 ---
 
@@ -15,7 +15,7 @@ For each iteration, the engine evaluates that iteration's variable specs and wri
 ```json
 {
   "name": "load_components",
-  "type": "subprocess:multi_instance",
+  "type": "subprocess:multi:variables",
   "items": [
     [{"name": "url", "type": "string:static", "value": "/index.html"}, {"name": "bytes", "type": "int:static", "value": 1247}],
     [{"name": "url", "type": "string:static", "value": "/static/style.css"}, {"name": "bytes", "type": "int:static", "value": 8432}],

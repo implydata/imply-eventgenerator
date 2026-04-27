@@ -342,7 +342,7 @@ class DataDriver:
             elif state_type == 'gateway:exclusive':
                 delay = parse_distribution(_zero, clock=self.global_clock)
                 transitions = Transition.parse_transitions(state['transitions'])
-            elif state_type == 'subprocess:multi_instance':
+            elif state_type == 'subprocess:multi:variables':
                 delay = parse_distribution(_zero, clock=self.global_clock)
                 transitions = [Transition(state['next'], 1.0)]
                 with open(state['states']) as f:
@@ -375,14 +375,14 @@ class DataDriver:
             self.global_clock.sleep(delta)
             self.status_msg = f"Running, Sim Clock: {self.global_clock.now()}"
             self.set_variable_values(variables, current_state.variables)
-            if current_state.type == 'subprocess:multi_instance':
+            if current_state.type == 'subprocess:multi:variables':
                 msg_start = next(
                     (s for s in current_state.sub_states.values() if s.type == 'event:start:message'),
                     None
                 )
                 if msg_start is None:
                     raise RuntimeError(
-                        f"subprocess:multi_instance '{current_state.name}': child config has no "
+                        f"subprocess:multi:variables '{current_state.name}': child config has no "
                         "'event:start:message' state. Configs designed for subprocess use must "
                         "declare an 'event:start:message' entry point."
                     )

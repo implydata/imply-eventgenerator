@@ -57,7 +57,7 @@ class Transition:
             transitions.append(Transition(next_state, probability))
         return transitions
 
-VALID_TYPES = {'activity', 'gateway:exclusive', 'event:start:timer', 'event:start:message', 'event:intermediate:timer', 'event:end', 'subprocess:multi_instance'}
+VALID_TYPES = {'activity', 'gateway:exclusive', 'event:start:timer', 'event:start:message', 'event:intermediate:timer', 'event:end', 'subprocess:multi:variables'}
 
 class State:
     """A node in the Actor lifecycle state machine.
@@ -79,8 +79,8 @@ class State:
         self.transition_states = [t.next_state for t in transitions]
         self.transition_probabilities = [t.probability for t in transitions]
         self.variables = variables
-        self.in_collection = in_collection  # subprocess:multi_instance only
-        self.sub_states = sub_states        # subprocess:multi_instance only
+        self.in_collection = in_collection  # subprocess:multi:variables only
+        self.sub_states = sub_states        # subprocess:multi:variables only
 
     def __str__(self):
         return 'State(name='+self.name+', type='+self.type+', dimensions='+str([str(d) for d in self.dimensions])+', delay='+str(self.delay)+', transition_states='+str(self.transition_states)+', transition_probabilities='+str(self.transition_probabilities)+'variables='+str([str(v) for v in self.variables])+')'
@@ -227,40 +227,40 @@ class State:
                     valid = False
             return valid
 
-        if state_type == 'subprocess:multi_instance':
+        if state_type == 'subprocess:multi:variables':
             if 'items' not in desc:
-                logger.error("%s: subprocess:multi_instance missing required field 'items'", context)
+                logger.error("%s: subprocess:multi:variables missing required field 'items'", context)
                 valid = False
             else:
                 in_val = desc['items']
                 if not isinstance(in_val, list) or len(in_val) == 0:
-                    logger.error("%s: subprocess:multi_instance 'in' must be a non-empty list", context)
+                    logger.error("%s: subprocess:multi:variables 'in' must be a non-empty list", context)
                     valid = False
                 else:
                     for i, item in enumerate(in_val):
                         if not isinstance(item, list) or len(item) == 0:
-                            logger.error("%s: subprocess:multi_instance 'in[%d]' must be a non-empty list of variable specs", context, i)
+                            logger.error("%s: subprocess:multi:variables 'in[%d]' must be a non-empty list of variable specs", context, i)
                             valid = False
             if 'states' not in desc:
-                logger.error("%s: subprocess:multi_instance missing required field 'states'", context)
+                logger.error("%s: subprocess:multi:variables missing required field 'states'", context)
                 valid = False
             elif not isinstance(desc['states'], str):
-                logger.error("%s: subprocess:multi_instance 'states' must be a string (file path)", context)
+                logger.error("%s: subprocess:multi:variables 'states' must be a string (file path)", context)
                 valid = False
             if 'next' not in desc:
-                logger.error("%s: subprocess:multi_instance missing required field 'next'", context)
+                logger.error("%s: subprocess:multi:variables missing required field 'next'", context)
                 valid = False
             elif not isinstance(desc['next'], str):
-                logger.error("%s: subprocess:multi_instance 'next' must be a string", context)
+                logger.error("%s: subprocess:multi:variables 'next' must be a string", context)
                 valid = False
             if desc.get('emitter') is not None:
-                logger.error("%s: subprocess:multi_instance must not have an emitter", context)
+                logger.error("%s: subprocess:multi:variables must not have an emitter", context)
                 valid = False
             if 'variables' in desc:
-                logger.error("%s: subprocess:multi_instance must not have variables", context)
+                logger.error("%s: subprocess:multi:variables must not have variables", context)
                 valid = False
             if 'transitions' in desc:
-                logger.error("%s: subprocess:multi_instance uses 'next', not 'transitions'", context)
+                logger.error("%s: subprocess:multi:variables uses 'next', not 'transitions'", context)
                 valid = False
             return valid
 

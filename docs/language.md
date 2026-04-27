@@ -24,7 +24,7 @@ The language has explicit primitives for the things that matter most in syntheti
 | Randomness / distributions | First-class on every numeric field — `uniform`, `exponential`, `normal`, `constant`, and more. See [distributions](distributions.md) |
 | Sequential execution | `next` field on every non-gateway state |
 | Probabilistic branching | `gateway:exclusive` — route to one of several next states by weighted probability |
-| Iteration (FOR-EACH) | `subprocess:multi_instance` — run a child config once per item in `in`; each item is a list of variable specs (same format as a `variables` block); evaluated at runtime and written into the namespace before each child run |
+| Iteration (FOR-EACH) | `subprocess:multi:variables` — run a child config once per item in `in`; each item is a list of variable specs (same format as a `variables` block); evaluated at runtime and written into the namespace before each child run |
 | Subprocess entry point | `event:start:message` — BPMN Message Start Event; declares that a config is designed for subprocess use; parent injection is applied before this state's own `variables` block runs |
 | I/O — emit records | `emitter` on `activity` states. See [emitters](emitters.md) |
 | Timed delay / sleep | `event:intermediate:timer` — advance simulated time without emitting |
@@ -41,6 +41,6 @@ The language has explicit primitives for the things that matter most in syntheti
 
 ## Relationship to BPMN
 
-Control flow constructs borrow BPMN naming conventions — `gateway:exclusive`, `event:start:timer`, `subprocess:multi_instance` — because BPMN has well-understood semantics for these patterns.
+Control flow constructs borrow BPMN naming conventions — `gateway:exclusive`, `event:start:timer`, `subprocess:multi:variables` — because BPMN has well-understood semantics for these patterns.
 
 But this is not a BPMN tool. BPMN models existing processes for documentation and analysis. This language *generates* data. Randomness, time, and concurrency are primitives here — in BPMN they are incidental details, modelled only when the process happens to involve them.
