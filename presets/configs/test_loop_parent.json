@@ -116,7 +116,7 @@
     },
     {
       "name": "load_assets", "type": "subprocess:multi_instance",
-      "in": [
+      "items": [
         [
           {"name": "var_http_content_type", "type": "string:static", "value": "text/css"},
           {"name": "var_uri_path", "type": "string:static", "value": "/static/style.css"}

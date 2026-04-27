@@ -228,11 +228,11 @@ class State:
             return valid
 
         if state_type == 'subprocess:multi_instance':
-            if 'in' not in desc:
-                logger.error("%s: subprocess:multi_instance missing required field 'in'", context)
+            if 'items' not in desc:
+                logger.error("%s: subprocess:multi_instance missing required field 'items'", context)
                 valid = False
             else:
-                in_val = desc['in']
+                in_val = desc['items']
                 if not isinstance(in_val, list) or len(in_val) == 0:
                     logger.error("%s: subprocess:multi_instance 'in' must be a non-empty list", context)
                     valid = False

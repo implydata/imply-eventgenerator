@@ -351,7 +351,7 @@ class DataDriver:
                 child_emitters.update({e['name']: get_dimensions(e['dimensions'], self.global_clock)
                                        for e in child_config.get('emitters', [])})
                 child_states, _ = self._parse_states(child_config['states'], emitters=child_emitters)
-                in_collection = [get_variables(item, self.global_clock) for item in state['in']]
+                in_collection = [get_variables(item, self.global_clock) for item in state['items']]
                 sub_states = child_states
             else:
                 delay = parse_distribution(_zero, clock=self.global_clock)

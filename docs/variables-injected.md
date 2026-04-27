@@ -16,7 +16,7 @@ For each iteration, the engine evaluates that iteration's variable specs and wri
 {
   "name": "load_components",
   "type": "subprocess:multi_instance",
-  "in": [
+  "items": [
     [{"name": "url", "type": "string:static", "value": "/index.html"}, {"name": "bytes", "type": "int:static", "value": 1247}],
     [{"name": "url", "type": "string:static", "value": "/static/style.css"}, {"name": "bytes", "type": "int:static", "value": 8432}],
     [{"name": "url", "type": "string:static", "value": "/static/app.js"}, {"name": "bytes", "type": "int:static", "value": 42180}]

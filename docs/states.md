@@ -315,7 +315,7 @@ The child runs in the same variable namespace as the parent — variables set in
 | --- | --- | --- |
 | `name` | Unique name for this state. | Yes |
 | `type` | Must be `"subprocess:multi_instance"`. | Yes |
-| `in` | A non-empty list of iterations. Each item is a list of variable specs — the same format as a `variables` block in an `activity` state. The list length determines how many times the child runs. | Yes |
+| `items` | A non-empty list of iterations. Each item is a list of variable specs — the same format as a `variables` block in an `activity` state. The list length determines how many times the child runs. | Yes |
 | `states` | Path to the child config file (relative to the working directory). | Yes |
 | `next` | Name of the next state after all iterations complete. | Yes |
 
@@ -339,7 +339,7 @@ A child config with `event:start:message` but no `event:start:timer` will fail s
 {
   "name": "load_components",
   "type": "subprocess:multi_instance",
-  "in": [
+  "items": [
     [{"name": "url", "type": "string:static", "value": "/index.html"}, {"name": "bytes", "type": "int:static", "value": 1247}],
     [{"name": "url", "type": "string:static", "value": "/static/style.css"}, {"name": "bytes", "type": "int:static", "value": 8432}],
     [{"name": "url", "type": "string:static", "value": "/static/app.js"}, {"name": "bytes", "type": "int:static", "value": 42180}]
