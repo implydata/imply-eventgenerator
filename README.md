@@ -44,7 +44,8 @@ The `presets/` folder contains ready-to-use configs with [embedded output templa
 - [Language](docs/language.md) — feature inventory, what's implemented and what's planned
 - [States](docs/states.md) — all state types and their fields
 - [Emitters](docs/emitters.md) — record output configuration
-- [Field generators](docs/field-generators.md) — all field generator types
+- [Generated variables](docs/variables-generated.md) — all generated variable types
+- [Injected variables](docs/variables-injected.md) — subprocess injection into child namespace
 - [Distributions](docs/distributions.md) — uniform, exponential, normal, gmm_temporal
 - [Templates](docs/templates.md) — Jinja2 output templates
 - [Schedules](docs/schedules.md) — time-of-day traffic variation
@@ -92,7 +93,7 @@ The [generator configuration](docs/generator-config.md) is a JSON document passe
 ```
 
 - A list of [`states`](docs/states.md) that each worker traverses. The first state controls interarrival pacing; subsequent states set variables, emit records, route between paths, and terminate.
-- A list of [`emitters`](docs/emitters.md) that define output record shape. Each dimension uses a [field generator](docs/field-generators.md) to produce values, controlled by [distributions](docs/distributions.md).
+- A list of [`emitters`](docs/emitters.md) that define output record shape. Each dimension either generates a value directly (see [generated variables](docs/variables-generated.md)) or reads from the variable namespace (see [variable](docs/types/variable.md)).
 
 Each concurrent worker (`-m`) runs one independent Actor — one lifecycle from the initial `event:start:timer` to `event:end`. For the full design process, see [how to build a config](docs/how-to-build-a-config.md).
 

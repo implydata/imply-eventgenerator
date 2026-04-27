@@ -118,7 +118,7 @@ An activity is where work happens: variables are evaluated and, optionally, a re
 | `name` | Unique name for this state. | Yes |
 | `type` | Must be `"activity"`. | Yes |
 | `_comment` | Optional annotation. | No |
-| `variables` | A list of [field generators](./field-generators.md) whose values are stored for later use. Evaluated before the record is emitted. | No |
+| `variables` | A list of [generated variables](./variables-generated.md) that write sampled values into the variable namespace. Evaluated before the record is emitted. | No |
 | `emitter` | The [emitter](./emitters.md) to use. If omitted, no record is emitted. | No |
 | `next` | Name of the next state (a string, not a transitions list). Route to an `event:end` state to terminate. | Yes |
 
@@ -186,7 +186,7 @@ flowchart LR
     C["<b>emit_*</b><br/>activity"] -->|"captures var_end, emits record"| D(["<b>session_end</b><br/>event:end"])
 ```
 
-1. A `setup_*` activity captures `var_start` via a `clock` field generator.
+1. A `setup_*` activity captures `var_start` via a `clock` generated variable.
 2. An `event:intermediate:timer` advances the clock by the flow duration.
 3. An `emit_*` activity captures `var_end` and emits the record.
 
@@ -289,7 +289,7 @@ The child runs in the same variable namespace as the parent — variables set in
 | --- | --- | --- |
 | `name` | Unique name for this state. | Yes |
 | `type` | Must be `"subprocess:multi_instance"`. | Yes |
-| `in` | A non-empty list (literal) or a string naming a top-level `variable_defaults` key whose value is a list. The list length determines how many times the child runs. Each item is injected into the child namespace before that iteration: scalars as `item`, objects merged by key. | Yes |
+| `in` | A non-empty literal list. The list length determines how many times the child runs. Each item is injected into the child namespace before that iteration: scalars as `item`, objects merged by key. | Yes |
 | `states` | Path to the child config file (relative to the working directory). Must be a valid standalone config. | Yes |
 | `next` | Name of the next state after all iterations complete. | Yes |
 
@@ -319,25 +319,6 @@ The child config must have:
   "in": [1, 2, 3, 4, 5],
   "states": "presets/configs/test_loop_child.json",
   "next": "emit_end"
-}
-```
-
-With the `variable_defaults` block:
-
-```json
-{
-  "variable_defaults": {
-    "asset_list": [1, 2, 3, 4, 5]
-  },
-  "states": [
-    {
-      "name": "load_assets",
-      "type": "subprocess:multi_instance",
-      "in": "asset_list",
-      "states": "presets/configs/test_loop_child.json",
-      "next": "emit_end"
-    }
-  ]
 }
 ```
 
@@ -466,19 +447,26 @@ flowchart TD
 
 ---
 
-## Variable scope
+## Variable namespace
 
-Variables set in `activity` states are **per-worker and per-lifecycle**:
+Each worker carries a **variable namespace** — a dict that persists for the entire lifecycle, from the first state to `event:end`. Everything that writes to or reads from this dict is part of the namespace system.
 
-- Each worker starts with the top-level `variable_defaults` block pre-populated into its namespace (empty dict if no `variable_defaults` block is present).
-- Activity `variables` are evaluated and merged into the same namespace at runtime.
-- Variables persist for the entire lifetime of that worker — once set, a variable is available in every subsequent activity state in the same lifecycle.
-- Revisiting a state unconditionally **overwrites** the variable's previous value. There is no accumulation or append semantics.
-- When the worker reaches `event:end` and a new lifecycle begins, the namespace is reset to the variable defaults (not empty).
+**Writing to the namespace:**
 
-This means session-level variables (set once in a `setup_*` activity at the start) naturally persist across all subsequent emit states without being redeclared.
+- [Injected variables](./variables-injected.md) — subprocess injection writes values directly into the child namespace before each iteration.
+- [Generated variables](./variables-generated.md) — an activity state's `variables` block samples values using generated variables and writes them into the namespace at runtime.
 
-Constants defined at the top level are available as `"type": "variable"` references in any emitter dimension, just like activity-set variables. See [`docs/language.md`](language.md) for the full language feature inventory.
+**Reading from the namespace:**
+
+- `"type": "variable"` in an emitter `dimensions` list looks up a key at emit time and writes its value into the output record.
+
+**Lifetime rules:**
+
+- Keys persist for the entire lifecycle — once written, a value is available in every subsequent state.
+- Revisiting a state unconditionally **overwrites** the key's current value. There is no accumulation or append semantics.
+- When a worker reaches `event:end` and begins a new lifecycle, the namespace is reset to empty.
+
+This means session-level values written once in a `setup_*` activity naturally persist across all subsequent emit states without being redeclared.
 
 ---
 
@@ -501,7 +489,8 @@ It does **not** catch ordering issues — a variable referenced in an emitter mi
 ## See Also
 
 - [How to build a config](how-to-build-a-config.md) — step-by-step design guide
-- [Field generators](field-generators.md) — all field generator types for use in `variables`
+- [Generated variables](variables-generated.md) — generated variable types for use in `variables`
+- [Injected variables](variables-injected.md) — subprocess injection
 - [Distributions](distributions.md) — distribution types for `cardinality_distribution`
 - [Common patterns](patterns.md) — variable persistence, multi-record sessions, flow duration
 - [Best practices](best-practices.md) — naming conventions and pitfalls

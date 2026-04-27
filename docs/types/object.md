@@ -1,12 +1,12 @@
 # Object
 
-Use `object` to produce a nested JSON object. The `dimensions` list inside the object follows the same field generator rules as a top-level emitter.
+Use `object` to produce a nested JSON object. The `dimensions` list inside the object follows the same generated variable rules as a top-level emitter.
 
 | Field | Required? | Description |
 | --- | --- | --- |
 | `type` | Yes | `object` |
 | `name` | Yes | Field name in the output record. |
-| `dimensions` | Yes | List of field generators that make up the nested object. |
+| `dimensions` | Yes | List of generated variables that make up the nested object. |
 | `cardinality` | No | Number of unique object values to produce. `0` for unconstrained. Default `0`. |
 | `cardinality_distribution` | Yes, if `cardinality` > 0 | [Distribution](../distributions.md) that selects which pre-generated object to reuse. |
 | `percent_missing` | No | Frequency (0–100) for omitting the field entirely. Default `0`. |

@@ -8,7 +8,7 @@ Use `list` to produce an array of values. The generator samples a length from `l
 | `name` | Yes | Field name in the output record. |
 | `length_distribution` | Yes | [Distribution](../distributions.md) controlling how many elements the list contains. |
 | `selection_distribution` | Yes | [Distribution](../distributions.md) that picks an index into `elements` for each slot. |
-| `elements` | Yes | List of field generator definitions to draw from. |
+| `elements` | Yes | List of generated variable definitions to draw from. |
 | `cardinality` | No | Number of unique list values to produce. `0` for unconstrained. Default `0`. |
 | `cardinality_distribution` | Yes, if `cardinality` > 0 | [Distribution](../distributions.md) that selects which pre-generated list to reuse. |
 | `percent_missing` | No | Frequency (0–100) for omitting the field entirely. Default `0`. |

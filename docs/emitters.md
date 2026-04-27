@@ -15,6 +15,9 @@ Each emitter has this structure:
 
 Use the `dimensions` list to prescribe the event timestamp, attributes, and measures for each record created by a worker as it enters each state.
 
-The `dimensions` list is made up of [field generators](./field-generators.md) and, optionally, [worker variables](./types/variable.md).
+Each entry in `dimensions` answers one question: **how should this field get its value?** There are two answers:
 
-To understand how to create worker variables, see [states](./states.md).
+- **Generate it directly** — use any [generated variable type](./variables-generated.md) (`clock`, `enum`, `string`, `int`, etc.). The value is produced at emit time and written straight into the output record, without touching the variable namespace.
+- **Read it from the namespace** — use `"type": "variable"`. The value is looked up in the worker's variable namespace at emit time. The namespace is written by [generated variables](./variables-generated.md) (activity `variables` block) and [injected variables](./variables-injected.md) (subprocess injection).
+
+See [states](./states.md) for how variables are written into the namespace.

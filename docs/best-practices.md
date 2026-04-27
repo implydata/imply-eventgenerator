@@ -583,4 +583,4 @@ For related information, see:
 - [How to build a config](how-to-build-a-config.md) — step-by-step guide from concept to tested config
 - [Common Patterns](patterns.md) — state machine patterns and techniques
 - [States](states.md) — state type reference with field tables
-- [Field generators](field-generators.md) — all field generator types
+- [Generated variables](variables-generated.md) — all generated variable types

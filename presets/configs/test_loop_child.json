@@ -1,7 +1,4 @@
 {
-  "variable_defaults": {
-    "item": 0
-  },
   "emitters": [
     {
       "name": "loop_emit",

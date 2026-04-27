@@ -18,9 +18,9 @@ The language has explicit primitives for the things that matter most in syntheti
 
 | Feature | How |
 | --- | --- |
-| Primitive field types | `int`, `float`, `string`, `enum`, `object`, `list`, `counter`, `clock`, `ipaddress` — see [field generators](field-generators.md) |
-| Variable defaults | Top-level `variable_defaults` block — initial values pre-populated into every worker's namespace before the state machine starts. Eliminates copy-paste of shared values (IP ranges, asset lists) across states. |
-| Variables (worker-scoped mutable) | `variables` block in `activity` states — values sampled at runtime and carried forward through the lifecycle |
+| Variable namespace | Per-worker dict carried through the full lifecycle. Written by generated and injected variables; read by `"type": "variable"` emitter dimensions. |
+| Variables — injected | Subprocess injection writes values directly into the child namespace before each iteration. See [variables-injected.md](variables-injected.md). |
+| Variables — generated | `variables` block in `activity` states — generated variables sample values at runtime and write them into the namespace. See [variables-generated.md](variables-generated.md) for all generator types. |
 | Randomness / distributions | First-class on every numeric field — `uniform`, `exponential`, `normal`, `constant`, and more. See [distributions](distributions.md) |
 | Sequential execution | `next` field on every non-gateway state |
 | Probabilistic branching | `gateway:exclusive` — route to one of several next states by weighted probability |

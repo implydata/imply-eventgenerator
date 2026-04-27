@@ -269,9 +269,6 @@ class DataDriver:
             dimensions = get_dimensions(emitter['dimensions'], self.global_clock)
             self.emitters[name] = dimensions
 
-        # Variable defaults: initial values pre-populated into each worker's namespace before the state machine starts
-        self.constants = self.config.get('variable_defaults', {})
-
         # Set up the state machine
         state_desc = self.config.get('states')
         if not state_desc or not isinstance(state_desc, list) or len(state_desc) == 0:
@@ -346,8 +343,6 @@ class DataDriver:
                 delay = parse_distribution(_zero, clock=self.global_clock)
                 transitions = [Transition(state['next'], 1.0)]
                 in_val = state['in']
-                if isinstance(in_val, str):
-                    in_val = self.constants[in_val]
                 with open(state['states']) as f:
                     child_config = json.load(f)
                 child_emitters = {e['name']: get_dimensions(e['dimensions'], self.global_clock)
@@ -400,10 +395,9 @@ class DataDriver:
             current_state = next_state
 
     def worker_thread(self):
-        """Spawn a worker: pre-populate variable defaults, run the state machine, clean up."""
+        """Spawn a worker thread: run the state machine, clean up."""
         self.global_clock.activate_thread()
-        variables = dict(self.constants)
-        self.run_state_machine(self.states, variables)
+        self.run_state_machine(self.states, {})
         self.global_clock.end_thread()
         self.sim_control.remove_entity()
 

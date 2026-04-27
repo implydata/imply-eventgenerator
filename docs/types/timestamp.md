@@ -1,6 +1,6 @@
 # Synthetic timestamps
 
-When a [field generator](./field-generators.md) type is `timestamp`, an ISO format datetime is produced.
+When a [generated variable](./variables-generated.md) type is `timestamp`, an ISO format datetime is produced.
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |

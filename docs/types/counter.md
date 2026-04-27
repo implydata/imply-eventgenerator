@@ -1,6 +1,6 @@
 # Synthetic counters
 
-When a [field generator](./field-generators.md) type is `counter`, an integer is created that increments with every generation.
+When a [generated variable](./variables-generated.md) type is `counter`, an integer is created that increments with every generation.
 
 **Counter scope**: each counter is per-worker and per-emitter-dimension-instance. Counters reset to `start` when a new worker lifecycle begins. If a worker visits an emit state multiple times in a single lifecycle, the counter increments on every visit. Two emitters that each define a counter are independent of each other — they do not share state.
 
