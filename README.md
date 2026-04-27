@@ -2,8 +2,6 @@
 
 A highly customizable event data generator, created by the team at Imply.
 
-A config is source code. The engine is a runtime. The language has first-class primitives for randomness, time, and concurrency — things no general-purpose language treats as primitive because they are incidental to most programs but central to this one. See [`docs/language.md`](docs/language.md) for the full language feature inventory and roadmap.
-
 ## Prerequisites
 
 The data generator requires Python 3.
@@ -41,8 +39,7 @@ The `presets/` folder contains ready-to-use configs with [embedded output templa
 
 **Reference** — field-level lookup for all config options:
 
-- [Language](docs/language.md) — feature inventory, what's implemented and what's planned
-- [States](docs/states.md) — all state types and their fields
+- [States](docs/states.md) — all five state types and their fields
 - [Emitters](docs/emitters.md) — record output configuration
 - [Field generators](docs/field-generators.md) — all field generator types
 - [Distributions](docs/distributions.md) — uniform, exponential, normal, gmm_temporal

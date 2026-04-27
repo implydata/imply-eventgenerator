@@ -33,7 +33,7 @@ flowchart LR
 
 ## State types
 
-There are six state types. Every state must have a `name` and a `type`.
+There are five state types. Every state must have a `name` and a `type`.
 
 | Type | Role | Emits a record? | Sets variables? | Delays? |
 | --- | --- | --- | --- | --- |
@@ -41,7 +41,6 @@ There are six state types. Every state must have a `name` and a `type`.
 | `event:intermediate:timer` | Pause between activities | No | No | Yes — `cardinality_distribution` |
 | `activity` | Do work: set variables and/or emit a record | Optional | Optional | No |
 | `gateway:exclusive` | Probabilistic routing | No | No | No |
-| `subprocess:multi_instance` | FOR-EACH loop — run a child config once per item in `in` | No (child emits) | No | No |
 | `event:end` | Terminate the worker | No | No | No |
 
 List all states in the `states` array of the configuration file. The first entry is the initial state and must be of type `event:start:timer`.
@@ -272,77 +271,6 @@ Routes the worker to one of several next states based on weighted probabilities.
 
 ---
 
-## subprocess:multi_instance
-
-A FOR-EACH loop that runs a child config once per item in a collection. The child state machine runs inline in the same worker thread — no new threads, no separate clock. Any records emitted by the child share the parent's simulated time and output stream.
-
-The BPMN term for this construct is **Multi-Instance Sub-Process (Sequential)**.
-
-**Execution order:**
-
-1. For each item in `in`, run the child config's state machine from its first state to `event:end`.
-2. After all iterations complete, transition to `next` in the parent.
-
-The child runs in the same variable namespace as the parent — variables set in parent activity states are visible to the child.
-
-| Field | Description | Required? |
-| --- | --- | --- |
-| `name` | Unique name for this state. | Yes |
-| `type` | Must be `"subprocess:multi_instance"`. | Yes |
-| `in` | A non-empty list (literal) or a string naming a top-level `constants` key whose value is a list. The list length determines how many times the child runs. Item values are not passed to the child in this milestone. | Yes |
-| `states` | Path to the child config file (relative to the working directory). Must be a valid standalone config. | Yes |
-| `next` | Name of the next state after all iterations complete. | Yes |
-
-```mermaid
-flowchart LR
-    A["<b>emit_start</b><br/>activity"] --> B
-    B["<b>load_assets</b><br/>subprocess:multi_instance<br/><i>in: [1,2,3,4,5]</i>"] -->|"×5"| C["<b>child state machine</b>"]
-    C --> B
-    B --> D["<b>emit_end</b><br/>activity"]
-```
-
-### Child config
-
-The file named in `states` must be a valid standalone config — it can be run independently with `python generator.py -c <child.json>`. When called as a subprocess, only its `states` are used; its `emitters` are parsed from the child file directly.
-
-The child config must have:
-
-- Exactly one `event:start:timer` (needed for standalone use; zero-delay no-op when called as subprocess)
-- At least one `event:end`
-
-### Example
-
-```json
-{
-  "name": "load_assets",
-  "type": "subprocess:multi_instance",
-  "in": [1, 2, 3, 4, 5],
-  "states": "presets/configs/test_loop_child.json",
-  "next": "emit_end"
-}
-```
-
-With the `constants` block:
-
-```json
-{
-  "constants": {
-    "asset_list": [1, 2, 3, 4, 5]
-  },
-  "states": [
-    {
-      "name": "load_assets",
-      "type": "subprocess:multi_instance",
-      "in": "asset_list",
-      "states": "presets/configs/test_loop_child.json",
-      "next": "emit_end"
-    }
-  ]
-}
-```
-
----
-
 ## event:end
 
 Terminates the worker. No fields other than `name` and `type` are permitted. The worker thread exits cleanly after reaching this state.
@@ -470,15 +398,12 @@ flowchart TD
 
 Variables set in `activity` states are **per-worker and per-lifecycle**:
 
-- Each worker starts with the top-level `constants` block pre-populated into its namespace (empty dict if no `constants` block is present).
-- Activity `variables` are evaluated and merged into the same namespace at runtime.
+- Each worker starts with an empty variable namespace.
 - Variables persist for the entire lifetime of that worker — once set, a variable is available in every subsequent activity state in the same lifecycle.
 - Revisiting a state unconditionally **overwrites** the variable's previous value. There is no accumulation or append semantics.
-- When the worker reaches `event:end` and a new lifecycle begins, the namespace is reset to the constants (not empty).
+- When the worker reaches `event:end` and a new lifecycle begins, the namespace is reset to empty.
 
 This means session-level variables (set once in a `setup_*` activity at the start) naturally persist across all subsequent emit states without being redeclared.
-
-Constants defined at the top level are available as `"type": "variable"` references in any emitter dimension, just like activity-set variables. See [`docs/language.md`](language.md) for the full language feature inventory.
 
 ---
 
