@@ -34,7 +34,6 @@ The language has explicit primitives for the things that matter most in syntheti
 
 | Feature | Notes |
 | --- | --- |
-| Subroutines | Call a child config exactly once (no iteration); child receives parent emitters and shares the clock |
 | Conditional branching | Branch on a variable value, not just probability — `gateway:exclusive` is probabilistic only |
 | Arithmetic / expressions | Derive a field value from other field values |
 | Imports / shared libraries | Share emitter definitions, constant blocks, or state fragments across multiple configs |
