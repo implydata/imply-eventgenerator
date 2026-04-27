@@ -269,51 +269,14 @@ class DataDriver:
             dimensions = get_dimensions(emitter['dimensions'], self.global_clock)
             self.emitters[name] = dimensions
 
+        # Constants: named values pre-populated into each worker's namespace before the state machine starts
+        self.constants = self.config.get('constants', {})
+
         # Set up the state machine
         state_desc = self.config.get('states')
         if not state_desc or not isinstance(state_desc, list) or len(state_desc) == 0:
             raise RuntimeError("The generator configuration has no states defined.")
-        self.initial_state = None
-        self.states = {}
-        for state in state_desc:
-            name = state['name']
-            state_type = state.get('type')
-            if state_type is None:
-                raise RuntimeError(f"State '{state.get('name', '?')}' is missing required field 'type'.")
-            # Make emitter optional - handle both missing field and explicit null
-            emitter_name = state.get('emitter')  # Returns None if not present
-            if emitter_name is not None:
-                dimensions = self.emitters[emitter_name]
-            else:
-                dimensions = None  # No emitter = no record emission
-            if 'variables' not in state.keys():
-                variables = []
-            else:
-                variables = get_variables(state['variables'], self.global_clock)
-            _zero = {'type': 'constant', 'value': 0}
-            if state_type == 'event:end':
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = []
-            elif state_type == 'event:start:timer':
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = [Transition(state['next'], 1.0)]
-            elif state_type == 'event:intermediate:timer':
-                delay = parse_distribution(state['cardinality_distribution'], clock=self.global_clock)
-                transitions = [Transition(state['next'], 1.0)]
-            elif state_type == 'activity':
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = [Transition(state['next'], 1.0)]
-            elif state_type == 'gateway:exclusive':
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = Transition.parse_transitions(state['transitions'])
-            else:
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = Transition.parse_transitions(state.get('transitions', []))
-            this_state = State(name, state_type, dimensions, delay, transitions, variables)
-            self.states[name] = this_state
-            if state_type == 'event:start:timer':
-                self.initial_state = this_state
-
+        self.states, self.initial_state = self._parse_states(state_desc)
         if self.initial_state is None:
             raise RuntimeError("Config has no event:start:timer state.")
 
@@ -347,39 +310,96 @@ class DataDriver:
         for d in dimensions:
             variables[d.name] = d.get_stochastic_value()
 
-    def worker_thread(self):
-        """Process the state machine, generating records and sending them to the output target."""
-        self.global_clock.activate_thread()
-        current_state = self.initial_state
-        variables = {}
+    def _parse_states(self, state_desc_list, emitters=None):
+        """Parse a list of state dicts into (states_dict, initial_state). emitters defaults to self.emitters."""
+        if emitters is None:
+            emitters = self.emitters
+        states = {}
+        initial_state = None
+        _zero = {'type': 'constant', 'value': 0}
+        for state in state_desc_list:
+            name = state['name']
+            state_type = state.get('type')
+            if state_type is None:
+                raise RuntimeError(f"State '{state.get('name', '?')}' is missing required field 'type'.")
+            emitter_name = state.get('emitter')
+            dimensions = emitters[emitter_name] if emitter_name is not None else None
+            variables_list = get_variables(state['variables'], self.global_clock) if 'variables' in state else []
+            in_collection = None
+            sub_states = None
+            if state_type == 'event:end':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = []
+            elif state_type == 'event:start:timer':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = [Transition(state['next'], 1.0)]
+            elif state_type == 'event:intermediate:timer':
+                delay = parse_distribution(state['cardinality_distribution'], clock=self.global_clock)
+                transitions = [Transition(state['next'], 1.0)]
+            elif state_type == 'activity':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = [Transition(state['next'], 1.0)]
+            elif state_type == 'gateway:exclusive':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = Transition.parse_transitions(state['transitions'])
+            elif state_type == 'subprocess:multi_instance':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = [Transition(state['next'], 1.0)]
+                in_val = state['in']
+                if isinstance(in_val, str):
+                    in_val = self.constants[in_val]
+                with open(state['states']) as f:
+                    child_config = json.load(f)
+                child_emitters = {e['name']: get_dimensions(e['dimensions'], self.global_clock)
+                                  for e in child_config.get('emitters', [])}
+                child_states, _ = self._parse_states(child_config['states'], emitters=child_emitters)
+                in_collection = in_val
+                sub_states = child_states
+            else:
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = Transition.parse_transitions(state.get('transitions', []))
+            this_state = State(name, state_type, dimensions, delay, transitions, variables_list,
+                               in_collection=in_collection, sub_states=sub_states)
+            states[name] = this_state
+            if state_type == 'event:start:timer':
+                initial_state = this_state
+        return states, initial_state
+
+    def run_state_machine(self, states, variables):
+        """Run a state machine loop until event:end or sim_control signals done."""
+        current_state = list(states.values())[0]
         while True:
             if current_state is None:
-                raise RuntimeError("Unexpected error: current state of the state machine is None.")
+                raise RuntimeError("Unexpected error: current state is None.")
             if current_state.type == 'event:start:timer':
                 logger.debug("Thread %s starting process instance", threading.current_thread().name)
-            # Process delay
             delta = float(current_state.delay.get_sample())
             self.global_clock.sleep(delta)
-            self.status_msg=f"Running, Sim Clock: {self.global_clock.now()}"
-            # Set variables (activities only; evaluated before emission)
+            self.status_msg = f"Running, Sim Clock: {self.global_clock.now()}"
             self.set_variable_values(variables, current_state.variables)
-            # Only emit record if state has dimensions (emitter was specified)
-            if current_state.dimensions is not None:
+            if current_state.type == 'subprocess:multi_instance':
+                for _ in current_state.in_collection:
+                    self.run_state_machine(current_state.sub_states, variables)
+            elif current_state.dimensions is not None:
                 record = self.create_record(current_state.dimensions, variables)
-                formatted_record = self.render_record(record)
-                self.target_printer.print(formatted_record)
+                self.target_printer.print(self.render_record(record))
                 self.sim_control.inc_rec_count()
             if self.sim_control.is_done():
                 break
             next_state_name = current_state.get_next_state_name()
             if next_state_name is None:
                 break
-            next_state = self.states.get(next_state_name)
+            next_state = states.get(next_state_name)
             if next_state is None or next_state.type == 'event:end':
                 logger.debug("Thread %s reached event:end", threading.current_thread().name)
                 break
             current_state = next_state
 
+    def worker_thread(self):
+        """Spawn a worker: pre-populate constants, run the state machine, clean up."""
+        self.global_clock.activate_thread()
+        variables = dict(self.constants)
+        self.run_state_machine(self.states, variables)
         self.global_clock.end_thread()
         self.sim_control.remove_entity()
 

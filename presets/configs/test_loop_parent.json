@@ -1,0 +1,54 @@
+{
+  "emitters": [
+    {
+      "name": "start_emit",
+      "dimensions": [
+        {
+          "name": "event", "type": "enum",
+          "values": ["start"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        }
+      ]
+    },
+    {
+      "name": "end_emit",
+      "dimensions": [
+        {
+          "name": "event", "type": "enum",
+          "values": ["end"],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        }
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "init", "type": "event:start:timer",
+      "cardinality_distribution": {"type": "constant", "value": 1},
+      "next": "emit_start"
+    },
+    {
+      "name": "emit_start", "type": "activity",
+      "emitter": "start_emit",
+      "next": "loop_section"
+    },
+    {
+      "name": "loop_section", "type": "subprocess:multi_instance",
+      "in": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": "presets/configs/test_loop_child.json",
+      "next": "emit_end"
+    },
+    {
+      "name": "emit_end", "type": "activity",
+      "emitter": "end_emit",
+      "next": "done"
+    },
+    {"name": "done", "type": "event:end"}
+  ]
+}
