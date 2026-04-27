@@ -1,13 +1,56 @@
 {
   "emitters": [
     {
-      "name": "pageview_emit",
+      "name": "web_log",
       "dimensions": [
         {"name": "time", "type": "clock"},
+        {"name": "cookie", "type": "string:static", "value": "-"},
+        {"name": "ident", "type": "string:static", "value": "-"},
+        {"name": "client", "type": "variable", "variable": "var_client"},
+        {"name": "http_content_type", "type": "variable", "variable": "var_http_content_type"},
+        {"name": "http_method", "type": "variable", "variable": "var_http_method"},
+        {"name": "http_referrer", "type": "variable", "variable": "var_http_referrer"},
+        {"name": "http_user_agent", "type": "variable", "variable": "var_http_user_agent"},
+        {"name": "http_version", "type": "variable", "variable": "var_http_version"},
+        {"name": "status", "type": "variable", "variable": "var_status"},
+        {"name": "uri_path", "type": "variable", "variable": "var_uri_path"},
+        {"name": "uri_query", "type": "variable", "variable": "var_uri_query"},
+        {"name": "user", "type": "variable", "variable": "var_user"},
         {
-          "name": "event", "type": "enum",
-          "values": ["pageview"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
+          "name": "dest_port", "type": "enum",
+          "values": ["443", "80", "8080"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "server", "type": "enum",
+          "values": ["10.0.1.15", "10.0.1.16", "10.0.1.17", "10.0.1.18", "10.0.1.19"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        },
+        {
+          "name": "bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 500
+          }
+        },
+        {
+          "name": "bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 10000
+          }
+        },
+        {
+          "name": "response_time_microseconds", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "exponential",
+            "mean": 50000
+          }
         }
       ]
     }
@@ -15,36 +58,80 @@
   "states": [
     {
       "name": "init", "type": "event:start:timer",
-      "cardinality_distribution": {"type": "constant", "value": 1},
-      "next": "emit_pageview"
+      "cardinality_distribution": {"type": "exponential", "mean": 5.0},
+      "next": "setup_session"
     },
     {
-      "name": "emit_pageview", "type": "activity",
-      "emitter": "pageview_emit",
-      "next": "load_components"
+      "name": "setup_session", "type": "activity",
+      "variables": [
+        {
+          "name": "var_http_referrer", "type": "enum",
+          "values": ["https://www.google.com/", "https://www.bing.com/", "-"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "var_http_user_agent", "type": "enum",
+          "values": [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_http_version", "type": "enum",
+          "values": ["HTTP/1.0", "HTTP/1.1", "HTTP/2"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "var_user", "type": "enum",
+          "values": ["-", "alice997", "bob42", "carol88"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_client", "type": "ipaddress",
+          "cardinality": 3000,
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 300}
+        }
+      ],
+      "next": "emit_page"
     },
     {
-      "name": "load_components", "type": "subprocess:multi_instance",
+      "name": "emit_page", "type": "activity",
+      "variables": [
+        {"name": "var_http_content_type", "type": "string:static", "value": "text/html"},
+        {"name": "var_http_method", "type": "string:static", "value": "GET"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/"},
+        {"name": "var_uri_query", "type": "string:static", "value": ""},
+        {"name": "var_status", "type": "int:static", "value": 200}
+      ],
+      "emitter": "web_log",
+      "next": "load_assets"
+    },
+    {
+      "name": "load_assets", "type": "subprocess:multi_instance",
       "in": [
         [
-          {"name": "url", "type": "string:static", "value": "/index.html"},
-          {"name": "bytes", "type": "int:static", "value": 1247}
+          {"name": "var_http_content_type", "type": "string:static", "value": "text/css"},
+          {"name": "var_uri_path", "type": "string:static", "value": "/static/style.css"}
         ],
         [
-          {"name": "url", "type": "string:static", "value": "/static/style.css"},
-          {"name": "bytes", "type": "int:static", "value": 8432}
+          {"name": "var_http_content_type", "type": "string:static", "value": "application/javascript"},
+          {"name": "var_uri_path", "type": "string:static", "value": "/static/app.js"}
         ],
         [
-          {"name": "url", "type": "string:static", "value": "/static/app.js"},
-          {"name": "bytes", "type": "int:static", "value": 42180}
+          {"name": "var_http_content_type", "type": "string:static", "value": "image/png"},
+          {"name": "var_uri_path", "type": "string:static", "value": "/static/logo.png"}
         ],
         [
-          {"name": "url", "type": "string:static", "value": "/static/logo.png"},
-          {"name": "bytes", "type": "int:static", "value": 18920}
-        ],
-        [
-          {"name": "url", "type": "string:static", "value": "/static/hero.jpg"},
-          {"name": "bytes", "type": "int:static", "value": 94320}
+          {"name": "var_http_content_type", "type": "string:static", "value": "image/jpeg"},
+          {"name": "var_uri_path", "type": "string:static", "value": "/static/hero.jpg"}
         ]
       ],
       "states": "presets/configs/test_loop_child.json",

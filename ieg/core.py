@@ -347,8 +347,9 @@ class DataDriver:
                 transitions = [Transition(state['next'], 1.0)]
                 with open(state['states']) as f:
                     child_config = json.load(f)
-                child_emitters = {e['name']: get_dimensions(e['dimensions'], self.global_clock)
-                                  for e in child_config.get('emitters', [])}
+                child_emitters = {**self.emitters}
+                child_emitters.update({e['name']: get_dimensions(e['dimensions'], self.global_clock)
+                                       for e in child_config.get('emitters', [])})
                 child_states, _ = self._parse_states(child_config['states'], emitters=child_emitters)
                 in_collection = [get_variables(item, self.global_clock) for item in state['in']]
                 sub_states = child_states

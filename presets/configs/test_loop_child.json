@@ -1,29 +1,14 @@
 {
-  "emitters": [
-    {
-      "name": "component_emit",
-      "dimensions": [
-        {"name": "time", "type": "clock"},
-        {"name": "bytes", "type": "variable", "variable": "bytes"},
-        {"name": "url", "type": "variable", "variable": "url"},
-        {
-          "name": "event", "type": "enum",
-          "values": ["component"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        }
-      ]
-    }
-  ],
   "states": [
     {"name": "init", "type": "event:start:message", "next": "load_delay"},
     {
       "name": "load_delay", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 0.05, "max": 0.3},
-      "next": "emit_component"
+      "next": "emit_asset"
     },
     {
-      "name": "emit_component", "type": "activity",
-      "emitter": "component_emit",
+      "name": "emit_asset", "type": "activity",
+      "emitter": "web_log",
       "next": "done"
     },
     {"name": "done", "type": "event:end"}
