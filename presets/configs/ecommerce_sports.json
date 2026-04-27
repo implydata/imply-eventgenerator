@@ -1,0 +1,708 @@
+{
+  "templates": {
+    "apache:access:json": {
+      "body": "{\"time\": {{ time.timestamp()|int }}, \"bytes_in\": {{ bytes_in }}, \"bytes_out\": {{ bytes_out }}, \"cookie\": \"{{ cookie }}\", \"server\": \"{{ server }}\", \"dest_port\": \"{{ dest_port }}\", \"http_content_type\": \"{{ http_content_type }}\", \"http_method\": \"{{ http_method }}\", \"http_referrer\": \"{{ http_referrer }}\", \"http_user_agent\": \"{{ http_user_agent }}\", \"ident\": \"{{ ident }}\", \"response_time_microseconds\": {{ response_time_microseconds }}, \"client\": \"{{ client }}\", \"status\": {{ status }}, \"uri_path\": \"{{ uri_path }}\", \"uri_query\": \"{{ uri_query }}\", \"user\": \"{{ user }}\"}"
+    },
+    "apache:access:kv": {
+      "body": "time={{ time.timestamp()|int }} bytes_in={{ bytes_in }} bytes_out={{ bytes_out }} cookie=\"{{ cookie }}\" server=\"{{ server }}\" dest_port=\"{{ dest_port }}\" http_content_type=\"{{ http_content_type }}\" http_method=\"{{ http_method }}\" http_referrer=\"{{ http_referrer }}\" http_user_agent=\"{{ http_user_agent }}\" ident=\"{{ ident }}\" response_time_microseconds={{ response_time_microseconds }} client=\"{{ client }}\" status={{ status }} uri_path=\"{{ uri_path }}\" uri_query=\"{{ uri_query }}\" user=\"{{ user }}\""
+    },
+    "apache:access:combined": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }} \"{{ http_referrer }}\" \"{{ http_user_agent }}\""
+    },
+    "access_combined": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }} \"{{ http_referrer }}\" \"{{ http_user_agent }}\""
+    },
+    "access_combined_wcookie": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }} \"{{ http_referrer }}\" \"{{ http_user_agent }}\" \"{{ cookie }}\""
+    },
+    "access_common": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }}"
+    },
+    "csv": {
+      "header": "time,bytes_in,bytes_out,cookie,server,dest_port,http_content_type,http_method,http_referrer,http_user_agent,ident,response_time_microseconds,client,status,uri_path,uri_query,user",
+      "body": "{{ time.timestamp()|int }},{{ bytes_in }},{{ bytes_out }},\"{{ cookie }}\",\"{{ server }}\",{{ dest_port }},\"{{ http_content_type }}\",\"{{ http_method }}\",\"{{ http_referrer }}\",\"{{ http_user_agent }}\",\"{{ ident }}\",{{ response_time_microseconds }},{{ client }},{{ status }},\"{{ uri_path }}\",\"{{ uri_query }}\",\"{{ user }}\""
+    },
+    "ms:iis:auto": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }}"
+    },
+    "ms:iis:default:85": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }}"
+    },
+    "ms:iis:default": {
+      "header": "#Fields: date time cs-uri-stem cs-uri-query s-contentpath sc-status s-computername cs(Referer) sc-win32-status sc-bytes cs-bytes TimeTakenMS s-sitename s-ip s-port RequestsPerSecond cs-host c-ip cs-version c-protocol cs-method CPU-Utilization W3WP-PrivateBytes cs-username cs(User-Agent) time-local sc-substatus s-proxy date-local cs(Cookie)",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} - {{ status }} WEB-SERVER {{ http_referrer }} 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }} W3SVC1 {{ server }} {{ dest_port }} - {{ server }} {{ client }} {{ http_version }} - {{ http_method }} - - {{ user }} {{ http_user_agent|replace(' ', '+') }} - 0 - - {{ cookie }}"
+    },
+    "ms:iis:splunk": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken X-Forwarded-For Content-Type https",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }} - {{ http_content_type }} {% if dest_port == '443' %}https{% else %}-{% endif %}"
+    }
+  },
+  "emitters": [
+    {
+      "name": "apache_json_log",
+      "dimensions": [
+        {"name": "time", "type": "clock"},
+        {"name": "cookie", "type": "string:static", "value": "-"},
+        {"name": "ident", "type": "string:static", "value": "-"},
+        {"name": "client", "type": "variable", "variable": "var_client"},
+        {"name": "http_content_type", "type": "variable", "variable": "var_http_content_type"},
+        {"name": "http_method", "type": "variable", "variable": "var_http_method"},
+        {"name": "http_referrer", "type": "variable", "variable": "var_http_referrer"},
+        {"name": "http_user_agent", "type": "variable", "variable": "var_http_user_agent"},
+        {"name": "http_version", "type": "variable", "variable": "var_http_version"},
+        {"name": "status", "type": "variable", "variable": "var_status"},
+        {"name": "uri_path", "type": "variable", "variable": "var_uri_path"},
+        {"name": "uri_query", "type": "variable", "variable": "var_uri_query"},
+        {"name": "user", "type": "variable", "variable": "var_user"},
+        {
+          "name": "dest_port", "type": "enum",
+          "values": ["443", "80", "8080"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "server", "type": "enum",
+          "values": ["10.0.4.10", "10.0.4.11", "10.0.4.12", "10.0.4.13", "10.0.4.14"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        },
+        {
+          "name": "bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 500
+          }
+        },
+        {
+          "name": "bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 10000
+          }
+        },
+        {
+          "name": "response_time_microseconds", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "exponential",
+            "mean": 50000
+          }
+        }
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "session_start", "type": "event:start:timer",
+      "cardinality_distribution": {"type": "exponential", "mean": 0.75},
+      "next": "route_global_init"
+    },
+    {
+      "name": "route_global_init", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "setup_initial_human", "probability": 0.995},
+        {"next": "setup_hacker", "probability": 0.001},
+        {"next": "setup_bot", "probability": 0.004}
+      ]
+    },
+    {
+      "name": "setup_initial_human", "type": "activity",
+      "variables": [
+        {
+          "name": "var_http_version", "type": "enum",
+          "values": ["HTTP/1.0", "HTTP/1.1", "HTTP/2"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        }
+      ],
+      "next": "emit_initial_human"
+    },
+    {
+      "name": "emit_initial_human", "type": "activity",
+      "variables": [
+        {"name": "var_http_content_type", "type": "string:static", "value": "-"},
+        {"name": "var_http_method", "type": "string:static", "value": "GET"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/"},
+        {"name": "var_uri_query", "type": "string:static", "value": ""},
+        {"name": "var_status", "type": "int:static", "value": 200},
+        {
+          "name": "var_http_referrer", "type": "enum",
+          "values": [
+            "https://www.google.com/", "https://www.bing.com/",
+            "https://search.yahoo.com/", "https://duckduckgo.com/",
+            "https://www.youtube.com/", "https://www.reddit.com/",
+            "https://www.facebook.com/", "https://www.instagram.com/",
+            "https://www.tiktok.com/", "https://twitter.com/",
+            "https://www.amazon.com/", "https://www.ebay.com/",
+            "https://www.rei.com/", "https://www.runnersworld.com/",
+            "https://www.bicycling.com/", "https://www.menshealth.com/",
+            "https://www.womenshealthmag.com/", "https://www.outsideonline.com/",
+            "https://www.myfitnesspal.com/", "https://www.strava.com/",
+            "https://www.trainerroad.com/", "https://www.triathlete.com/",
+            "https://www.active.com/", "https://www.garmin.com/",
+            "https://www.retailmenot.com/"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
+        },
+        {
+          "name": "var_http_user_agent", "type": "enum",
+          "values": [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/91.0.864.59",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+            "Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 9; SM-A505F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 8.1.0; Nexus 5X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Brave/91.0.4472.124 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 7.1.1; Moto G5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Vivaldi/4.0.2312.27 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 6P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Opera/77.0.4054.172 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 5.1.1; Nexus 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
+        },
+        {
+          "name": "var_user", "type": "enum",
+          "values": [
+            "alex_power", "jenna_run", "-", "coach_torres", "mike_fitz",
+            "sam_active", "diana_swift", "ryan_climb", "tara_swim", "ben_cycle",
+            "jessica_frost", "dan_lift", "priya_yoga", "max_trail", "-",
+            "sophie_ski", "tom_paddle", "ellie_sprint", "hugo_cross",
+            "nina_kayak", "oliver_ride", "chloe_row", "jake_score", "-",
+            "anna_pace", "luca_block", "emma_track", "finn_surf", "aria_climb",
+            "zach_field", "mia_pedal", "noah_throw", "lily_race", "-",
+            "ethan_dive", "grace_spin", "oscar_hike", "isla_vault",
+            "felix_catch", "eden_swim", "henry_bowl", "freya_kick", "-",
+            "theo_push", "orla_jump", "seb_bench", "imogen_row", "marcus_pace",
+            "bea_cycle", "callum_net", "harriet_run", "angus_lift", "zoe_drive",
+            "kit_rebound", "leo_court", "patrick_row"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 55}
+        },
+        {
+          "name": "var_client", "type": "ipaddress",
+          "cardinality": 4000,
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 400}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "pause_browse_products"
+    },
+    {
+      "name": "pause_browse_products", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 15, "max": 45},
+      "next": "emit_browse_products"
+    },
+    {
+      "name": "emit_browse_products", "type": "activity",
+      "variables": [
+        {"name": "var_http_referrer", "type": "string:static", "value": "-"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/products"}
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_products"
+    },
+    {
+      "name": "route_browse_products", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_browse_cat_fitness", "probability": 0.32},
+        {"next": "pause_browse_cat_outdoor", "probability": 0.23},
+        {"next": "pause_browse_cat_team_sports", "probability": 0.17},
+        {"next": "pause_browse_cat_cycling", "probability": 0.14},
+        {"next": "pause_browse_cat_water_sports", "probability": 0.09},
+        {"next": "pause_not_found", "probability": 0.02},
+        {"next": "session_end", "probability": 0.03}
+      ]
+    },
+    {
+      "name": "pause_browse_cat_fitness", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 45, "max": 150},
+      "next": "emit_browse_cat_fitness"
+    },
+    {
+      "name": "emit_browse_cat_fitness", "type": "activity",
+      "variables": [
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/fitness/adjustable-dumbbell-set",
+            "/categories/fitness/resistance-band-kit",
+            "/categories/fitness/yoga-mat-premium",
+            "/categories/fitness/pull-up-bar-doorframe",
+            "/categories/fitness/foam-roller-pro",
+            "/categories/fitness/kettlebell-cast-iron",
+            "/categories/fitness/jump-rope-speed",
+            "/categories/fitness/ab-roller-wheel",
+            "/categories/fitness/push-up-board",
+            "/categories/fitness/medicine-ball-slam"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_cat_fitness"
+    },
+    {
+      "name": "route_browse_cat_fitness", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_add_to_cart", "probability": 0.28},
+        {"next": "pause_browse_cat_fitness", "probability": 0.38},
+        {"next": "pause_browse_products", "probability": 0.32},
+        {"next": "session_end", "probability": 0.02}
+      ]
+    },
+    {
+      "name": "pause_browse_cat_outdoor", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 45, "max": 150},
+      "next": "emit_browse_cat_outdoor"
+    },
+    {
+      "name": "emit_browse_cat_outdoor", "type": "activity",
+      "variables": [
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/outdoor/trail-running-vest",
+            "/categories/outdoor/ultralight-sleeping-bag",
+            "/categories/outdoor/trekking-pole-pair",
+            "/categories/outdoor/waterproof-hiking-boot",
+            "/categories/outdoor/headlamp-350-lumen",
+            "/categories/outdoor/collapsible-water-bottle",
+            "/categories/outdoor/emergency-bivvy-bag",
+            "/categories/outdoor/compass-orienteering",
+            "/categories/outdoor/bear-canister",
+            "/categories/outdoor/lightweight-tent-2p"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_cat_outdoor"
+    },
+    {
+      "name": "route_browse_cat_outdoor", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_add_to_cart", "probability": 0.28},
+        {"next": "pause_browse_cat_outdoor", "probability": 0.38},
+        {"next": "pause_browse_products", "probability": 0.32},
+        {"next": "session_end", "probability": 0.02}
+      ]
+    },
+    {
+      "name": "pause_browse_cat_team_sports", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 45, "max": 150},
+      "next": "emit_browse_cat_team_sports"
+    },
+    {
+      "name": "emit_browse_cat_team_sports", "type": "activity",
+      "variables": [
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/team-sports/match-football-size5",
+            "/categories/team-sports/cricket-bat-willow",
+            "/categories/team-sports/basketball-indoor",
+            "/categories/team-sports/rugby-ball-match",
+            "/categories/team-sports/hockey-stick-composite",
+            "/categories/team-sports/volleyball-beach",
+            "/categories/team-sports/goalkeeper-gloves",
+            "/categories/team-sports/shin-guard-pair",
+            "/categories/team-sports/training-cone-set",
+            "/categories/team-sports/netball-size5"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_cat_team_sports"
+    },
+    {
+      "name": "route_browse_cat_team_sports", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_add_to_cart", "probability": 0.28},
+        {"next": "pause_browse_cat_team_sports", "probability": 0.38},
+        {"next": "pause_browse_products", "probability": 0.32},
+        {"next": "session_end", "probability": 0.02}
+      ]
+    },
+    {
+      "name": "pause_browse_cat_cycling", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 45, "max": 150},
+      "next": "emit_browse_cat_cycling"
+    },
+    {
+      "name": "emit_browse_cat_cycling", "type": "activity",
+      "variables": [
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/cycling/road-bike-helmet",
+            "/categories/cycling/cycling-gloves-padded",
+            "/categories/cycling/led-bike-light-set",
+            "/categories/cycling/cycling-jersey-aero",
+            "/categories/cycling/saddle-bag-waterproof",
+            "/categories/cycling/chain-lubricant-dry",
+            "/categories/cycling/clip-pedals-spd",
+            "/categories/cycling/cycling-computer-gps",
+            "/categories/cycling/puncture-repair-kit",
+            "/categories/cycling/bidon-insulated-750ml"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_cat_cycling"
+    },
+    {
+      "name": "route_browse_cat_cycling", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_add_to_cart", "probability": 0.28},
+        {"next": "pause_browse_cat_cycling", "probability": 0.38},
+        {"next": "pause_browse_products", "probability": 0.32},
+        {"next": "session_end", "probability": 0.02}
+      ]
+    },
+    {
+      "name": "pause_browse_cat_water_sports", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 45, "max": 150},
+      "next": "emit_browse_cat_water_sports"
+    },
+    {
+      "name": "emit_browse_cat_water_sports", "type": "activity",
+      "variables": [
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/water-sports/silicone-swim-cap",
+            "/categories/water-sports/triathlon-wetsuit",
+            "/categories/water-sports/snorkel-set-clear",
+            "/categories/water-sports/pool-kickboard",
+            "/categories/water-sports/swim-fins-training",
+            "/categories/water-sports/open-water-goggles",
+            "/categories/water-sports/tow-float-safety",
+            "/categories/water-sports/paddle-board-inflatable",
+            "/categories/water-sports/kayak-paddle",
+            "/categories/water-sports/wetsuit-changing-mat"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_browse_cat_water_sports"
+    },
+    {
+      "name": "route_browse_cat_water_sports", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_add_to_cart", "probability": 0.28},
+        {"next": "pause_browse_cat_water_sports", "probability": 0.38},
+        {"next": "pause_browse_products", "probability": 0.32},
+        {"next": "session_end", "probability": 0.02}
+      ]
+    },
+    {
+      "name": "pause_add_to_cart", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 10, "max": 30},
+      "next": "emit_add_to_cart"
+    },
+    {
+      "name": "emit_add_to_cart", "type": "activity",
+      "variables": [
+        {"name": "var_uri_path", "type": "string:static", "value": "/cart"}
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_add_to_cart"
+    },
+    {
+      "name": "route_add_to_cart", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_checkout", "probability": 0.3},
+        {"next": "pause_browse_products", "probability": 0.5},
+        {"next": "session_end", "probability": 0.2}
+      ]
+    },
+    {
+      "name": "pause_checkout", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 90, "max": 240},
+      "next": "emit_checkout"
+    },
+    {
+      "name": "emit_checkout", "type": "activity",
+      "variables": [
+        {"name": "var_http_content_type", "type": "string:static", "value": "application/x-www-form-urlencoded"},
+        {"name": "var_http_method", "type": "string:static", "value": "POST"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/checkout"}
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_checkout"
+    },
+    {
+      "name": "route_checkout", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_thank_you", "probability": 0.6},
+        {"next": "pause_try_again", "probability": 0.1},
+        {"next": "session_end", "probability": 0.3}
+      ]
+    },
+    {
+      "name": "pause_thank_you", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 5, "max": 15},
+      "next": "emit_thank_you"
+    },
+    {
+      "name": "emit_thank_you", "type": "activity",
+      "variables": [
+        {"name": "var_http_content_type", "type": "string:static", "value": "-"},
+        {"name": "var_http_method", "type": "string:static", "value": "GET"},
+        {"name": "var_uri_path", "type": "string:static", "value": "/thank-you"}
+      ],
+      "emitter": "apache_json_log",
+      "next": "session_end"
+    },
+    {
+      "name": "pause_try_again", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 30, "max": 90},
+      "next": "emit_try_again"
+    },
+    {
+      "name": "emit_try_again", "type": "activity",
+      "variables": [
+        {"name": "var_uri_path", "type": "string:static", "value": "/try-again"},
+        {"name": "var_status", "type": "int:static", "value": 400}
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_try_again"
+    },
+    {
+      "name": "route_try_again", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_checkout", "probability": 0.95},
+        {"next": "session_end", "probability": 0.05}
+      ]
+    },
+    {
+      "name": "pause_not_found", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 2, "max": 5},
+      "next": "emit_not_found"
+    },
+    {
+      "name": "emit_not_found", "type": "activity",
+      "variables": [
+        {"name": "var_status", "type": "int:static", "value": 404},
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/categories/furniture/gym-bench-pro",
+            "/categories/electronics/sports-camera",
+            "/categories/clothing/compression-tights",
+            "/categories/nutrition/protein-powder",
+            "/categories/footwear/trail-running-shoe",
+            "/categories/books/sports-coaching",
+            "/categories/health/foam-roller-therapy",
+            "/categories/equipment/gym-mat-thick",
+            "/categories/accessories/sports-watch",
+            "/categories/kids/junior-cricket-set"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 9}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "pause_browse_products"
+    },
+    {
+      "name": "setup_hacker", "type": "activity",
+      "variables": [
+        {"name": "var_http_version", "type": "string:static", "value": "HTTP/1.1"},
+        {"name": "var_user", "type": "string:static", "value": "-"},
+        {
+          "name": "var_http_user_agent", "type": "enum",
+          "values": [
+            "sqlmap/1.7.8#stable (https://sqlmap.org)", "Nikto/2.1.6",
+            "masscan/1.3 (https://github.com/robertdavidgraham/masscan)",
+            "zgrab/0.x", "curl/7.68.0", "python-requests/2.28.1",
+            "Go-http-client/1.1", "Wget/1.21.2"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
+        },
+        {
+          "name": "var_client", "type": "ipaddress",
+          "cardinality": 3,
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        }
+      ],
+      "next": "pause_hacker"
+    },
+    {
+      "name": "pause_hacker", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "exponential", "mean": 0.01},
+      "next": "emit_hacker"
+    },
+    {
+      "name": "emit_hacker", "type": "activity",
+      "variables": [
+        {"name": "var_http_referrer", "type": "string:static", "value": "-"},
+        {
+          "name": "var_http_content_type", "type": "enum",
+          "values": ["-", "application/json", "application/x-www-form-urlencoded"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "var_http_method", "type": "enum",
+          "values": ["GET", "POST", "PUT", "DELETE"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_status", "type": "enum",
+          "values": [403, 404, 500, 401, 400, 502, 503],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 6}
+        },
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/admin", "/login", "/etc/passwd", "/wp-admin", "/sql",
+            "/../../../../etc/shadow", "/cgi-bin/test.cgi", "/.git/config",
+            "/config.php.bak", "/debug.log", "/.env", "/.htaccess",
+            "/.bash_history", "/.ssh/id_rsa", "/private.key", "/backup.sql",
+            "/old/config.php", "/phpinfo.php", "/server-status", "/error.log",
+            "/vulnerable.php", "/admin/login", "/admin/dashboard",
+            "/admin/config", "/admin/settings", "/admin/users", "/admin/backup",
+            "/admin/logs", "/admin/reports", "/admin/test", "/admin/debug",
+            "/admin/hidden", "/admin/secret", "/admin/private",
+            "/admin/passwords", "/admin/keys", "/admin/data", "/admin/files",
+            "/admin/uploads", "/admin/downloads", "/admin/sql", "/admin/db",
+            "/admin/db_backup", "/admin/db_dump", "/admin/db_config",
+            "/admin/db_test", "/admin/db_logs", "/admin/db_debug",
+            "/admin/db_private", "/admin/db_secret", "/admin/db_hidden",
+            "/admin/db_vulnerable", "/admin/db_error", "/admin/db_status",
+            "/admin/db_info", "/admin/db_env", "/admin/db_htaccess",
+            "/admin/db_bash_history", "/admin/db_ssh", "/admin/db_rsa",
+            "/admin/db_key", "/admin/db_backup.sql"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 59}
+        },
+        {
+          "name": "var_uri_query", "type": "enum",
+          "values": [
+            "", "?user=admin'--", "?query=SELECT%20*%20FROM%20users",
+            "?debug=true", "?cmd=whoami"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_hacker"
+    },
+    {
+      "name": "route_hacker", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_hacker", "probability": 0.99},
+        {"next": "session_end", "probability": 0.01}
+      ]
+    },
+    {
+      "name": "setup_bot", "type": "activity",
+      "variables": [
+        {"name": "var_http_version", "type": "string:static", "value": "HTTP/1.1"},
+        {"name": "var_user", "type": "string:static", "value": "-"},
+        {
+          "name": "var_http_user_agent", "type": "enum",
+          "values": [
+            "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+            "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+            "Mozilla/5.0 (compatible; Applebot/0.1; +http://www.apple.com/go/applebot)",
+            "SemrushBot/7~bl", "AhrefsBot/7.0; +https://ahrefs.com/robot/",
+            "DotBot/1.2", "python-requests/2.28.1", "curl/7.68.0",
+            "Scrapy/2.11.0 (+https://scrapy.org)"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 8}
+        },
+        {
+          "name": "var_client", "type": "ipaddress",
+          "cardinality": 5,
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        }
+      ],
+      "next": "pause_bot"
+    },
+    {
+      "name": "pause_bot", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "exponential", "mean": 1.0},
+      "next": "emit_bot"
+    },
+    {
+      "name": "emit_bot", "type": "activity",
+      "variables": [
+        {"name": "var_http_content_type", "type": "string:static", "value": "-"},
+        {"name": "var_http_method", "type": "string:static", "value": "GET"},
+        {"name": "var_http_referrer", "type": "string:static", "value": "-"},
+        {"name": "var_uri_query", "type": "string:static", "value": ""},
+        {"name": "var_user", "type": "string:static", "value": "-"},
+        {
+          "name": "var_status", "type": "enum",
+          "values": [200, 200, 200, 200, 200, 200, 301, 301, 404],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 8}
+        },
+        {
+          "name": "var_uri_path", "type": "enum",
+          "values": [
+            "/robots.txt", "/sitemap.xml", "/products", "/categories/fitness",
+            "/categories/outdoor", "/categories/team-sports",
+            "/categories/cycling", "/categories/water-sports",
+            "/categories/fitness/adjustable-dumbbell-set",
+            "/categories/fitness/resistance-band-kit",
+            "/categories/outdoor/trail-running-vest",
+            "/categories/outdoor/ultralight-sleeping-bag",
+            "/categories/team-sports/match-football-size5",
+            "/categories/team-sports/cricket-bat-willow",
+            "/categories/cycling/road-bike-helmet",
+            "/categories/cycling/cycling-gloves-padded",
+            "/categories/water-sports/silicone-swim-cap",
+            "/categories/water-sports/triathlon-wetsuit"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 17}
+        }
+      ],
+      "emitter": "apache_json_log",
+      "next": "route_bot"
+    },
+    {
+      "name": "route_bot", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_bot", "probability": 0.98},
+        {"next": "session_end", "probability": 0.02}
+      ]
+    },
+    {"name": "session_end", "type": "event:end"}
+  ]
+}
