@@ -1,5 +1,5 @@
 {
-  "variable_defaults": {
+  "constants": {
     "item": 0
   },
   "emitters": [
