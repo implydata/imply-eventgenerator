@@ -3,7 +3,6 @@
     {
       "name": "start_emit",
       "dimensions": [
-        {"name": "time", "type": "clock"},
         {
           "name": "event", "type": "enum",
           "values": ["start"],
@@ -14,7 +13,6 @@
     {
       "name": "end_emit",
       "dimensions": [
-        {"name": "time", "type": "clock"},
         {
           "name": "event", "type": "enum",
           "values": ["end"],

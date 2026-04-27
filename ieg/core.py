@@ -378,11 +378,7 @@ class DataDriver:
             self.status_msg = f"Running, Sim Clock: {self.global_clock.now()}"
             self.set_variable_values(variables, current_state.variables)
             if current_state.type == 'subprocess:multi_instance':
-                for item in current_state.in_collection:
-                    if isinstance(item, dict):
-                        variables.update(item)
-                    else:
-                        variables['item'] = item
+                for _ in current_state.in_collection:
                     self.run_state_machine(current_state.sub_states, variables)
             elif current_state.dimensions is not None:
                 record = self.create_record(current_state.dimensions, variables)

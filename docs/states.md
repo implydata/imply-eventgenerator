@@ -280,16 +280,16 @@ The BPMN term for this construct is **Multi-Instance Sub-Process (Sequential)**.
 
 **Execution order:**
 
-1. For each item in `in`, inject the item into the shared variable namespace, then run the child config's state machine from its first state to `event:end`.
+1. For each item in `in`, run the child config's state machine from its first state to `event:end`.
 2. After all iterations complete, transition to `next` in the parent.
 
-The child runs in the same variable namespace as the parent — variables set in parent activity states are visible to the child. Each `in` item is injected before that iteration runs: scalars are stored as `item`; objects have their keys merged directly into the namespace.
+The child runs in the same variable namespace as the parent — variables set in parent activity states are visible to the child.
 
 | Field | Description | Required? |
 | --- | --- | --- |
 | `name` | Unique name for this state. | Yes |
 | `type` | Must be `"subprocess:multi_instance"`. | Yes |
-| `in` | A non-empty list (literal) or a string naming a top-level `constants` key whose value is a list. The list length determines how many times the child runs. Each item is injected into the child namespace before that iteration: scalars as `item`, objects merged by key. | Yes |
+| `in` | A non-empty list (literal) or a string naming a top-level `constants` key whose value is a list. The list length determines how many times the child runs. Item values are not passed to the child in this milestone. | Yes |
 | `states` | Path to the child config file (relative to the working directory). Must be a valid standalone config. | Yes |
 | `next` | Name of the next state after all iterations complete. | Yes |
 
