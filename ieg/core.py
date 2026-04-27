@@ -269,8 +269,8 @@ class DataDriver:
             dimensions = get_dimensions(emitter['dimensions'], self.global_clock)
             self.emitters[name] = dimensions
 
-        # Constants: named values pre-populated into each worker's namespace before the state machine starts
-        self.constants = self.config.get('constants', {})
+        # Variable defaults: initial values pre-populated into each worker's namespace before the state machine starts
+        self.constants = self.config.get('variable_defaults', {})
 
         # Set up the state machine
         state_desc = self.config.get('states')
@@ -400,7 +400,7 @@ class DataDriver:
             current_state = next_state
 
     def worker_thread(self):
-        """Spawn a worker: pre-populate constants, run the state machine, clean up."""
+        """Spawn a worker: pre-populate variable defaults, run the state machine, clean up."""
         self.global_clock.activate_thread()
         variables = dict(self.constants)
         self.run_state_machine(self.states, variables)

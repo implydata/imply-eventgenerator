@@ -78,8 +78,8 @@ def validate_config(config, template_name=None):
             logger.error("Config has no event:end state")
             valid = False
 
-        # Collect all variable names set by any state (activities only) plus top-level constants
-        all_set_variables = set(config.get('constants', {}).keys())
+        # Collect all variable names set by any state (activities only) plus top-level variable defaults
+        all_set_variables = set(config.get('variable_defaults', {}).keys())
         for state in config['states']:
             for var in state.get('variables', []):
                 if 'name' in var:

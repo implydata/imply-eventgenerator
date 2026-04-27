@@ -289,7 +289,7 @@ The child runs in the same variable namespace as the parent — variables set in
 | --- | --- | --- |
 | `name` | Unique name for this state. | Yes |
 | `type` | Must be `"subprocess:multi_instance"`. | Yes |
-| `in` | A non-empty list (literal) or a string naming a top-level `constants` key whose value is a list. The list length determines how many times the child runs. Each item is injected into the child namespace before that iteration: scalars as `item`, objects merged by key. | Yes |
+| `in` | A non-empty list (literal) or a string naming a top-level `variable_defaults` key whose value is a list. The list length determines how many times the child runs. Each item is injected into the child namespace before that iteration: scalars as `item`, objects merged by key. | Yes |
 | `states` | Path to the child config file (relative to the working directory). Must be a valid standalone config. | Yes |
 | `next` | Name of the next state after all iterations complete. | Yes |
 
@@ -322,11 +322,11 @@ The child config must have:
 }
 ```
 
-With the `constants` block:
+With the `variable_defaults` block:
 
 ```json
 {
-  "constants": {
+  "variable_defaults": {
     "asset_list": [1, 2, 3, 4, 5]
   },
   "states": [
@@ -470,11 +470,11 @@ flowchart TD
 
 Variables set in `activity` states are **per-worker and per-lifecycle**:
 
-- Each worker starts with the top-level `constants` block pre-populated into its namespace (empty dict if no `constants` block is present).
+- Each worker starts with the top-level `variable_defaults` block pre-populated into its namespace (empty dict if no `variable_defaults` block is present).
 - Activity `variables` are evaluated and merged into the same namespace at runtime.
 - Variables persist for the entire lifetime of that worker — once set, a variable is available in every subsequent activity state in the same lifecycle.
 - Revisiting a state unconditionally **overwrites** the variable's previous value. There is no accumulation or append semantics.
-- When the worker reaches `event:end` and a new lifecycle begins, the namespace is reset to the constants (not empty).
+- When the worker reaches `event:end` and a new lifecycle begins, the namespace is reset to the variable defaults (not empty).
 
 This means session-level variables (set once in a `setup_*` activity at the start) naturally persist across all subsequent emit states without being redeclared.
 

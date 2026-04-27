@@ -19,7 +19,7 @@ The language has explicit primitives for the things that matter most in syntheti
 | Feature | How |
 | --- | --- |
 | Primitive field types | `int`, `float`, `string`, `enum`, `object`, `list`, `counter`, `clock`, `ipaddress` — see [field generators](field-generators.md) |
-| Constants | Top-level `constants` block — named values pre-populated into every worker's namespace before the state machine starts. Eliminates copy-paste of shared values (IP ranges, asset lists) across states. |
+| Variable defaults | Top-level `variable_defaults` block — initial values pre-populated into every worker's namespace before the state machine starts. Eliminates copy-paste of shared values (IP ranges, asset lists) across states. |
 | Variables (worker-scoped mutable) | `variables` block in `activity` states — values sampled at runtime and carried forward through the lifecycle |
 | Randomness / distributions | First-class on every numeric field — `uniform`, `exponential`, `normal`, `constant`, and more. See [distributions](distributions.md) |
 | Sequential execution | `next` field on every non-gateway state |
