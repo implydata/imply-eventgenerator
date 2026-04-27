@@ -57,13 +57,14 @@ class Transition:
             transitions.append(Transition(next_state, probability))
         return transitions
 
-VALID_TYPES = {'activity', 'gateway:exclusive', 'event:start:timer', 'event:intermediate:timer', 'event:end', 'subprocess:multi_instance'}
+VALID_TYPES = {'activity', 'gateway:exclusive', 'event:start:timer', 'event:start:message', 'event:intermediate:timer', 'event:end', 'subprocess:multi_instance'}
 
 class State:
     """A node in the Actor lifecycle state machine.
 
     type determines runtime behaviour:
       event:start:timer        — controls worker spawn pacing; always first
+      event:start:message      — subprocess entry point; triggered by parent injection
       event:intermediate:timer — advances the clock without emitting
       activity                 — evaluates variables and optionally emits a record
       gateway:exclusive        — routes to one of several next states by probability
@@ -127,6 +128,24 @@ class State:
                 valid = False
             if 'variables' in desc or 'variables_on_entry' in desc:
                 logger.error("%s: event:start:timer must not have variables — only activities can set variables", context)
+                valid = False
+            return valid
+
+        if state_type == 'event:start:message':
+            if 'cardinality_distribution' in desc:
+                logger.error("%s: event:start:message must not have 'cardinality_distribution' — it is triggered by the parent, not a timer", context)
+                valid = False
+            if desc.get('emitter') is not None:
+                logger.error("%s: event:start:message must not have an emitter", context)
+                valid = False
+            if 'next' not in desc:
+                logger.error("%s: event:start:message missing required field 'next'", context)
+                valid = False
+            elif not isinstance(desc['next'], str):
+                logger.error("%s: event:start:message 'next' must be a string", context)
+                valid = False
+            if 'transitions' in desc:
+                logger.error("%s: event:start:message uses 'next', not 'transitions'", context)
                 valid = False
             return valid
 
@@ -214,13 +233,14 @@ class State:
                 valid = False
             else:
                 in_val = desc['in']
-                if isinstance(in_val, list):
-                    if len(in_val) == 0:
-                        logger.error("%s: subprocess:multi_instance 'in' must not be empty", context)
-                        valid = False
-                elif not isinstance(in_val, str):
-                    logger.error("%s: subprocess:multi_instance 'in' must be a list or a constant name (string)", context)
+                if not isinstance(in_val, list) or len(in_val) == 0:
+                    logger.error("%s: subprocess:multi_instance 'in' must be a non-empty list", context)
                     valid = False
+                else:
+                    for i, item in enumerate(in_val):
+                        if not isinstance(item, list) or len(item) == 0:
+                            logger.error("%s: subprocess:multi_instance 'in[%d]' must be a non-empty list of variable specs", context, i)
+                            valid = False
             if 'states' not in desc:
                 logger.error("%s: subprocess:multi_instance missing required field 'states'", context)
                 valid = False
@@ -236,7 +256,7 @@ class State:
             if desc.get('emitter') is not None:
                 logger.error("%s: subprocess:multi_instance must not have an emitter", context)
                 valid = False
-            if 'variables' in desc or 'variables_on_entry' in desc:
+            if 'variables' in desc:
                 logger.error("%s: subprocess:multi_instance must not have variables", context)
                 valid = False
             if 'transitions' in desc:

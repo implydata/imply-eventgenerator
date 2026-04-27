@@ -330,6 +330,9 @@ class DataDriver:
             elif state_type == 'event:start:timer':
                 delay = parse_distribution(_zero, clock=self.global_clock)
                 transitions = [Transition(state['next'], 1.0)]
+            elif state_type == 'event:start:message':
+                delay = parse_distribution(_zero, clock=self.global_clock)
+                transitions = [Transition(state['next'], 1.0)]
             elif state_type == 'event:intermediate:timer':
                 delay = parse_distribution(state['cardinality_distribution'], clock=self.global_clock)
                 transitions = [Transition(state['next'], 1.0)]
@@ -342,13 +345,12 @@ class DataDriver:
             elif state_type == 'subprocess:multi_instance':
                 delay = parse_distribution(_zero, clock=self.global_clock)
                 transitions = [Transition(state['next'], 1.0)]
-                in_val = state['in']
                 with open(state['states']) as f:
                     child_config = json.load(f)
                 child_emitters = {e['name']: get_dimensions(e['dimensions'], self.global_clock)
                                   for e in child_config.get('emitters', [])}
                 child_states, _ = self._parse_states(child_config['states'], emitters=child_emitters)
-                in_collection = in_val
+                in_collection = [get_variables(item, self.global_clock) for item in state['in']]
                 sub_states = child_states
             else:
                 delay = parse_distribution(_zero, clock=self.global_clock)
@@ -360,25 +362,32 @@ class DataDriver:
                 initial_state = this_state
         return states, initial_state
 
-    def run_state_machine(self, states, variables):
+    def run_state_machine(self, states, variables, entry_state=None):
         """Run a state machine loop until event:end or sim_control signals done."""
-        current_state = list(states.values())[0]
+        current_state = entry_state if entry_state is not None else list(states.values())[0]
         while True:
             if current_state is None:
                 raise RuntimeError("Unexpected error: current state is None.")
-            if current_state.type == 'event:start:timer':
+            if current_state.type in ('event:start:timer', 'event:start:message'):
                 logger.debug("Thread %s starting process instance", threading.current_thread().name)
             delta = float(current_state.delay.get_sample())
             self.global_clock.sleep(delta)
             self.status_msg = f"Running, Sim Clock: {self.global_clock.now()}"
             self.set_variable_values(variables, current_state.variables)
             if current_state.type == 'subprocess:multi_instance':
-                for item in current_state.in_collection:
-                    if isinstance(item, dict):
-                        variables.update(item)
-                    else:
-                        variables['item'] = item
-                    self.run_state_machine(current_state.sub_states, variables)
+                msg_start = next(
+                    (s for s in current_state.sub_states.values() if s.type == 'event:start:message'),
+                    None
+                )
+                if msg_start is None:
+                    raise RuntimeError(
+                        f"subprocess:multi_instance '{current_state.name}': child config has no "
+                        "'event:start:message' state. Configs designed for subprocess use must "
+                        "declare an 'event:start:message' entry point."
+                    )
+                for item_vars in current_state.in_collection:
+                    self.set_variable_values(variables, item_vars)
+                    self.run_state_machine(current_state.sub_states, variables, entry_state=msg_start)
             elif current_state.dimensions is not None:
                 record = self.create_record(current_state.dimensions, variables)
                 self.target_printer.print(self.render_record(record))

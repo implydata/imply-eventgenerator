@@ -1,23 +1,12 @@
 {
   "emitters": [
     {
-      "name": "start_emit",
+      "name": "pageview_emit",
       "dimensions": [
         {"name": "time", "type": "clock"},
         {
           "name": "event", "type": "enum",
-          "values": ["start"],
-          "cardinality_distribution": {"type": "constant", "value": 0}
-        }
-      ]
-    },
-    {
-      "name": "end_emit",
-      "dimensions": [
-        {"name": "time", "type": "clock"},
-        {
-          "name": "event", "type": "enum",
-          "values": ["end"],
+          "values": ["pageview"],
           "cardinality_distribution": {"type": "constant", "value": 0}
         }
       ]
@@ -27,28 +16,38 @@
     {
       "name": "init", "type": "event:start:timer",
       "cardinality_distribution": {"type": "constant", "value": 1},
-      "next": "emit_start"
+      "next": "emit_pageview"
     },
     {
-      "name": "emit_start", "type": "activity",
-      "emitter": "start_emit",
-      "next": "loop_section"
+      "name": "emit_pageview", "type": "activity",
+      "emitter": "pageview_emit",
+      "next": "load_components"
     },
     {
-      "name": "loop_section", "type": "subprocess:multi_instance",
+      "name": "load_components", "type": "subprocess:multi_instance",
       "in": [
-        1,
-        2,
-        3,
-        4,
-        5
+        [
+          {"name": "url", "type": "string:static", "value": "/index.html"},
+          {"name": "bytes", "type": "int:static", "value": 1247}
+        ],
+        [
+          {"name": "url", "type": "string:static", "value": "/static/style.css"},
+          {"name": "bytes", "type": "int:static", "value": 8432}
+        ],
+        [
+          {"name": "url", "type": "string:static", "value": "/static/app.js"},
+          {"name": "bytes", "type": "int:static", "value": 42180}
+        ],
+        [
+          {"name": "url", "type": "string:static", "value": "/static/logo.png"},
+          {"name": "bytes", "type": "int:static", "value": 18920}
+        ],
+        [
+          {"name": "url", "type": "string:static", "value": "/static/hero.jpg"},
+          {"name": "bytes", "type": "int:static", "value": 94320}
+        ]
       ],
       "states": "presets/configs/test_loop_child.json",
-      "next": "emit_end"
-    },
-    {
-      "name": "emit_end", "type": "activity",
-      "emitter": "end_emit",
       "next": "done"
     },
     {"name": "done", "type": "event:end"}
