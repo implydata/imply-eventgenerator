@@ -1,31 +1,46 @@
 # Variables — injected
 
-> Building a new config? See [How to build a config](./how-to-build-a-config.md) for the design process. This page covers subprocess injection — the mechanism that writes values directly into the variable namespace before a child run.
+> Building a new config? See [How to build a config](./how-to-build-a-config.md) for the design process. This page covers how values flow from a parent `subprocess:multi_instance` state into the child's variable namespace.
 
-The variable namespace is a per-worker dict that persists for the lifetime of each worker lifecycle. Injected variables are values written into that namespace directly by the parent, before each iteration of a `subprocess:multi_instance` state. The other way to write to the namespace is via [generated variables](./variables-generated.md).
+The variable namespace is a per-worker dict that persists for the lifetime of each worker lifecycle. Injected variables are values written into that namespace by the parent, for each iteration of a `subprocess:multi_instance` state. The other way to write to the namespace is via [generated variables](./variables-generated.md).
 
 ---
 
-## Subprocess injection
+## How injection works
 
-When a `subprocess:multi_instance` state iterates over its `in` list, each item is injected into the shared namespace before that iteration's child run. This is runtime injection — the value changes on every iteration.
+Each item in the parent's `in` list is a list of variable specs — the same format as a `variables` block in an `activity` state. The engine parses them at startup and evaluates them at runtime using the standard variable generation path.
 
-- **Scalar item** → written as `variables['item'] = item`
-- **Object item** → each key is merged: `variables.update(item)`
-
-The child config reads the injected value via `"type": "variable"` in its emitter dimensions. The child is responsible for knowing what keys the parent will inject — it is designed for subprocess use. If standalone use is needed, the engineer adds an initial `setup_*` activity state that sets appropriate defaults in the usual way.
+For each iteration, the engine evaluates that iteration's variable specs and writes the results into the namespace before running the child state machine from its `event:start:message` entry point.
 
 ```json
 {
-  "name": "loop_section",
+  "name": "load_components",
   "type": "subprocess:multi_instance",
-  "in": [1, 2, 3, 4, 5],
+  "in": [
+    [{"name": "url", "type": "string:static", "value": "/index.html"}, {"name": "bytes", "type": "int:static", "value": 1247}],
+    [{"name": "url", "type": "string:static", "value": "/static/style.css"}, {"name": "bytes", "type": "int:static", "value": 8432}],
+    [{"name": "url", "type": "string:static", "value": "/static/app.js"}, {"name": "bytes", "type": "int:static", "value": 42180}]
+  ],
   "states": "presets/configs/child.json",
   "next": "emit_end"
 }
 ```
 
-Each iteration injects the current item into the namespace before the child state machine starts. The child sees `item` as if it were set by an initial activity state.
+Each inner list is one iteration's variable block. Any generator type valid in a `variables` block is valid here — `string:static`, `int:static`, `enum`, and so on. The child reads the injected values via `"type": "variable"` in its emitter dimensions.
+
+---
+
+## Child config entry point
+
+A child config designed for subprocess use declares `event:start:message` as its first state instead of `event:start:timer`. This is the BPMN Message Start Event — it signals that this config expects to receive variables from a parent rather than starting independently.
+
+```json
+{"name": "init", "type": "event:start:message", "next": "load_delay"}
+```
+
+The `event:start:message` state can also have a `variables` block for standalone defaults. When called as a subprocess, the parent's injected values are written into the namespace before the `event:start:message` variables block runs, so the parent always wins on any overlapping names.
+
+A config with only `event:start:message` and no `event:start:timer` will fail standalone validation — which is correct and expected for subprocess-only configs.
 
 ---
 
@@ -34,7 +49,7 @@ Each iteration injects the current item into the namespace before the child stat
 To emit an injected value in a record, use `"type": "variable"` in an emitter dimension:
 
 ```json
-{"name": "item", "type": "variable", "variable": "item"}
+{"name": "url", "type": "variable", "variable": "url"}
 ```
 
 See [emitters](./emitters.md) for the full emitter dimension reference.

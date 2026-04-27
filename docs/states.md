@@ -33,11 +33,12 @@ flowchart LR
 
 ## State types
 
-There are six state types. Every state must have a `name` and a `type`.
+There are seven state types. Every state must have a `name` and a `type`.
 
 | Type | Role | Emits a record? | Sets variables? | Delays? |
 | --- | --- | --- | --- | --- |
 | `event:start:timer` | First state; controls interarrival pacing | No | No | Yes — `cardinality_distribution` |
+| `event:start:message` | Subprocess entry point; receives variables from the parent | No | Optional | No |
 | `event:intermediate:timer` | Pause between activities | No | No | Yes — `cardinality_distribution` |
 | `activity` | Do work: set variables and/or emit a record | Optional | Optional | No |
 | `gateway:exclusive` | Probabilistic routing | No | No | No |
@@ -72,6 +73,30 @@ The first state in every config. Its sole job is to control how fast new workers
   "next": "setup_session"
 }
 ```
+
+---
+
+## event:start:message
+
+The entry point for a child config designed for subprocess use. It is the BPMN **Message Start Event** — triggered by the parent passing in a variables package rather than by an independent timer. A config that declares `event:start:message` signals that it expects to receive values from a `subprocess:multi_instance` parent.
+
+| Field | Description | Required? |
+| --- | --- | --- |
+| `name` | Unique name for this state. | Yes |
+| `type` | Must be `"event:start:message"`. | Yes |
+| `_comment` | Optional annotation. | No |
+| `variables` | Optional list of [generated variables](./variables-generated.md). Useful for declaring standalone defaults. Parent-injected values are written into the namespace before this block runs, so the parent always wins on overlapping names. | No |
+| `next` | Name of the next state. | Yes |
+
+```json
+{
+  "name": "init",
+  "type": "event:start:message",
+  "next": "load_delay"
+}
+```
+
+A config with `event:start:message` but no `event:start:timer` will fail standalone validation. That is correct and expected — it is a subprocess-only config. Engineers who need the same config to work standalone add an `event:start:timer` entry point and a `setup_*` activity state with appropriate defaults.
 
 ---
 
@@ -274,53 +299,57 @@ Routes the worker to one of several next states based on weighted probabilities.
 
 ## subprocess:multi_instance
 
-A FOR-EACH loop that runs a child config once per item in a collection. The child state machine runs inline in the same worker thread — no new threads, no separate clock. Any records emitted by the child share the parent's simulated time and output stream.
+A FOR-EACH loop that runs a child config once per item in `in`. The child state machine runs inline in the same worker thread — no new threads, no separate clock. Any records emitted by the child share the parent's simulated time and output stream.
 
 The BPMN term for this construct is **Multi-Instance Sub-Process (Sequential)**.
 
 **Execution order:**
 
-1. For each item in `in`, inject the item into the shared variable namespace, then run the child config's state machine from its first state to `event:end`.
-2. After all iterations complete, transition to `next` in the parent.
+1. For each item in `in`, evaluate that item's variable specs and write the results into the shared namespace.
+2. Run the child state machine from its `event:start:message` entry point to `event:end`.
+3. After all iterations complete, transition to `next` in the parent.
 
-The child runs in the same variable namespace as the parent — variables set in parent activity states are visible to the child. Each `in` item is injected before that iteration runs: scalars are stored as `item`; objects have their keys merged directly into the namespace.
+The child runs in the same variable namespace as the parent — variables set in parent activity states are visible to the child.
 
 | Field | Description | Required? |
 | --- | --- | --- |
 | `name` | Unique name for this state. | Yes |
 | `type` | Must be `"subprocess:multi_instance"`. | Yes |
-| `in` | A non-empty literal list. The list length determines how many times the child runs. Each item is injected into the child namespace before that iteration: scalars as `item`, objects merged by key. | Yes |
-| `states` | Path to the child config file (relative to the working directory). Must be a valid standalone config. | Yes |
+| `in` | A non-empty list of iterations. Each item is a list of variable specs — the same format as a `variables` block in an `activity` state. The list length determines how many times the child runs. | Yes |
+| `states` | Path to the child config file (relative to the working directory). | Yes |
 | `next` | Name of the next state after all iterations complete. | Yes |
 
 ```mermaid
 flowchart LR
-    A["<b>emit_start</b><br/>activity"] --> B
-    B["<b>load_assets</b><br/>subprocess:multi_instance<br/><i>in: [1,2,3,4,5]</i>"] -->|"×5"| C["<b>child state machine</b>"]
+    A["<b>emit_pageview</b><br/>activity"] --> B
+    B["<b>load_components</b><br/>subprocess:multi_instance"] -->|"×N"| C["<b>child state machine</b><br/>event:start:message"]
     C --> B
-    B --> D["<b>emit_end</b><br/>activity"]
+    B --> D["<b>done</b><br/>event:end"]
 ```
 
 ### Child config
 
-The file named in `states` must be a valid standalone config — it can be run independently with `python generator.py -c <child.json>`. When called as a subprocess, only its `states` are used; its `emitters` are parsed from the child file directly.
+The file named in `states` must declare `event:start:message` as its entry point. This is the BPMN Message Start Event — it marks the config as designed for subprocess use and signals that it expects values injected by the parent. See the `event:start:message` section above for the full field reference.
 
-The child config must have:
-
-- Exactly one `event:start:timer` (needed for standalone use; zero-delay no-op when called as subprocess)
-- At least one `event:end`
+A child config with `event:start:message` but no `event:start:timer` will fail standalone validation, which is correct for subprocess-only configs.
 
 ### Example
 
 ```json
 {
-  "name": "load_assets",
+  "name": "load_components",
   "type": "subprocess:multi_instance",
-  "in": [1, 2, 3, 4, 5],
-  "states": "presets/configs/test_loop_child.json",
-  "next": "emit_end"
+  "in": [
+    [{"name": "url", "type": "string:static", "value": "/index.html"}, {"name": "bytes", "type": "int:static", "value": 1247}],
+    [{"name": "url", "type": "string:static", "value": "/static/style.css"}, {"name": "bytes", "type": "int:static", "value": 8432}],
+    [{"name": "url", "type": "string:static", "value": "/static/app.js"}, {"name": "bytes", "type": "int:static", "value": 42180}]
+  ],
+  "states": "presets/configs/child.json",
+  "next": "done"
 }
 ```
+
+The child reads injected values via `"type": "variable"` in its emitter dimensions. See [variables — injected](./variables-injected.md) for the full pattern.
 
 ---
 

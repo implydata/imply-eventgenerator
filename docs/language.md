@@ -24,7 +24,8 @@ The language has explicit primitives for the things that matter most in syntheti
 | Randomness / distributions | First-class on every numeric field — `uniform`, `exponential`, `normal`, `constant`, and more. See [distributions](distributions.md) |
 | Sequential execution | `next` field on every non-gateway state |
 | Probabilistic branching | `gateway:exclusive` — route to one of several next states by weighted probability |
-| Iteration (FOR-EACH) | `subprocess:multi_instance` — run a child config once per item in a collection; `in` is a literal list or a constant reference; each item is injected into the child namespace before that iteration's run |
+| Iteration (FOR-EACH) | `subprocess:multi_instance` — run a child config once per item in `in`; each item is a list of variable specs (same format as a `variables` block); evaluated at runtime and written into the namespace before each child run |
+| Subprocess entry point | `event:start:message` — BPMN Message Start Event; declares that a config is designed for subprocess use; parent injection is applied before this state's own `variables` block runs |
 | I/O — emit records | `emitter` on `activity` states. See [emitters](emitters.md) |
 | Timed delay / sleep | `event:intermediate:timer` — advance simulated time without emitting |
 | Concurrency | `-m` worker pool — each worker is an independent agent running the full lifecycle |
