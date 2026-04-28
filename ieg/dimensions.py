@@ -1,11 +1,9 @@
 """Dimension (field generator) classes for emitter records and state variables.
 
-Each Dimension* class corresponds to a field generator type in the config JSON
-(e.g. DimensionInt → "type": "int", DimensionEnum → "type": "enum"). All classes
-expose get_stochastic_value() for record building and validate_desc() for pre-flight
-config validation.
+Each Dimension* class maps to a generator type in the config JSON
+(e.g. DimensionInt → "type": "int", DimensionEnum → "type": "enum").
 
-See docs/field-generators.md for the config-level reference.
+See docs/variables-generated.md for the config-level reference.
 """
 
 import logging
@@ -22,27 +20,9 @@ logger = logging.getLogger('ieg')
 #
 
 class DimensionBase:
-    """
-    Base class for defining emitter dimensions.
-
-    This class provides common functionality for handling dimension attributes such as
-    cardinality, null percentage, and missing percentage. It also defines methods for
-    generating stochastic values and JSON field strings, which are intended to be
-    overridden by subclasses.
-    """
+    """Base class for all dimension types. Handles cardinality, nulls, and missing."""
 
     def __init__(self, desc):
-        """
-        Initialize the base dimension with the given description.
-
-        Args:
-            desc (dict): A dictionary containing the dimension configuration. It must
-                         include the 'name' and 'cardinality' keys, and optionally
-                         'percent_nulls', 'percent_missing', and 'cardinality_distribution'.
-
-        Raises:
-            Exception: If 'cardinality' or 'cardinality_distribution' is missing when required.
-        """
         self.name = desc['name']
         if 'percent_nulls' in desc.keys():
             self.percent_nulls = desc['percent_nulls'] / 100.0

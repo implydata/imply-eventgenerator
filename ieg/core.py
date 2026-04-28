@@ -54,11 +54,9 @@ class FutureEvent:
         self.name = threading.current_thread().name
         self.event = threading.Event()
     def get_time(self):
-        """Return the scheduled time of this event."""
         return self.t
 
     def get_name(self):
-        """Return the thread name that created this event."""
         return self.name
 
     def __lt__(self, other):
@@ -110,12 +108,10 @@ class Clock:
         return s
 
     def get_duration(self):
-        """Return elapsed seconds since the clock started."""
         time_delta = self.now() - self.start_time
         return time_delta.total_seconds()
 
     def get_start_time(self):
-        """Return the start time of this clock."""
         return self.start_time
 
     def activate_thread(self):
@@ -173,7 +169,6 @@ class Clock:
         self.active_threads += 1
 
     def resume(self, event):
-        """Resume a paused event."""
         event.resume()
 
     def now(self) -> datetime:
@@ -364,7 +359,6 @@ class DataDriver:
         return states, initial_state
 
     def run_state_machine(self, states, variables, entry_state=None):
-        """Run a state machine loop until event:end or sim_control signals done."""
         current_state = entry_state if entry_state is not None else list(states.values())[0]
         while True:
             if current_state is None:
@@ -405,14 +399,12 @@ class DataDriver:
             current_state = next_state
 
     def worker_thread(self):
-        """Spawn a worker thread: run the state machine, clean up."""
         self.global_clock.activate_thread()
         self.run_state_machine(self.states, {})
         self.global_clock.end_thread()
         self.sim_control.remove_entity()
 
     def spawning_thread(self):
-        """Spawn worker threads at the rate set by the event:start:timer's cardinality_distribution."""
         self.global_clock.activate_thread()
 
         # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
