@@ -2,7 +2,7 @@
 
 > Building a new config? See [How to build a config](./how-to-build-a-config.md) for the design process. This page is the reference for all generated variable types.
 
-The variable namespace is a per-worker dict that persists for the lifetime of each worker lifecycle. Generated variables are one of two ways to write values into that namespace — the other is [injected variables](./variables-injected.md).
+The variable namespace is a per-worker dict that persists for the lifetime of each worker lifecycle. Generated variables are one of two ways to write values into that namespace — the other is the `items` list in a [`subprocess:multi:variables`](./states/subprocess-multi-variables.md) state.
 
 A generated variable is declared in the `variables` list of an `activity` state. Each entry specifies a `name` (the namespace key) and a `type` that controls how the value is produced. The value is sampled at runtime when the state is entered, and stored in the namespace under that name.
 

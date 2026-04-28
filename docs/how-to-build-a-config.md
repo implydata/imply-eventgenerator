@@ -315,9 +315,8 @@ Document the result in the preset's `docs/presets/<name>.md` Concurrency section
 
 ## See also
 
-- [states.md](./states.md) — state type reference with field tables and examples
+- [states.md](./states.md) — state type index with links to per-type field references
 - [variables-generated.md](./variables-generated.md) — all generated variable types
-- [variables-injected.md](./variables-injected.md) — subprocess injection into child namespace
 - [distributions.md](./distributions.md) — distribution reference
 - [patterns.md](./patterns.md) — common patterns (variable persistence, flow duration, multi-record sessions)
 - [best-practices.md](./best-practices.md) — naming conventions and development workflow

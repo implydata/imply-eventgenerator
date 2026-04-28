@@ -18,6 +18,6 @@ Use the `dimensions` list to prescribe the event timestamp, attributes, and meas
 Each entry in `dimensions` answers one question: **how should this field get its value?** There are two answers:
 
 - **Generate it directly** — use any [generated variable type](./variables-generated.md) (`clock`, `enum`, `string`, `int`, etc.). The value is produced at emit time and written straight into the output record, without touching the variable namespace.
-- **Read it from the namespace** — use `"type": "variable"`. The value is looked up in the worker's variable namespace at emit time. The namespace is written by [generated variables](./variables-generated.md) (activity `variables` block) and [injected variables](./variables-injected.md) (subprocess injection).
+- **Read it from the namespace** — use `"type": "variable"`. The value is looked up in the worker's variable namespace at emit time. The namespace is written by [generated variables](./variables-generated.md) (activity `variables` block) and by [`subprocess:multi:variables`](./states/subprocess-multi-variables.md) (parent `items` list).
 
 See [states](./states.md) for how variables are written into the namespace.

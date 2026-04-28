@@ -45,7 +45,6 @@ The `presets/` folder contains ready-to-use configs with [embedded output templa
 - [States](docs/states.md) — all state types and their fields
 - [Emitters](docs/emitters.md) — record output configuration
 - [Generated variables](docs/variables-generated.md) — all generated variable types
-- [Injected variables](docs/variables-injected.md) — subprocess injection into child namespace
 - [Distributions](docs/distributions.md) — uniform, exponential, normal, gmm_temporal
 - [Templates](docs/templates.md) — Jinja2 output templates
 - [Schedules](docs/schedules.md) — time-of-day traffic variation

@@ -18,14 +18,13 @@ The language has explicit primitives for the things that matter most in syntheti
 
 | Feature | How |
 | --- | --- |
-| Variable namespace | Per-worker dict carried through the full lifecycle. Written by generated and injected variables; read by `"type": "variable"` emitter dimensions. |
-| Variables — injected | Subprocess injection writes values directly into the child namespace before each iteration. See [variables-injected.md](variables-injected.md). |
+| Variable namespace | Per-worker dict carried through the full lifecycle. Written by `activity` `variables` blocks and `subprocess:multi:variables` `items`; read by `"type": "variable"` emitter dimensions. |
 | Variables — generated | `variables` block in `activity` states — generated variables sample values at runtime and write them into the namespace. See [variables-generated.md](variables-generated.md) for all generator types. |
 | Randomness / distributions | First-class on every numeric field — `uniform`, `exponential`, `normal`, `constant`, and more. See [distributions](distributions.md) |
 | Sequential execution | `next` field on every non-gateway state |
 | Probabilistic branching | `gateway:exclusive` — route to one of several next states by weighted probability |
-| Iteration (FOR-EACH) | `subprocess:multi:variables` — run a child config once per item in `in`; each item is a list of variable specs (same format as a `variables` block); evaluated at runtime and written into the namespace before each child run |
-| Subprocess entry point | `event:start:message` — BPMN Message Start Event; declares that a config is designed for subprocess use; parent injection is applied before this state's own `variables` block runs |
+| Iteration (FOR-EACH) | [`subprocess:multi:variables`](states/subprocess-multi-variables.md) — run a child config once per item in `items`; each item is a list of variable specs (same format as a `variables` block); evaluated at runtime and written into the namespace before each child run |
+| Subprocess entry point | `event:start:message` — BPMN Message Start Event; declares that a config is designed for subprocess use; parent `items` are evaluated and written into the namespace before this state's own `variables` block runs |
 | I/O — emit records | `emitter` on `activity` states. See [emitters](emitters.md) |
 | Timed delay / sleep | `event:intermediate:timer` — advance simulated time without emitting |
 | Concurrency | `-m` worker pool — each worker is an independent agent running the full lifecycle |
@@ -34,9 +33,8 @@ The language has explicit primitives for the things that matter most in syntheti
 
 | Feature | Notes |
 | --- | --- |
-| Conditional branching | Branch on a variable value, not just probability — `gateway:exclusive` is probabilistic only |
 | Arithmetic / expressions | Derive a field value from other field values |
-| Imports / shared libraries | Share emitter definitions, constant blocks, or state fragments across multiple configs |
+| Imports / shared libraries | Share emitter definitions or state fragments across multiple configs |
 
 ## Relationship to BPMN
 

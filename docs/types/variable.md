@@ -1,11 +1,11 @@
 # variable
 
-`"type": "variable"` is a namespace read. It looks up a key in the worker's variable namespace at emit time and returns that value. The namespace must already contain the key — set by a prior activity state's `variables` block or injected by a parent subprocess — or a runtime `KeyError` is raised.
+`"type": "variable"` is a namespace read. It looks up a key in the worker's variable namespace at emit time and returns that value. The namespace must already contain the key — written by a prior activity state's `variables` block or by the parent's `items` list in a `subprocess:multi:variables` state — or a runtime `KeyError` is raised.
 
 This is the complement to the two write mechanisms:
 
 - [Generated variables](../variables-generated.md) — activity `variables` block writes sampled values into the namespace
-- [Injected variables](../variables-injected.md) — subprocess injection writes values directly into the namespace before each child run
+- [`subprocess:multi:variables`](../states/subprocess-multi-variables.md) — each item's variable specs are evaluated and written into the namespace before the child run starts
 
 **Context restriction**: `variable` is only valid in emitter `dimensions`. Using it in a state's `variables` list (where generated variables are used to *set* namespace values) causes a validation error — you cannot read from the namespace in the same step that writes to it.
 
