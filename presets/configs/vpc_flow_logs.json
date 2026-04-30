@@ -27,7 +27,7 @@
     {
       "name": "vpc_flow_log",
       "dimensions": [
-        {"name": "log_status", "type": "string:static", "value": "OK"},
+        {"name": "log_status", "type": "static", "value": "OK"},
         {"name": "account_id", "type": "variable", "variable": "var_account_id"},
         {"name": "action", "type": "variable", "variable": "var_action"},
         {"name": "bytes", "type": "variable", "variable": "var_bytes"},
@@ -41,7 +41,7 @@
         {"name": "srcport", "type": "variable", "variable": "var_srcport"},
         {"name": "start", "type": "variable", "variable": "var_start"},
         {
-          "name": "version", "type": "int",
+          "name": "version", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -66,14 +66,14 @@
       "name": "setup_initial", "type": "activity",
       "_comment": "Entry point - routes to specific traffic patterns (no output emitted)",
       "variables": [
-        {"name": "var_action", "type": "string:static", "value": "ACCEPT"},
+        {"name": "var_action", "type": "static", "value": "ACCEPT"},
         {
-          "name": "var_account_id", "type": "enum",
+          "name": "var_account_id", "type": "generator:enum",
           "values": ["123456789012", "123456789013", "123456789014"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "name": "var_interface_id", "type": "enum",
+          "name": "var_interface_id", "type": "generator:enum",
           "values": [
             "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002",
             "eni-0a1b2c3d4e5f60003", "eni-0a1b2c3d4e5f60004",
@@ -100,14 +100,14 @@
       "name": "setup_web_traffic_syn", "type": "activity",
       "_comment": "Setup web SYN: capture connection 5-tuple and var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock", "_comment": "Capture SYN flow start time before delay"},
+        {"name": "var_start", "type": "generator:clock", "_comment": "Capture SYN flow start time before delay"},
         {
-          "name": "var_dstport", "type": "enum",
+          "name": "var_dstport", "type": "generator:enum",
           "values": [80, 443],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
         },
         {
-          "name": "var_protocol", "type": "int",
+          "name": "var_protocol", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -116,7 +116,7 @@
           "_comment": "TCP"
         },
         {
-          "name": "var_srcport", "type": "int",
+          "name": "var_srcport", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -126,7 +126,7 @@
           "_comment": "Ephemeral ports"
         },
         {
-          "name": "var_dstaddr", "type": "ipaddress",
+          "name": "var_dstaddr", "type": "generator:ipaddress",
           "cardinality": 5,
           "distribution": {
             "type": "uniform",
@@ -137,7 +137,7 @@
           "_comment": "Web servers (10.0.0.0-10.0.0.4)"
         },
         {
-          "name": "var_srcaddr", "type": "ipaddress",
+          "name": "var_srcaddr", "type": "generator:ipaddress",
           "cardinality": 1000,
           "distribution": {
             "type": "uniform",
@@ -159,9 +159,9 @@
       "name": "emit_web_traffic_syn", "type": "activity",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "variables": [
-        {"name": "var_end", "type": "clock", "_comment": "Capture end time after handshake delay"},
+        {"name": "var_end", "type": "generator:clock", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -171,7 +171,7 @@
           "_comment": "TCP handshake packets"
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -194,7 +194,7 @@
       "name": "setup_web_traffic_data", "type": "activity",
       "_comment": "Setup web data: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_web_traffic_data"
     },
@@ -207,9 +207,9 @@
       "name": "emit_web_traffic_data", "type": "activity",
       "_comment": "Data transfer - Capture var_start, delay for data transfer (1-10s), emit flow record",
       "variables": [
-        {"name": "var_end", "type": "clock", "_comment": "Capture flow window end time (after activity delay)"},
+        {"name": "var_end", "type": "generator:clock", "_comment": "Capture flow window end time (after activity delay)"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -219,7 +219,7 @@
           "_comment": "5KB to 500KB"
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -249,7 +249,7 @@
       "name": "setup_web_traffic_fin", "type": "activity",
       "_comment": "Setup web FIN: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_web_traffic_fin"
     },
@@ -262,9 +262,9 @@
       "name": "emit_web_traffic_fin", "type": "activity",
       "_comment": "TCP FIN - Capture var_start, delay for FIN handshake (1-2s), emit close record",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -273,7 +273,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -289,7 +289,7 @@
       "name": "setup_web_traffic_rst", "type": "activity",
       "_comment": "Setup web RST: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_web_traffic_rst"
     },
@@ -302,9 +302,9 @@
       "name": "emit_web_traffic_rst", "type": "activity",
       "_comment": "TCP RST - Capture var_start, delay for RST (1-2s), emit reset record",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -313,7 +313,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -329,15 +329,15 @@
       "name": "setup_database_traffic_syn", "type": "activity",
       "_comment": "Setup database SYN: capture connection 5-tuple and var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"},
+        {"name": "var_start", "type": "generator:clock"},
         {
-          "name": "var_dstport", "type": "enum",
+          "name": "var_dstport", "type": "generator:enum",
           "values": [3306, 5432, 1433, 27017],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3},
           "_comment": "MySQL, PostgreSQL, SQL Server, MongoDB"
         },
         {
-          "name": "var_protocol", "type": "int",
+          "name": "var_protocol", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -345,7 +345,7 @@
           }
         },
         {
-          "name": "var_srcport", "type": "int",
+          "name": "var_srcport", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -354,7 +354,7 @@
           }
         },
         {
-          "name": "var_dstaddr", "type": "ipaddress",
+          "name": "var_dstaddr", "type": "generator:ipaddress",
           "cardinality": 3,
           "distribution": {
             "type": "uniform",
@@ -365,7 +365,7 @@
           "_comment": "DB servers (10.0.1.0-10.0.1.2)"
         },
         {
-          "name": "var_srcaddr", "type": "ipaddress",
+          "name": "var_srcaddr", "type": "generator:ipaddress",
           "cardinality": 10,
           "distribution": {
             "type": "uniform",
@@ -387,9 +387,9 @@
       "name": "emit_database_traffic_syn", "type": "activity",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "variables": [
-        {"name": "var_end", "type": "clock", "_comment": "Capture end time after handshake delay"},
+        {"name": "var_end", "type": "generator:clock", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -399,7 +399,7 @@
           "_comment": "TCP handshake packets"
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -422,7 +422,7 @@
       "name": "setup_database_traffic_data", "type": "activity",
       "_comment": "Setup database data: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_database_traffic_data"
     },
@@ -435,9 +435,9 @@
       "name": "emit_database_traffic_data", "type": "activity",
       "_comment": "Database traffic - Data: Query execution with flow record",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -446,7 +446,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -476,7 +476,7 @@
       "name": "setup_database_traffic_fin", "type": "activity",
       "_comment": "Setup database FIN: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_database_traffic_fin"
     },
@@ -489,9 +489,9 @@
       "name": "emit_database_traffic_fin", "type": "activity",
       "_comment": "TCP FIN - Graceful connection close",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -500,7 +500,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -516,7 +516,7 @@
       "name": "setup_database_traffic_rst", "type": "activity",
       "_comment": "Setup database RST: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_database_traffic_rst"
     },
@@ -529,9 +529,9 @@
       "name": "emit_database_traffic_rst", "type": "activity",
       "_comment": "TCP RST - Connection reset/refused",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -540,7 +540,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -556,9 +556,9 @@
       "name": "setup_ssh_traffic_syn", "type": "activity",
       "_comment": "Setup SSH SYN: capture connection 5-tuple and var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"},
+        {"name": "var_start", "type": "generator:clock"},
         {
-          "name": "var_dstport", "type": "int",
+          "name": "var_dstport", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -566,7 +566,7 @@
           }
         },
         {
-          "name": "var_protocol", "type": "int",
+          "name": "var_protocol", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -574,7 +574,7 @@
           }
         },
         {
-          "name": "var_srcport", "type": "int",
+          "name": "var_srcport", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -583,7 +583,7 @@
           }
         },
         {
-          "name": "var_dstaddr", "type": "ipaddress",
+          "name": "var_dstaddr", "type": "generator:ipaddress",
           "cardinality": 15,
           "distribution": {
             "type": "uniform",
@@ -594,7 +594,7 @@
           "_comment": "Internal servers (10.0.0.0-10.0.0.14)"
         },
         {
-          "name": "var_srcaddr", "type": "ipaddress",
+          "name": "var_srcaddr", "type": "generator:ipaddress",
           "cardinality": 20,
           "distribution": {
             "type": "uniform",
@@ -616,9 +616,9 @@
       "name": "emit_ssh_traffic_syn", "type": "activity",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "variables": [
-        {"name": "var_end", "type": "clock", "_comment": "Capture end time after handshake delay"},
+        {"name": "var_end", "type": "generator:clock", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -628,7 +628,7 @@
           "_comment": "TCP handshake packets"
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -651,7 +651,7 @@
       "name": "setup_ssh_traffic_data", "type": "activity",
       "_comment": "Setup SSH data: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_ssh_traffic_data"
     },
@@ -664,9 +664,9 @@
       "name": "emit_ssh_traffic_data", "type": "activity",
       "_comment": "SSH traffic - Data: Session activity with flow record",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -675,7 +675,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -705,7 +705,7 @@
       "name": "setup_ssh_traffic_fin", "type": "activity",
       "_comment": "Setup SSH FIN: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_ssh_traffic_fin"
     },
@@ -718,9 +718,9 @@
       "name": "emit_ssh_traffic_fin", "type": "activity",
       "_comment": "TCP FIN - Graceful connection close",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -729,7 +729,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -745,7 +745,7 @@
       "name": "setup_ssh_traffic_rst", "type": "activity",
       "_comment": "Setup SSH RST: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_ssh_traffic_rst"
     },
@@ -758,9 +758,9 @@
       "name": "emit_ssh_traffic_rst", "type": "activity",
       "_comment": "TCP RST - Connection reset/refused",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -769,7 +769,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -785,14 +785,14 @@
       "name": "setup_internal_api_syn", "type": "activity",
       "_comment": "Setup internal API SYN: capture connection 5-tuple and var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"},
+        {"name": "var_start", "type": "generator:clock"},
         {
-          "name": "var_dstport", "type": "enum",
+          "name": "var_dstport", "type": "generator:enum",
           "values": [8080, 8081, 8443, 9090, 3000, 4000, 5000, 6000],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
         },
         {
-          "name": "var_protocol", "type": "int",
+          "name": "var_protocol", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -800,7 +800,7 @@
           }
         },
         {
-          "name": "var_srcport", "type": "int",
+          "name": "var_srcport", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -809,7 +809,7 @@
           }
         },
         {
-          "name": "var_dstaddr", "type": "ipaddress",
+          "name": "var_dstaddr", "type": "generator:ipaddress",
           "cardinality": 20,
           "distribution": {
             "type": "uniform",
@@ -819,7 +819,7 @@
           "cardinality_distribution": {"type": "exponential", "mean": 8}
         },
         {
-          "name": "var_srcaddr", "type": "ipaddress",
+          "name": "var_srcaddr", "type": "generator:ipaddress",
           "cardinality": 20,
           "distribution": {
             "type": "uniform",
@@ -841,9 +841,9 @@
       "name": "emit_internal_api_syn", "type": "activity",
       "_comment": "TCP SYN - Capture connection 5-tuple & var_start, delay for handshake (1-2s), emit flow record",
       "variables": [
-        {"name": "var_end", "type": "clock", "_comment": "Capture end time after handshake delay"},
+        {"name": "var_end", "type": "generator:clock", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -853,7 +853,7 @@
           "_comment": "TCP handshake packets"
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -876,7 +876,7 @@
       "name": "setup_internal_api_data", "type": "activity",
       "_comment": "Setup internal API data: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_internal_api_data"
     },
@@ -889,9 +889,9 @@
       "name": "emit_internal_api_data", "type": "activity",
       "_comment": "Internal API traffic - Data: API call with flow record",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -900,7 +900,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -930,7 +930,7 @@
       "name": "setup_internal_api_fin", "type": "activity",
       "_comment": "Setup internal API FIN: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_internal_api_fin"
     },
@@ -943,9 +943,9 @@
       "name": "emit_internal_api_fin", "type": "activity",
       "_comment": "TCP FIN - Graceful connection close",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -954,7 +954,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -970,7 +970,7 @@
       "name": "setup_internal_api_rst", "type": "activity",
       "_comment": "Setup internal API RST: capture var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_internal_api_rst"
     },
@@ -983,9 +983,9 @@
       "name": "emit_internal_api_rst", "type": "activity",
       "_comment": "TCP RST - Connection reset/refused",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -994,7 +994,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1010,10 +1010,10 @@
       "name": "setup_port_scan", "type": "activity",
       "_comment": "Setup port scan: capture 5-tuple, var_action REJECT, and var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"},
-        {"name": "var_action", "type": "string:static", "value": "REJECT"},
+        {"name": "var_action", "type": "static", "value": "REJECT"},
+        {"name": "var_start", "type": "generator:clock"},
         {
-          "name": "var_dstport", "type": "int",
+          "name": "var_dstport", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1023,7 +1023,7 @@
           "_comment": "Scanning all ports"
         },
         {
-          "name": "var_protocol", "type": "int",
+          "name": "var_protocol", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1031,7 +1031,7 @@
           }
         },
         {
-          "name": "var_srcport", "type": "int",
+          "name": "var_srcport", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1040,7 +1040,7 @@
           }
         },
         {
-          "name": "var_dstaddr", "type": "ipaddress",
+          "name": "var_dstaddr", "type": "generator:ipaddress",
           "cardinality": 50,
           "distribution": {
             "type": "uniform",
@@ -1051,7 +1051,7 @@
           "_comment": "Scanning range (10.0.0.0-10.0.0.49)"
         },
         {
-          "name": "var_srcaddr", "type": "ipaddress",
+          "name": "var_srcaddr", "type": "generator:ipaddress",
           "cardinality": 5,
           "distribution": {
             "type": "uniform",
@@ -1073,9 +1073,9 @@
       "name": "emit_port_scan", "type": "activity",
       "_comment": "Port scan - Capture 5-tuple & var_start, delay for probe (1-2s), emit rejected scan",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1084,7 +1084,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1129,8 +1129,8 @@
       "name": "setup_port_scan_closed", "type": "activity",
       "_comment": "Port closed response - Setup: Capture var_start for RST",
       "variables": [
-        {"name": "var_start", "type": "clock"},
-        {"name": "var_action", "type": "string:static", "value": "ACCEPT"}
+        {"name": "var_action", "type": "static", "value": "ACCEPT"},
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_port_scan_closed_activity"
     },
@@ -1143,10 +1143,10 @@
       "name": "emit_port_scan_closed_response", "type": "activity",
       "_comment": "Port closed response - Emit: Service sends RST",
       "variables": [
-        {"name": "var_end", "type": "clock"},
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1155,7 +1155,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1170,8 +1170,8 @@
       "name": "setup_port_scan_honeypot", "type": "activity",
       "_comment": "Honeypot response - Setup: Capture var_start for SYN-ACK",
       "variables": [
-        {"name": "var_start", "type": "clock"},
-        {"name": "var_action", "type": "string:static", "value": "ACCEPT"}
+        {"name": "var_action", "type": "static", "value": "ACCEPT"},
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "pause_port_scan_honeypot_activity"
     },
@@ -1184,10 +1184,10 @@
       "name": "emit_port_scan_honeypot_response", "type": "activity",
       "_comment": "Honeypot response - Emit: Port appears open to trap attacker",
       "variables": [
-        {"name": "var_end", "type": "clock"},
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1196,7 +1196,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1211,9 +1211,9 @@
       "name": "setup_dns_traffic", "type": "activity",
       "_comment": "Setup DNS: capture 5-tuple and var_start before timer delay",
       "variables": [
-        {"name": "var_start", "type": "clock"},
+        {"name": "var_start", "type": "generator:clock"},
         {
-          "name": "var_dstport", "type": "int",
+          "name": "var_dstport", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1221,7 +1221,7 @@
           }
         },
         {
-          "name": "var_protocol", "type": "int",
+          "name": "var_protocol", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
@@ -1230,7 +1230,7 @@
           "_comment": "UDP"
         },
         {
-          "name": "var_srcport", "type": "int",
+          "name": "var_srcport", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1239,7 +1239,7 @@
           }
         },
         {
-          "name": "var_dstaddr", "type": "ipaddress",
+          "name": "var_dstaddr", "type": "generator:ipaddress",
           "cardinality": 2,
           "distribution": {
             "type": "uniform",
@@ -1250,7 +1250,7 @@
           "_comment": "DNS servers (10.0.0.2-10.0.0.3)"
         },
         {
-          "name": "var_srcaddr", "type": "ipaddress",
+          "name": "var_srcaddr", "type": "generator:ipaddress",
           "cardinality": 30,
           "distribution": {
             "type": "uniform",
@@ -1272,9 +1272,9 @@
       "name": "emit_dns_traffic", "type": "activity",
       "_comment": "DNS traffic - Capture 5-tuple & var_start, delay for query/response (1-2s), emit flow record",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {
-          "name": "var_bytes", "type": "int",
+          "name": "var_bytes", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1283,7 +1283,7 @@
           }
         },
         {
-          "name": "var_packets", "type": "int",
+          "name": "var_packets", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",

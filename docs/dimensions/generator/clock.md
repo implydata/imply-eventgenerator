@@ -15,7 +15,7 @@
 ## In emitter dimensions (timestamp on every record)
 
 ```json
-{"name": "time", "type": "clock"}
+{"name": "time", "type": "generator:clock"}
 ```
 
 The current clock time is written into every record as `time`. The clock reflects wherever in the state machine the worker currently is.
@@ -23,7 +23,7 @@ The current clock time is written into every record as `time`. The clock reflect
 ## In activity variables (snapshot for start/end patterns)
 
 ```json
-{"name": "var_start", "type": "clock"}
+{"name": "var_start", "type": "generator:clock"}
 ```
 
 The current clock time is stored in the namespace as `var_start`. A later activity can then capture `var_end` the same way, and both are referenced from the emitter via `"type": "variable"` — producing a record with both a start and an end timestamp.

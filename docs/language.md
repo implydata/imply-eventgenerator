@@ -19,7 +19,7 @@ The language has explicit primitives for the things that matter most in syntheti
 | Feature | How |
 | --- | --- |
 | Variable namespace | Per-worker dict carried through the full lifecycle. Written by `activity` `variables` blocks and `subprocess:multi:variables` `items`; read by `"type": "variable"` emitter dimensions. |
-| Variables — generated | `variables` block in `activity` states — generated variables sample values at runtime and write them into the namespace. See [variables-generated.md](variables-generated.md) for all generator types. |
+| Variables — generated | `variables` block in `activity` states — generated variables sample values at runtime and write them into the namespace. See [generator types](dimensions/generator.md) for all `generator:*` types. |
 | Randomness / distributions | First-class on every numeric field — `uniform`, `exponential`, `normal`, `constant`, and more. See [distributions](distributions.md) |
 | Sequential execution | `next` field on every non-gateway state |
 | Probabilistic branching | `gateway:exclusive` — route to one of several next states by weighted probability |

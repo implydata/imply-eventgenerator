@@ -3,9 +3,8 @@
     {
       "name": "web_log",
       "dimensions": [
-        {"name": "time", "type": "clock"},
-        {"name": "cookie", "type": "string:static", "value": "-"},
-        {"name": "ident", "type": "string:static", "value": "-"},
+        {"name": "cookie", "type": "static", "value": "-"},
+        {"name": "ident", "type": "static", "value": "-"},
         {"name": "client", "type": "variable", "variable": "var_client"},
         {"name": "http_content_type", "type": "variable", "variable": "var_http_content_type"},
         {"name": "http_method", "type": "variable", "variable": "var_http_method"},
@@ -16,18 +15,19 @@
         {"name": "uri_path", "type": "variable", "variable": "var_uri_path"},
         {"name": "uri_query", "type": "variable", "variable": "var_uri_query"},
         {"name": "user", "type": "variable", "variable": "var_user"},
+        {"name": "time", "type": "generator:clock"},
         {
-          "name": "dest_port", "type": "enum",
+          "name": "dest_port", "type": "generator:enum",
           "values": ["443", "80", "8080"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "name": "server", "type": "enum",
+          "name": "server", "type": "generator:enum",
           "values": ["10.0.1.15", "10.0.1.16", "10.0.1.17", "10.0.1.18", "10.0.1.19"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
         },
         {
-          "name": "bytes_in", "type": "int",
+          "name": "bytes_in", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -36,7 +36,7 @@
           }
         },
         {
-          "name": "bytes_out", "type": "int",
+          "name": "bytes_out", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -45,7 +45,7 @@
           }
         },
         {
-          "name": "response_time_microseconds", "type": "int",
+          "name": "response_time_microseconds", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "exponential",
@@ -65,12 +65,12 @@
       "name": "setup_session", "type": "activity",
       "variables": [
         {
-          "name": "var_http_referrer", "type": "enum",
+          "name": "var_http_referrer", "type": "generator:enum",
           "values": ["https://www.google.com/", "https://www.bing.com/", "-"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "name": "var_http_user_agent", "type": "enum",
+          "name": "var_http_user_agent", "type": "generator:enum",
           "values": [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -80,17 +80,17 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_http_version", "type": "enum",
+          "name": "var_http_version", "type": "generator:enum",
           "values": ["HTTP/1.0", "HTTP/1.1", "HTTP/2"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "name": "var_user", "type": "enum",
+          "name": "var_user", "type": "generator:enum",
           "values": ["-", "alice997", "bob42", "carol88"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_client", "type": "ipaddress",
+          "name": "var_client", "type": "generator:ipaddress",
           "cardinality": 3000,
           "distribution": {
             "type": "uniform",
@@ -105,11 +105,11 @@
     {
       "name": "emit_page", "type": "activity",
       "variables": [
-        {"name": "var_http_content_type", "type": "string:static", "value": "text/html"},
-        {"name": "var_http_method", "type": "string:static", "value": "GET"},
-        {"name": "var_uri_path", "type": "string:static", "value": "/"},
-        {"name": "var_uri_query", "type": "string:static", "value": ""},
-        {"name": "var_status", "type": "int:static", "value": 200}
+        {"name": "var_http_content_type", "type": "static", "value": "text/html"},
+        {"name": "var_http_method", "type": "static", "value": "GET"},
+        {"name": "var_status", "type": "static", "value": 200},
+        {"name": "var_uri_path", "type": "static", "value": "/"},
+        {"name": "var_uri_query", "type": "static", "value": ""}
       ],
       "emitter": "web_log",
       "next": "load_assets"
@@ -118,20 +118,20 @@
       "name": "load_assets", "type": "subprocess:multi:variables",
       "items": [
         [
-          {"name": "var_http_content_type", "type": "string:static", "value": "text/css"},
-          {"name": "var_uri_path", "type": "string:static", "value": "/static/style.css"}
+          {"name": "var_http_content_type", "type": "static", "value": "text/css"},
+          {"name": "var_uri_path", "type": "static", "value": "/static/style.css"}
         ],
         [
-          {"name": "var_http_content_type", "type": "string:static", "value": "application/javascript"},
-          {"name": "var_uri_path", "type": "string:static", "value": "/static/app.js"}
+          {"name": "var_http_content_type", "type": "static", "value": "application/javascript"},
+          {"name": "var_uri_path", "type": "static", "value": "/static/app.js"}
         ],
         [
-          {"name": "var_http_content_type", "type": "string:static", "value": "image/png"},
-          {"name": "var_uri_path", "type": "string:static", "value": "/static/logo.png"}
+          {"name": "var_http_content_type", "type": "static", "value": "image/png"},
+          {"name": "var_uri_path", "type": "static", "value": "/static/logo.png"}
         ],
         [
-          {"name": "var_http_content_type", "type": "string:static", "value": "image/jpeg"},
-          {"name": "var_uri_path", "type": "string:static", "value": "/static/hero.jpg"}
+          {"name": "var_http_content_type", "type": "static", "value": "image/jpeg"},
+          {"name": "var_uri_path", "type": "static", "value": "/static/hero.jpg"}
         ]
       ],
       "states": "presets/configs/test_loop_child.json",

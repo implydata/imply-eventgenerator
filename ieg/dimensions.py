@@ -1,7 +1,7 @@
 """Dimension (field generator) classes for emitter records and state variables.
 
 Each Dimension* class maps to a generator type in the config JSON
-(e.g. DimensionInt → "type": "int", DimensionEnum → "type": "enum").
+(e.g. DimensionGeneratorInt → "type": "int", DimensionGeneratorEnum → "type": "enum").
 
 See docs/variables-generated.md for the config-level reference.
 """
@@ -19,7 +19,7 @@ logger = logging.getLogger('ieg')
 # Classes for different types of emitter dimension
 #
 
-class DimensionBase:
+class DimensionGeneratorBase:
     """Base class for all dimension types. Handles cardinality, nulls, and missing."""
 
     def __init__(self, desc):
@@ -56,7 +56,7 @@ class DimensionBase:
 
     @staticmethod
     def validate_desc(desc, context):
-        """Validate fields common to all DimensionBase subclasses (int, float, ipaddress)."""
+        """Validate fields common to all DimensionGeneratorBase subclasses (int, float, ipaddress)."""
         valid = True
         if 'name' not in desc:
             logger.error("%s: missing required field 'name'", context)
@@ -135,18 +135,18 @@ class DimensionBase:
 #  LONG dimensions
 #
 
-class DimensionInt(DimensionBase):
+class DimensionGeneratorInt(DimensionGeneratorBase):
     """Generates integer values from a numeric distribution. Config type: "int"."""
     def __init__(self, desc):
         self.value_distribution = parse_distribution(desc['distribution'])
         super().__init__(desc)
 
     def __str__(self):
-        return 'DimensionInt(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'DimensionGeneratorInt(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     @staticmethod
     def validate_desc(desc, context):
-        return DimensionBase.validate_desc(desc, context)
+        return DimensionGeneratorBase.validate_desc(desc, context)
 
     def _get_raw_value(self):
         return int(self.value_distribution.get_sample())
@@ -155,7 +155,7 @@ class DimensionInt(DimensionBase):
 # FLOAT dimensions
 #
 
-class DimensionFloat(DimensionBase):
+class DimensionGeneratorFloat(DimensionGeneratorBase):
     """Generates float values from a numeric distribution with optional decimal precision. Config type: "float"."""
     def __init__(self, desc):
         self.value_distribution = parse_distribution(desc['distribution'])
@@ -166,11 +166,11 @@ class DimensionFloat(DimensionBase):
         super().__init__(desc)
 
     def __str__(self):
-        return 'DimensionFloat(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'DimensionGeneratorFloat(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     @staticmethod
     def validate_desc(desc, context):
-        valid = DimensionBase.validate_desc(desc, context)
+        valid = DimensionGeneratorBase.validate_desc(desc, context)
         if 'precision' in desc:
             try:
                 p = int(desc['precision'])
@@ -205,10 +205,10 @@ class DimensionFloat(DimensionBase):
                 s = '"'+self.name+'":'+str(format%value)
         return s
 
-class DimensionCounter:
+class DimensionGeneratorCounter:
     """Emits a sequentially incrementing integer. Config type: "counter".
 
-    The counter is per-instance, not global — each DimensionCounter object maintains
+    The counter is per-instance, not global — each DimensionGeneratorCounter object maintains
     its own sequence. Useful for surrogate keys within a single emitter.
     Fields: start (default 0), increment (default 1).
     """
@@ -232,7 +232,7 @@ class DimensionCounter:
             self.increment = 1
         self.value = self.start
     def __str__(self):
-        s = 'DimensionCounter(name='+self.name
+        s = 'DimensionGeneratorCounter(name='+self.name
         if self.start != 0:
             s += ', '+str(self.start)
         if self.increment != 1:
@@ -279,12 +279,16 @@ class DimensionCounter:
 # STRING dimensions
 #
 
-class DimensionStringStatic:
-    """Always emits a fixed literal string value. Use instead of the string+chars+length_distribution hack."""
+class DimensionStatic:
+    """Always emits a fixed literal value. Config type: "static".
+
+    value is any JSON scalar (str, int, float, bool); its type is inferred
+    from the JSON value — no need to declare string:static vs int:static.
+    Only valid in emitter dimensions, not in a state's variables block.
+    """
     def __init__(self, desc):
         self.name = desc['name']
-        self.value = str(desc['value'])
-        self.percent_nulls = desc.get('percent_nulls', 0) / 100.0
+        self.value = desc['value']
         self.percent_missing = desc.get('percent_missing', 0) / 100.0
 
     @staticmethod
@@ -296,58 +300,19 @@ class DimensionStringStatic:
         if 'value' not in desc:
             logger.error("%s: missing required field 'value'", context)
             valid = False
-        elif not isinstance(desc['value'], str):
-            logger.error("%s: 'value' must be a string, got %s", context, type(desc['value']).__name__)
+        elif not isinstance(desc['value'], (str, int, float, bool)):
+            logger.error("%s: 'value' must be a scalar (str, int, float, or bool), got %s", context, type(desc['value']).__name__)
             valid = False
         return valid
 
     def get_stochastic_value(self):
         return self.value
 
-    def get_json_field_string(self):
-        if random.random() < self.percent_nulls:
-            return f'"{self.name}": null'
-        return f'"{self.name}":"{self.value}"'
-
     def is_missing(self):
         return random.random() < self.percent_missing
 
 
-class DimensionIntStatic:
-    """Always emits a fixed integer value."""
-    def __init__(self, desc):
-        self.name = desc['name']
-        self.value = int(desc['value'])
-        self.percent_nulls = desc.get('percent_nulls', 0) / 100.0
-        self.percent_missing = desc.get('percent_missing', 0) / 100.0
-
-    @staticmethod
-    def validate_desc(desc, context):
-        valid = True
-        if 'name' not in desc:
-            logger.error("%s: missing required field 'name'", context)
-            valid = False
-        if 'value' not in desc:
-            logger.error("%s: missing required field 'value'", context)
-            valid = False
-        elif not isinstance(desc['value'], int):
-            logger.error("%s: 'value' must be an integer, got %s", context, type(desc['value']).__name__)
-            valid = False
-        return valid
-
-    def get_stochastic_value(self):
-        return self.value
-
-    def get_json_field_string(self):
-        if random.random() < self.percent_nulls:
-            return f'"{self.name}": null'
-        return f'"{self.name}":{self.value}'
-
-    def is_missing(self):
-        return random.random() < self.percent_missing
-
-
-class DimensionString(DimensionBase):
+class DimensionGeneratorString(DimensionGeneratorBase):
     """Generates random strings of a given length drawn from a character set. Config type: "string".
 
     length_distribution controls how many characters to generate per value.
@@ -362,7 +327,7 @@ class DimensionString(DimensionBase):
         super().__init__(desc)
 
     def __str__(self):
-        return 'DimensionString(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+', chars='+self.chars+')'
+        return 'DimensionGeneratorString(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+', chars='+self.chars+')'
 
     @staticmethod
     def validate_desc(desc, context):
@@ -421,12 +386,12 @@ class DimensionString(DimensionBase):
 # TIMESTAMP dimensions
 #
 
-class DimensionTimestampClock:
+class DimensionGeneratorClock:
     """Captures the worker's current simulated clock time as a datetime. Config type: "clock".
 
     Used for the record timestamp and for start/end time capture in the
     setup → timer → emit pattern. Returns timezone-aware UTC datetimes.
-    Unlike DimensionTimestamp, this reflects the simulation clock, not a random range.
+    Unlike DimensionGeneratorTimestamp, this reflects the simulation clock, not a random range.
     """
     def __init__(self, clock, desc):
         self.clock = clock
@@ -447,10 +412,10 @@ class DimensionTimestampClock:
             current_time = current_time.replace(tzinfo=timezone.utc)  # Default to UTC if no timezone
         return current_time
 
-class DimensionTimestamp(DimensionBase):
+class DimensionGeneratorTimestamp(DimensionGeneratorBase):
     """Generates a random datetime within a fixed range, independent of the simulation clock. Config type: "timestamp".
 
-    distribution min/max are ISO 8601 strings. Use DimensionTimestampClock ("clock") instead
+    distribution min/max are ISO 8601 strings. Use DimensionGeneratorClock ("clock") instead
     when you want the record time to track the simulation clock.
     """
     def __init__(self, desc):
@@ -482,7 +447,7 @@ class DimensionTimestamp(DimensionBase):
                 self.cardinality.append(value)
 
     def __str__(self):
-        return 'DimensionTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'DimensionGeneratorTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     @staticmethod
     def validate_desc(desc, context):
@@ -527,7 +492,7 @@ class DimensionTimestamp(DimensionBase):
     def is_missing(self):
         return random.random() < self.percent_missing
 
-class DimensionIPAddress(DimensionBase):
+class DimensionGeneratorIPAddress(DimensionGeneratorBase):
     """Generates IPv4 addresses from a numeric distribution over the 32-bit address space. Config type: "ipaddress".
 
     distribution min/max are integers representing the packed 32-bit address.
@@ -538,11 +503,11 @@ class DimensionIPAddress(DimensionBase):
         super().__init__(desc)
 
     def __str__(self):
-        return 'DimensionIPAddress(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'DimensionGeneratorIPAddress(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     @staticmethod
     def validate_desc(desc, context):
-        return DimensionBase.validate_desc(desc, context)
+        return DimensionGeneratorBase.validate_desc(desc, context)
 
     def _get_raw_value(self):
         value = int(self.value_distribution.get_sample())
@@ -568,7 +533,7 @@ class DimensionIPAddress(DimensionBase):
 # Complex dimensions
 #
 
-class DimensionEnum:
+class DimensionGeneratorEnum:
     """Selects a value from a fixed list using a cardinality_distribution index. Config type: "enum".
 
     cardinality_distribution is used as a zero-based index into the values list, so
@@ -591,7 +556,7 @@ class DimensionEnum:
         self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
 
     def __str__(self):
-        return 'DimensionEnum(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'DimensionGeneratorEnum(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     @staticmethod
     def validate_desc(desc, context):
@@ -637,7 +602,7 @@ class DimensionEnum:
     def is_missing(self):
         return random.random() < self.percent_missing
 
-class DimensionObject():
+class DimensionGeneratorObject():
     """Generates a nested JSON object from a list of child dimensions. Config type: "object"."""
     def __init__(self, clock, desc):
         self.global_clock = clock
@@ -669,7 +634,7 @@ class DimensionObject():
                 self.cardinality.append(value)
 
     def __str__(self):
-        s = 'DimensionObject(name='+self.name+', dimensions=['
+        s = 'DimensionGeneratorObject(name='+self.name+', dimensions=['
         for e in self.dimensions:
             s += ',' + str(e)
         s += '])'
@@ -736,7 +701,7 @@ class DimensionObject():
     def is_missing(self):
         return random.random() < self.percent_missing
 
-class DimensionList():
+class DimensionGeneratorList():
     """Generates a JSON array whose length and element type are both drawn from distributions. Config type: "list".
 
     length_distribution controls the number of elements per array.
@@ -774,7 +739,7 @@ class DimensionList():
                 self.cardinality.append(value)
 
     def __str__(self):
-        s = 'DimensionObject(name='+self.name
+        s = 'DimensionGeneratorObject(name='+self.name
         s += ', length_distribution='+str(self.length_distribution)
         s += ', selection_distribution='+str(self.selection_distribution)
         s += ', elements=['
@@ -901,39 +866,42 @@ class DimensionVariable:
 # Configuration parsing functions
 #
 
-def parse_element(desc, global_clock):
-    # Parses a given dimension configuration and returns the corresponding dimension object.
+_GENERATOR_FACTORIES = {
+    'generator:counter':   lambda desc, clock: DimensionGeneratorCounter(desc),
+    'generator:enum':      lambda desc, clock: DimensionGeneratorEnum(desc),
+    'generator:string':    lambda desc, clock: DimensionGeneratorString(desc),
+    'generator:int':       lambda desc, clock: DimensionGeneratorInt(desc),
+    'generator:float':     lambda desc, clock: DimensionGeneratorFloat(desc),
+    'generator:timestamp': lambda desc, clock: DimensionGeneratorTimestamp(desc),
+    'generator:clock':     lambda desc, clock: DimensionGeneratorClock(clock, desc),
+    'generator:ipaddress': lambda desc, clock: DimensionGeneratorIPAddress(desc),
+    'generator:object':    lambda desc, clock: DimensionGeneratorObject(clock, desc),
+    'generator:list':      lambda desc, clock: DimensionGeneratorList(clock, desc),
+}
 
-    if desc['type'].lower() == 'counter':
-        el = DimensionCounter(desc)
-    elif desc['type'].lower() == 'enum':
-        el = DimensionEnum(desc)
-    elif desc['type'].lower() == 'string:static':
-        el = DimensionStringStatic(desc)
-    elif desc['type'].lower() == 'int:static':
-        el = DimensionIntStatic(desc)
-    elif desc['type'].lower() == 'string':
-        el = DimensionString(desc)
-    elif desc['type'].lower() == 'int':
-        el = DimensionInt(desc)
-    elif desc['type'].lower() == 'float':
-        el = DimensionFloat(desc)
-    elif desc['type'].lower() == 'timestamp':
-        el = DimensionTimestamp(desc)
-    elif desc['type'].lower() == 'clock':
-        el = DimensionTimestampClock(global_clock, desc)  # Pass global_clock
-    elif desc['type'].lower() == 'ipaddress':
-        el = DimensionIPAddress(desc)
-    elif desc['type'].lower() == 'variable':
-        el = DimensionVariable(desc)
-    elif desc['type'].lower() == 'object':
-        el = DimensionObject(global_clock, desc)
-    elif desc['type'].lower() == 'list':
-        el = DimensionList(global_clock, desc)
+_GENERATOR_VALIDATORS = {
+    'generator:counter':   DimensionGeneratorCounter,
+    'generator:enum':      DimensionGeneratorEnum,
+    'generator:string':    DimensionGeneratorString,
+    'generator:int':       DimensionGeneratorInt,
+    'generator:float':     DimensionGeneratorFloat,
+    'generator:timestamp': DimensionGeneratorTimestamp,
+    'generator:clock':     DimensionGeneratorClock,
+    'generator:ipaddress': DimensionGeneratorIPAddress,
+    'generator:object':    DimensionGeneratorObject,
+    'generator:list':      DimensionGeneratorList,
+}
+
+def parse_element(desc, global_clock):
+    t = desc['type'].lower()
+    if t == 'static':
+        return DimensionStatic(desc)
+    elif t == 'variable':
+        return DimensionVariable(desc)
+    elif t in _GENERATOR_FACTORIES:
+        return _GENERATOR_FACTORIES[t](desc, global_clock)
     else:
-        msg = 'Error: Unknown dimension type "'+desc['type']+'"'
-        raise Exception(msg)
-    return el
+        raise Exception(f'Error: Unknown dimension type "{desc["type"]}"')
 
 def get_variables(desc, global_clock):
     # Parses the emitter configuration and returns a list of dimension objects using parse_element().
@@ -947,10 +915,7 @@ def get_dimensions(desc, global_clock):
     elements = get_variables(desc, global_clock)  # Pass global_clock
     return elements
 
-KNOWN_DIMENSION_TYPES = (
-    'counter', 'enum', 'string', 'string:static', 'int', 'int:static', 'float',
-    'timestamp', 'clock', 'ipaddress', 'variable', 'object', 'list'
-)
+KNOWN_DIMENSION_TYPES = ('static', 'variable') + tuple(sorted(_GENERATOR_FACTORIES))
 
 def validate_dimension_desc(desc, context):
     """
@@ -964,32 +929,12 @@ def validate_dimension_desc(desc, context):
         logger.error("%s: missing required field 'type'", context)
         return False
     dim_type = str(desc['type']).lower()
-    if dim_type == 'enum':
-        return DimensionEnum.validate_desc(desc, context)
-    elif dim_type == 'counter':
-        return DimensionCounter.validate_desc(desc, context)
-    elif dim_type == 'string:static':
-        return DimensionStringStatic.validate_desc(desc, context)
-    elif dim_type == 'int:static':
-        return DimensionIntStatic.validate_desc(desc, context)
-    elif dim_type == 'string':
-        return DimensionString.validate_desc(desc, context)
-    elif dim_type == 'int':
-        return DimensionInt.validate_desc(desc, context)
-    elif dim_type == 'float':
-        return DimensionFloat.validate_desc(desc, context)
-    elif dim_type == 'timestamp':
-        return DimensionTimestamp.validate_desc(desc, context)
-    elif dim_type == 'clock':
-        return DimensionTimestampClock.validate_desc(desc, context)
-    elif dim_type == 'ipaddress':
-        return DimensionIPAddress.validate_desc(desc, context)
+    if dim_type == 'static':
+        return DimensionStatic.validate_desc(desc, context)
     elif dim_type == 'variable':
         return DimensionVariable.validate_desc(desc, context)
-    elif dim_type == 'object':
-        return DimensionObject.validate_desc(desc, context)
-    elif dim_type == 'list':
-        return DimensionList.validate_desc(desc, context)
+    elif dim_type in _GENERATOR_VALIDATORS:
+        return _GENERATOR_VALIDATORS[dim_type].validate_desc(desc, context)
     else:
         logger.error(
             "%s: unknown dimension type '%s' (known: %s)",

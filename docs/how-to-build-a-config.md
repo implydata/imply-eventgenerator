@@ -125,7 +125,7 @@ For each timer and each generated field, choose a distribution. See [distributio
 | Most values near the mean, tails possible | `normal` |
 | Short durations most common, long tail | `exponential` |
 | Realistic time-of-day traffic patterns | `gmm_temporal` |
-| Fixed value field (not random at all) | `string:static` or `int:static` |
+| Fixed value field (not random at all) | `static` |
 
 > **Example distributions:**
 >
@@ -158,23 +158,23 @@ Wire everything together. The `states` list must start with the `event:start:tim
       "variables": [
         {
           "name": "var_ticket_id",
-          "type": "int",
+          "type": "generator:int",
           "cardinality": 0,
           "distribution": { "type": "uniform", "min": 100000, "max": 999999 }
         },
         {
           "name": "var_priority",
-          "type": "enum",
+          "type": "generator:enum",
           "values": ["urgent", "normal", "low"],
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
         },
         {
           "name": "var_category",
-          "type": "enum",
+          "type": "generator:enum",
           "values": ["billing", "technical", "account"],
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
         },
-        { "name": "var_status", "type": "string:static", "value": "created" }
+        { "name": "var_status", "type": "static", "value": "created" }
       ],
       "next": "pause_triage_queue"
     },
@@ -216,12 +216,12 @@ Wire everything together. The `states` list must start with the `event:start:tim
       "variables": [
         {
           "name": "var_agent_id",
-          "type": "int",
+          "type": "generator:int",
           "cardinality": 20,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 19 },
           "distribution": { "type": "uniform", "min": 1, "max": 100 }
         },
-        { "name": "var_status", "type": "string:static", "value": "resolved" }
+        { "name": "var_status", "type": "static", "value": "resolved" }
       ],
       "next": "ticket_closed"
     },
@@ -316,7 +316,7 @@ Document the result in the preset's `docs/presets/<name>.md` Concurrency section
 ## See also
 
 - [states.md](./states.md) — state type index with links to per-type field references
-- [variables-generated.md](./variables-generated.md) — all generated variable types
+- [dimensions/generator.md](./dimensions/generator.md) — all `generator:*` types
 - [distributions.md](./distributions.md) — distribution reference
 - [patterns.md](./patterns.md) — common patterns (variable persistence, flow duration, multi-record sessions)
 - [best-practices.md](./best-practices.md) — naming conventions and development workflow

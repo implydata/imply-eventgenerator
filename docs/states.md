@@ -55,7 +55,7 @@ Each worker carries a **variable namespace** — a dict that persists for the en
 
 **Writing to the namespace:**
 
-- [Generated variables](./variables-generated.md) — an activity state's `variables` block samples values using generated variables and writes them into the namespace at runtime.
+- [`generator:*` dimensions](./dimensions/generator.md) — an activity state's `variables` block samples values using `generator:*` types and writes them into the namespace at runtime.
 - [`subprocess:multi:variables`](./states/subprocess-multi-variables.md) — each item's variable specs are evaluated and written into the namespace before the child run starts.
 
 **Reading from the namespace:**
@@ -91,7 +91,7 @@ It does **not** catch ordering issues — a variable referenced in an emitter mi
 ## See also
 
 - [How to build a config](how-to-build-a-config.md) — step-by-step design guide
-- [Generated variables](variables-generated.md) — generated variable types for use in `variables` blocks
+- [Generator types](dimensions/generator.md) — `generator:*` types for use in `variables` blocks and `emitter.dimensions`
 - [Distributions](distributions.md) — distribution types for `cardinality_distribution`
 - [Emitters](emitters.md) — emitter structure and dimension fields
 - [Common patterns](patterns.md) — variable persistence, multi-record sessions, flow duration

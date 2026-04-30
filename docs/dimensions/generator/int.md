@@ -1,22 +1,22 @@
 # Synthetic integers
 
-When a [generated variable](./variables-generated.md) type is `int`, a random integer is created.
+When a [generated variable](../generator.md) type is `int`, a random integer is created.
 
 | Field | Description | Possible values | Required? | Default |
 | --- | --- | --- | --- | --- |
 | `type` | The data type for the dimension. | `int` | Yes | |
 | `name` | The unique name for the dimension. | String | Yes | |
 | `cardinality` | Indicates the number of unique values for this dimension. Use zero for unconstrained cardinality. | Integer | Yes | |
-| `cardinality_distribution` | Skews the cardinality selection of the generated values. | A [distribution](./distributions.md) object. | Yes, if `cardinality` not 0. | |
+| `cardinality_distribution` | Skews the cardinality selection of the generated values. | A [distribution](../../distributions.md) object. | Yes, if `cardinality` not 0. | |
 | `percent_missing` | The stochastic frequency for omitting this dimension from records (inclusive). | Integer between 0 and 100. | No. | 0 |
 | `percent_nulls` | The stochastic frequency (inclusive) for generating null values. | Integer between 0 and 100. | No. | 0 |
-| `distribution` | Specifies the distribution of the numbers generated, with each rounded to the nearest integer value. | A [distribution](./distributions.md) object. | Yes. | |
+| `distribution` | Specifies the distribution of the numbers generated, with each rounded to the nearest integer value. | A [distribution](../../distributions.md) object. | Yes. | |
 
 In this example, `session_start` spawns a new worker every 3600 seconds. Each worker pauses for a uniform delay of 5–10 seconds then emits a record via `example_event_1`, cycling continuously.
 
 The emitter `example_event_1` produces the following dimensions:
 
-* `user` is an `enum` dimension, selecting one of the `values` using a `uniform` `cardinality_distribution` [distribution](./distributions.md) object.
+* `user` is an `enum` dimension, selecting one of the `values` using a `uniform` `cardinality_distribution` [distribution](../../distributions.md) object.
 * `whiteboard_pen_delta` - the change in the number of whiteboard pens each person owns - is an `int` selected using a `normal` `distribution` with a `mean` of 0 and standard deviation (`stddev`) of 4.
 * `cups_of_coffee_consumed` is an int generated using an `exponential` `distribution`, meaning that - on average - 25 cups of coffee are consumed, but the distribution is exponential.
 
@@ -48,18 +48,18 @@ The emitter `example_event_1` produces the following dimensions:
       "dimensions": [
         {
           "name": "user",
-          "type": "enum",
+          "type": "generator:enum",
           "values": ["Aisha", "Mateo", "Chen", "Fatima", "Liam", "Kwame", "Elena", "Noah", "Tenzing", "Keisha"],
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 9 }
         },
         {
           "name": "whiteboard_pen_delta",
-          "type": "int",
+          "type": "generator:int",
           "distribution": { "type": "normal", "mean": 0, "stddev": 4 }, "cardinality": 0
         },
         {
           "name": "cups_of_coffee_consumed",
-          "type": "int",
+          "type": "generator:int",
           "distribution": { "type": "exponential", "mean": 25 }, "cardinality": 0
         }
       ]

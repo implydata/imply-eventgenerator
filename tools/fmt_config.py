@@ -40,7 +40,7 @@ STATE_FIELD_ORDER = {
 
 # Canonical field order for variable / dimension objects.
 VAR_FIELD_ORDER = [
-    'name', 'type', 'variable',
+    'name', 'type', 'variable', 'value',
     'values', 'chars',
     'cardinality', 'length_distribution', 'distribution', 'cardinality_distribution',
     '_comment',
@@ -54,23 +54,21 @@ DIST_FIELD_ORDER = [
 
 INDENT = '  '
 
-# Canonical dimension type ordering.
-# clock first (it's always the record timestamp); variable/string:static early
-# (they're pure references/constants); generative types in rough complexity order.
+# Canonical dimension type ordering: static/variable early, then generators.
+# Within generators, clock first (always the record timestamp), then by complexity.
 _DIM_TYPE_RANK = {t: i for i, t in enumerate([
-    'clock',
-    'string:static',
-    'int:static',
+    'static',
     'variable',
-    'enum',
-    'int',
-    'float',
-    'ipaddress',
-    'string',
-    'counter',
-    'timestamp',
-    'object',
-    'list',
+    'generator:clock',
+    'generator:enum',
+    'generator:int',
+    'generator:float',
+    'generator:ipaddress',
+    'generator:string',
+    'generator:counter',
+    'generator:timestamp',
+    'generator:object',
+    'generator:list',
 ])}
 
 
@@ -225,18 +223,18 @@ def fmt(value, depth: int = 0, key: str = None) -> str:
             return _inline(value)
         # variable/dimension objects → single line if they fit, else type+name open line
         if _is_variable_or_dimension(value):
-            if value.get('type') in ('variable', 'clock', 'string:static', 'int:static') or _fits_one_line(value):
+            if value.get('type') in ('variable', 'static', 'generator:clock') or _fits_one_line(value):
                 return _inline(value)
             # name and type share the opening line; remaining fields expand below
-            type_name = (
+            opening = (
                 f'{inner}{json.dumps("name")}: {json.dumps(value["name"])}, '
                 f'{json.dumps("type")}: {json.dumps(value["type"])}'
             )
             rest = [
                 f'{inner}{json.dumps(k)}: {fmt(v, depth + 1, key=k)}'
-                for k, v in value.items() if k not in ('type', 'name')
+                for k, v in value.items() if k not in ('name', 'type')
             ]
-            return '{\n' + ',\n'.join([type_name] + rest) + '\n' + pad + '}'
+            return '{\n' + ',\n'.join([opening] + rest) + '\n' + pad + '}'
         # state objects → name and type share the opening line
         if _is_state(value) and 'name' in value:
             type_name = (

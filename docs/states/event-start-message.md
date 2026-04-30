@@ -7,7 +7,7 @@ The entry point for a child config designed for subprocess use. It is the BPMN *
 | `name` | Unique name for this state. | Yes |
 | `type` | Must be `"event:start:message"`. | Yes |
 | `_comment` | Optional annotation. | No |
-| `variables` | Optional list of [generated variables](../variables-generated.md). Useful for declaring standalone defaults. The parent's `items` values are written into the namespace before this block runs, so the parent always wins on overlapping names. | No |
+| `variables` | Optional list of [generated variables](../dimensions/generator.md). Useful for declaring standalone defaults. The parent's `items` values are written into the namespace before this block runs, so the parent always wins on overlapping names. | No |
 | `next` | Name of the next state. | Yes |
 
 ```json
@@ -26,4 +26,4 @@ A config with `event:start:message` but no `event:start:timer` will fail standal
 
 - [State types index](../states.md)
 - [subprocess:multi:variables](./subprocess-multi-variables.md) — the parent state that triggers this entry point
-- [Generated variables](../variables-generated.md) — variable types for use in the optional `variables` block
+- [Generated variables](../dimensions/generator.md) — variable types for use in the optional `variables` block

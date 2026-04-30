@@ -6,7 +6,7 @@ Distribution JSON objects define the distribution pattern to follow when creatin
 
 They appear in emitter `dimensions` lists, and in `cardinality_distribution` fields - including `event:start:timer` and `event:intermediate:timer` states.
 
-| Field | Use | [`timestamp`](./types/timestamp.md) | [`string`](./types/string.md) | [`int`](./types/int.md) | [`float`](./types/float.md) | [`ipaddress`](./types/ipaddress.md) |
+| Field | Use | [`timestamp`](./dimensions/generator/timestamp.md) | [`string`](./dimensions/generator/string.md) | [`int`](./dimensions/generator/int.md) | [`float`](./dimensions/generator/float.md) | [`ipaddress`](./dimensions/generator/ipaddress.md) |
 | --- | --- | --- | --- | --- | --- | --- |
 | `distribution` | Determines how the values for the dimension are generated. | Y | | Y | Y | Y |
 | `length_distribution` | Determines the length of the generated value of the dimension. | | Y | | | |
@@ -132,12 +132,12 @@ The generator creates a list of values with length `cardinality`.
 * If `cardinality` is zero, there are no constraints on the number of values in the list.
 * When `cardinality` is > 0, `cardinality_distribution` is required, informing the data generator how to select items from the list.
 
-In this example, a `string`-type dimension has no `cardinality` constraint.
+In this example, a `generator:string`-type dimension has no `cardinality` constraint.
 
 ```json
 {
   "name": "Str1",
-  "type": "string",
+  "type": "generator:string",
   "length_distribution": {"type": "uniform", "min": 3, "max": 6},
   "chars": "abcdefg",
   "cardinality": 0
@@ -149,7 +149,7 @@ In this example, `cardinality` of 5 requires that there only be a maximum of 5 d
 ```json
 {
   "name": "Str1",
-  "type": "string",
+  "type": "generator:string",
   "length_distribution": {"type": "uniform", "min": 3, "max": 6},
   "cardinality": 5,
   "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4},

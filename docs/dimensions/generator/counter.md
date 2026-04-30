@@ -1,6 +1,6 @@
 # Synthetic counters
 
-When a [generated variable](./variables-generated.md) type is `counter`, an integer is created that increments with every generation.
+When a [generated variable](../generator.md) type is `counter`, an integer is created that increments with every generation.
 
 **Counter scope**: each counter is per-worker and per-emitter-dimension-instance. Counters reset to `start` when a new worker lifecycle begins. If a worker visits an emit state multiple times in a single lifecycle, the counter increments on every visit. Two emitters that each define a counter are independent of each other — they do not share state.
 
@@ -74,21 +74,21 @@ The second emitter, `example_event_2`, mirrors the same configuration, using dif
     {
       "name": "example_event_1",
       "dimensions": [
-        { "name": "time", "type": "clock" },
-        { "name": "default_counter1", "type": "counter" },
-        { "name": "start_counter1", "type": "counter", "start": 100 },
-        { "name": "increment_counter1", "type": "counter", "increment": 10000 },
-        { "name": "both_counter1", "type": "counter", "start": 250, "increment": 50 }
+        { "name": "time", "type": "generator:clock" },
+        { "name": "default_counter1", "type": "generator:counter" },
+        { "name": "start_counter1", "type": "generator:counter", "start": 100 },
+        { "name": "increment_counter1", "type": "generator:counter", "increment": 10000 },
+        { "name": "both_counter1", "type": "generator:counter", "start": 250, "increment": 50 }
       ]
     },
     {
       "name": "example_event_2",
       "dimensions": [
-        { "name": "time", "type": "clock" },
-        { "name": "default_counter2", "type": "counter" },
-        { "name": "start_counter2", "type": "counter", "start": 500 },
-        { "name": "increment_counter2", "type": "counter", "increment": 50000 },
-        { "name": "both_counter2", "type": "counter", "start": 750, "increment": 50 }
+        { "name": "time", "type": "generator:clock" },
+        { "name": "default_counter2", "type": "generator:counter" },
+        { "name": "start_counter2", "type": "generator:counter", "start": 500 },
+        { "name": "increment_counter2", "type": "generator:counter", "increment": 50000 },
+        { "name": "both_counter2", "type": "generator:counter", "start": 750, "increment": 50 }
       ]
     }
   ]

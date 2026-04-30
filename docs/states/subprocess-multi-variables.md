@@ -33,9 +33,9 @@ flowchart LR
   "name": "load_components",
   "type": "subprocess:multi:variables",
   "items": [
-    [{"name": "url", "type": "string:static", "value": "/index.html"}, {"name": "bytes", "type": "int:static", "value": 1247}],
-    [{"name": "url", "type": "string:static", "value": "/static/style.css"}, {"name": "bytes", "type": "int:static", "value": 8432}],
-    [{"name": "url", "type": "string:static", "value": "/static/app.js"}, {"name": "bytes", "type": "int:static", "value": 42180}]
+    [{"name": "url", "type": "static", "value": "/index.html"}, {"name": "bytes", "type": "static", "value": 1247}],
+    [{"name": "url", "type": "static", "value": "/static/style.css"}, {"name": "bytes", "type": "static", "value": 8432}],
+    [{"name": "url", "type": "static", "value": "/static/app.js"}, {"name": "bytes", "type": "static", "value": 42180}]
   ],
   "states": "presets/configs/child.json",
   "next": "done"
@@ -46,7 +46,7 @@ flowchart LR
 
 ## The `items` list
 
-Each entry in `items` is a list of variable specs — exactly the same format as a `variables` block in an `activity` state. Any generator type valid in a `variables` block is valid here: `string:static`, `int:static`, `enum`, `ipaddress`, and so on.
+Each entry in `items` is a list of variable specs — exactly the same format as a `variables` block in an `activity` state. Any generator type valid in a `variables` block is valid here: `static`, `generator:enum`, `ipaddress`, and so on.
 
 The engine parses all items at startup (via the same path as activity `variables`) and evaluates each one at runtime before starting that iteration's child run. The results are written into the shared namespace before the child's `event:start:message` state runs.
 
@@ -78,5 +78,5 @@ See [emitters](../emitters.md) for the full dimension reference.
 
 - [State types index](../states.md)
 - [event:start:message](./event-start-message.md) — required child entry point
-- [Generated variables](../variables-generated.md) — variable types valid in `items` entries
+- [Generated variables](../dimensions/generator.md) — variable types valid in `items` entries
 - [Emitters](../emitters.md) — emitter structure and dimension fields

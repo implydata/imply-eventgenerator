@@ -13,7 +13,7 @@ An activity is where work happens: variables are evaluated and, optionally, a re
 | `name` | Unique name for this state. | Yes |
 | `type` | Must be `"activity"`. | Yes |
 | `_comment` | Optional annotation. | No |
-| `variables` | A list of [generated variables](../variables-generated.md) that write sampled values into the variable namespace. Evaluated before the record is emitted. | No |
+| `variables` | A list of [generated variables](../dimensions/generator.md) that write sampled values into the variable namespace. Evaluated before the record is emitted. | No |
 | `emitter` | The [emitter](../emitters.md) to use. If omitted, no record is emitted. | No |
 | `next` | Name of the next state (a string, not a transitions list). Route to an `event:end` state to terminate. | Yes |
 
@@ -40,13 +40,13 @@ There is no type distinction between these two patterns — both use `"type": "a
   "variables": [
     {
       "name": "var_user_id",
-      "type": "int",
+      "type": "generator:int",
       "cardinality": 0,
       "distribution": { "type": "uniform", "min": 1, "max": 10000 }
     },
     {
       "name": "var_start",
-      "type": "clock"
+      "type": "generator:clock"
     }
   ],
   "next": "route_session"
@@ -63,10 +63,10 @@ There is no type distinction between these two patterns — both use `"type": "a
   "type": "activity",
   "_comment": "Capture end time and stats, then emit the completed flow record",
   "variables": [
-    { "name": "var_end", "type": "clock" },
+    { "name": "var_end", "type": "generator:clock" },
     {
       "name": "var_bytes",
-      "type": "int",
+      "type": "generator:int",
       "cardinality": 0,
       "distribution": { "type": "uniform", "min": 500, "max": 50000 }
     }
@@ -81,6 +81,6 @@ There is no type distinction between these two patterns — both use `"type": "a
 ## See also
 
 - [State types index](../states.md)
-- [Generated variables](../variables-generated.md) — variable types for use in `variables`
+- [Generated variables](../dimensions/generator.md) — variable types for use in `variables`
 - [Emitters](../emitters.md) — emitter structure and dimension fields
 - [Common patterns](../patterns.md) — including the setup → timer → emit pattern for events with duration

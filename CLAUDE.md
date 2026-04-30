@@ -43,14 +43,16 @@ The reference docs in `docs/` are the authoritative source for what the engine s
 | `states.md` | State type field reference |
 | `emitters.md` | Emitter structure and dimension fields |
 | `distributions.md` | Distribution types and parameters |
-| `field-generators.md` | Index of all field generator types |
-| `docs/types/<type>.md` | Per-type detail — one file per field generator type |
+| `dimensions/static.md` | The `static` dimension type |
+| `dimensions/variable.md` | The `variable` dimension type and the variable namespace |
+| `dimensions/generator.md` | Index of all `generator:*` types |
+| `dimensions/generator/<type>.md` | Per-type detail — one file per generator type |
 | `templates.md` | Template syntax and the `templates` block |
 | `schedules.md` | Schedule format and multiplier semantics |
 
-- If a code change adds or modifies a state type, distribution type, emitter option, or field type, update the relevant doc in the same pass — not as a follow-up.
-- `field-generators.md` is an index page; the per-type detail lives in `docs/types/`. When a new field type is added, create `docs/types/<type>.md` **and** add a row to `field-generators.md`.
-- If asked to write a config that uses a distribution or field type not present in `docs/`, **stop and flag it** rather than writing JSON and hoping it works.
+- If a code change adds or modifies a state type, distribution type, emitter option, or dimension type, update the relevant doc in the same pass — not as a follow-up.
+- `dimensions/generator.md` is the index page; per-type detail lives in `dimensions/generator/`. When a new generator type is added, create `dimensions/generator/<type>.md` **and** add a row to `dimensions/generator.md`.
+- If asked to write a config that uses a distribution or dimension type not present in `docs/`, **stop and flag it** rather than writing JSON and hoping it works.
 
 ## Testing configs
 

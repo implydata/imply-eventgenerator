@@ -2,22 +2,78 @@
 
 > Building a new config? See [How to build a config](./how-to-build-a-config.md) for the design process. This page is the emitter field reference.
 
-Emitters define the data that will be created by the data generator when a particular [state](./states.md) is reached.
+An emitter defines the shape of the records produced when a worker enters an activity state that references it.
 
-Define one or more emitters, each with its own dimensions and data configuration.
+| Field | Required? | Description |
+| --- | --- | --- |
+| `name` | Yes | Unique name for the emitter, referenced by `"emitter": "<name>"` in activity states. |
+| `dimensions` | Yes | Ordered list of field descriptors — each one defines how a single output field gets its value. |
 
-Each emitter has this structure:
+---
 
-| Field | Description | Possible values | Required? |
-| --- | --- | --- | --- |
-| `name` | The unique name for the emitter. | | Yes |
-| `dimensions` | A list of attributes and measures, and, for each, the configuration for how data will be generated. | | Yes |
+## Dimensions
 
-Use the `dimensions` list to prescribe the event timestamp, attributes, and measures for each record created by a worker as it enters each state.
+Each entry in `dimensions` answers one question: **where does this field's value come from?** There are three kinds:
 
-Each entry in `dimensions` answers one question: **how should this field get its value?** There are two answers:
+| Kind | Type syntax | Description |
+| --- | --- | --- |
+| [static](./dimensions/static.md) | `"type": "static"` | A fixed literal value — the same every time. |
+| [variable](./dimensions/variable.md) | `"type": "variable"` | A lookup from the worker's [variable namespace](./dimensions/variable.md). |
+| [generator](./dimensions/generator.md) | `"type": "generator:<class>"` | A freshly sampled value — `generator:int`, `generator:enum`, `generator:clock`, etc. |
 
-- **Generate it directly** — use any [generated variable type](./variables-generated.md) (`clock`, `enum`, `string`, `int`, etc.). The value is produced at emit time and written straight into the output record, without touching the variable namespace.
-- **Read it from the namespace** — use `"type": "variable"`. The value is looked up in the worker's variable namespace at emit time. The namespace is written by [generated variables](./variables-generated.md) (activity `variables` block) and by [`subprocess:multi:variables`](./states/subprocess-multi-variables.md) (parent `items` list).
+Fields appear in the output record in the order they are listed in `dimensions`.
 
-See [states](./states.md) for how variables are written into the namespace.
+### static
+
+```json
+{"name": "http_version", "type": "static", "value": "HTTP/1.1"}
+{"name": "status",       "type": "static", "value": 200}
+```
+
+The JSON value determines the type — no need to declare `string:static` vs `int:static`.
+
+### variable
+
+```json
+{"name": "user",   "type": "variable", "variable": "var_user"}
+{"name": "status", "type": "variable", "variable": "var_status"}
+```
+
+Values are written into the namespace by activity states (via `state.variables`) and by [`subprocess:multi:variables`](./states/subprocess-multi-variables.md) (via `items`). See [variable namespace](./dimensions/variable.md) for the full picture.
+
+### generator
+
+```json
+{"name": "time",       "type": "generator:clock"}
+{"name": "bytes_out",  "type": "generator:int",  "cardinality": 0, "distribution": {"type": "uniform", "min": 100, "max": 9000}}
+{"name": "ip",         "type": "generator:ipaddress", "cardinality": 50, "distribution": {"type": "uniform", "min": 167772160, "max": 184549375},
+                        "cardinality_distribution": {"type": "uniform", "min": 0, "max": 49}}
+```
+
+See [generator types](./dimensions/generator.md) for the full list and per-type field references.
+
+---
+
+## Example
+
+```json
+{
+  "emitters": [
+    {
+      "name": "web_log",
+      "dimensions": [
+        {"name": "time",         "type": "generator:clock"},
+        {"name": "user",         "type": "variable",          "variable": "var_user"},
+        {"name": "http_method",  "type": "static",            "value": "GET"},
+        {"name": "uri_path",     "type": "variable",          "variable": "var_uri_path"},
+        {"name": "status",       "type": "variable",          "variable": "var_status"},
+        {"name": "bytes_out",    "type": "generator:int",     "cardinality": 0,
+                                  "distribution": {"type": "uniform", "min": 100, "max": 9000}},
+        {"name": "client_ip",    "type": "generator:ipaddress", "cardinality": 200,
+                                  "distribution": {"type": "uniform", "min": 167772160, "max": 184549375},
+                                  "cardinality_distribution": {"type": "uniform", "min": 0, "max": 199}}
+      ]
+    }
+  ]
+}
+```

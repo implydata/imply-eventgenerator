@@ -126,8 +126,8 @@ Add comments to explain non-obvious logic:
   "_comment": "TCP handshake: 3 packets (SYN, SYN-ACK, ACK), ~60 bytes each",
   "emitter": "vpc_flow_log",
   "variables": [
-    {"name": "var_packets", "type": "int:static", "value": 3},
-    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 180, "max": 240}}
+    {"name": "var_packets", "type": "static", "value": 3},
+    {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 180, "max": 240}}
   ],
   "next": "session_end"
 }
@@ -160,12 +160,12 @@ Use explicit value lists or bounded ranges to control cardinality. A field like 
 
 ### Timestamp Variables
 
-Use `clock` type for timestamps:
+Use `generator:clock` type for timestamps:
 
 ```json
 {
   "name": "var_timestamp",
-  "type": "clock"
+  "type": "generator:clock"
 }
 ```
 
@@ -178,7 +178,7 @@ Use CIDR notation for realistic subnets:
 ```json
 {
   "name": "var_internal_ip",
-  "type": "ipaddress",
+  "type": "generator:ipaddress",
   "distribution": {"type": "cidr", "value": "10.0.0.0/16"}
 }
 ```
@@ -192,7 +192,7 @@ Use counters for auto-incrementing IDs:
 ```json
 {
   "name": "var_request_id",
-  "type": "counter",
+  "type": "generator:counter",
   "start": 1000,
   "step": 1
 }
@@ -251,7 +251,7 @@ Don't redefine variables unnecessarily:
       "type": "activity",
       "emitter": "pageview",
       "variables": [
-        {"name": "var_page", "type": "string:static", "value": "home"}
+        {"name": "var_page", "type": "static", "value": "home"}
         // var_session_id automatically available
       ],
       "next": "emit_page2"
@@ -261,7 +261,7 @@ Don't redefine variables unnecessarily:
       "type": "activity",
       "emitter": "pageview",
       "variables": [
-        {"name": "var_page", "type": "string:static", "value": "products"}
+        {"name": "var_page", "type": "static", "value": "products"}
         // var_session_id still available
       ],
       "next": "session_end"
@@ -304,9 +304,9 @@ Use Setup→Timer→Emit for time-windowed data:
 ```json
 {
   "states": [
-    {"name": "setup_flow", "type": "activity", "variables": [{"name": "var_start", "type": "clock"}]},
+    {"name": "setup_flow", "type": "activity", "variables": [{"name": "var_start", "type": "generator:clock"}]},
     {"name": "flow_timer", "type": "event:intermediate:timer", "cardinality_distribution": {"type": "exponential", "mean": 5.0}},
-    {"name": "emit_flow", "type": "activity", "emitter": "log", "variables": [{"name": "var_end", "type": "clock"}]}
+    {"name": "emit_flow", "type": "activity", "emitter": "log", "variables": [{"name": "var_end", "type": "generator:clock"}]}
   ]
 }
 ```
@@ -321,8 +321,8 @@ Use Setup→Timer→Emit for time-windowed data:
   "type": "activity",
   "emitter": "log",
   "variables": [
-    {"name": "var_start", "type": "clock"},
-    {"name": "var_end", "type": "clock"}
+    {"name": "var_start", "type": "generator:clock"},
+    {"name": "var_end", "type": "generator:clock"}
   ]
 }
 ```
@@ -417,10 +417,10 @@ Lower cardinality = faster generation:
 
 ```json
 // Faster (3 values)
-{"name": "var_region", "type": "enum", "values": ["us-east-1", "us-west-2", "eu-west-1"]}
+{"name": "var_region", "type": "generator:enum", "values": ["us-east-1", "us-west-2", "eu-west-1"]}
 
 // Slower (1M values)
-{"name": "var_region", "type": "int", "distribution": {"type": "uniform", "min": 1, "max": 1000000}}
+{"name": "var_region", "type": "generator:int", "distribution": {"type": "uniform", "min": 1, "max": 1000000}}
 ```
 
 ### State Complexity
@@ -455,8 +455,8 @@ python3 generator.py -c config.json -n 10000 -s "2024-01-01T00:00:00"
 
 ```json
 {"variables": [
-  {"name": "var_start", "type": "clock"},
-  {"name": "var_end", "type": "clock"}
+  {"name": "var_start", "type": "generator:clock"},
+  {"name": "var_end", "type": "generator:clock"}
 ]}
 ```
 
@@ -493,7 +493,7 @@ See [patterns.md](patterns.md#startactivityemit-pattern-flow-duration)
 ❌ **Problem**: Too many unique values
 
 ```json
-{"name": "var_user_id", "type": "int", "distribution": {"type": "uniform", "min": 1, "max": 2147483647}}
+{"name": "var_user_id", "type": "generator:int", "distribution": {"type": "uniform", "min": 1, "max": 2147483647}}
 ```
 
 **Result**: Every record has unique user_id (unrealistic).
@@ -501,7 +501,7 @@ See [patterns.md](patterns.md#startactivityemit-pattern-flow-duration)
 ✅ **Solution**: Control cardinality with enums or limited ranges
 
 ```json
-{"name": "var_user_id", "type": "enum", "values": ["user1", "user2", "user3", ...]}
+{"name": "var_user_id", "type": "generator:enum", "values": ["user1", "user2", "user3", ...]}
 ```
 
 ### 5. Missing Variable References
@@ -583,4 +583,4 @@ For related information, see:
 - [How to build a config](how-to-build-a-config.md) — step-by-step guide from concept to tested config
 - [Common Patterns](patterns.md) — state machine patterns and techniques
 - [States](states.md) — state type reference with field tables
-- [Generated variables](variables-generated.md) — all generated variable types
+- [Generator types](dimensions/generator.md) — all `generator:*` types

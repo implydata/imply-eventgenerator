@@ -9,7 +9,6 @@
     {
       "name": "cdr",
       "dimensions": [
-        {"name": "time", "type": "clock"},
         {"name": "accountcode", "type": "variable", "variable": "var_accountcode"},
         {"name": "disposition", "type": "variable", "variable": "var_disposition"},
         {"name": "dst", "type": "variable", "variable": "var_dst"},
@@ -17,7 +16,8 @@
         {"name": "duration", "type": "variable", "variable": "var_duration"},
         {"name": "lastapp", "type": "variable", "variable": "var_lastapp"},
         {"name": "lastdata", "type": "variable", "variable": "var_lastdata"},
-        {"name": "src", "type": "variable", "variable": "var_src"}
+        {"name": "src", "type": "variable", "variable": "var_src"},
+        {"name": "time", "type": "generator:clock"}
       ]
     }
   ],
@@ -31,12 +31,12 @@
       "name": "setup_call", "type": "activity",
       "variables": [
         {
-          "name": "var_accountcode", "type": "enum",
+          "name": "var_accountcode", "type": "generator:enum",
           "values": ["", "sales", "support", "billing"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_dst", "type": "int",
+          "name": "var_dst", "type": "generator:int",
           "cardinality": 20,
           "distribution": {
             "type": "uniform",
@@ -46,7 +46,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 19}
         },
         {
-          "name": "var_src", "type": "int",
+          "name": "var_src", "type": "generator:int",
           "cardinality": 500,
           "distribution": {
             "type": "uniform",
@@ -94,16 +94,16 @@
       "name": "emit_answered", "type": "activity",
       "_comment": "Call is in progress. Delay models talk time. CDR emitted when call ends.",
       "variables": [
-        {"name": "var_disposition", "type": "string:static", "value": "ANSWERED"},
-        {"name": "var_lastapp", "type": "string:static", "value": "Dial"},
-        {"name": "var_lastdata", "type": "string:static", "value": "SIP/trunk,30,tTr"},
+        {"name": "var_disposition", "type": "static", "value": "ANSWERED"},
+        {"name": "var_lastapp", "type": "static", "value": "Dial"},
+        {"name": "var_lastdata", "type": "static", "value": "SIP/trunk,30,tTr"},
         {
-          "name": "var_dstchannel", "type": "enum",
+          "name": "var_dstchannel", "type": "generator:enum",
           "values": ["SIP/trunk-0001", "SIP/trunk-0002", "SIP/trunk-0003"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "name": "var_duration", "type": "int",
+          "name": "var_duration", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "exponential",
@@ -118,12 +118,12 @@
       "name": "emit_no_answer", "type": "activity",
       "_comment": "Rang out. CDR emitted immediately with ring duration.",
       "variables": [
-        {"name": "var_disposition", "type": "string:static", "value": "NO ANSWER"},
-        {"name": "var_dstchannel", "type": "string:static", "value": ""},
-        {"name": "var_lastapp", "type": "string:static", "value": "Dial"},
-        {"name": "var_lastdata", "type": "string:static", "value": "SIP/trunk,30,tTr"},
+        {"name": "var_disposition", "type": "static", "value": "NO ANSWER"},
+        {"name": "var_dstchannel", "type": "static", "value": ""},
+        {"name": "var_lastapp", "type": "static", "value": "Dial"},
+        {"name": "var_lastdata", "type": "static", "value": "SIP/trunk,30,tTr"},
         {
-          "name": "var_duration", "type": "int",
+          "name": "var_duration", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -139,12 +139,12 @@
       "name": "emit_busy", "type": "activity",
       "_comment": "Line busy. CDR emitted immediately.",
       "variables": [
-        {"name": "var_disposition", "type": "string:static", "value": "BUSY"},
-        {"name": "var_dstchannel", "type": "string:static", "value": ""},
-        {"name": "var_lastapp", "type": "string:static", "value": "Dial"},
-        {"name": "var_lastdata", "type": "string:static", "value": "SIP/trunk,30,tTr"},
+        {"name": "var_disposition", "type": "static", "value": "BUSY"},
+        {"name": "var_dstchannel", "type": "static", "value": ""},
+        {"name": "var_lastapp", "type": "static", "value": "Dial"},
+        {"name": "var_lastdata", "type": "static", "value": "SIP/trunk,30,tTr"},
         {
-          "name": "var_duration", "type": "int",
+          "name": "var_duration", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
