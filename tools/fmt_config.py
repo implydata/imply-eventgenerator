@@ -54,12 +54,12 @@ DIST_FIELD_ORDER = [
 
 INDENT = '  '
 
-# Canonical dimension type ordering: static/variable early, then generators.
-# Within generators, clock first (always the record timestamp), then by complexity.
+# Canonical dimension type ordering: clock first (always the record timestamp),
+# then static/variable, then remaining generators by complexity.
 _DIM_TYPE_RANK = {t: i for i, t in enumerate([
+    'generator:clock',
     'static',
     'variable',
-    'generator:clock',
     'generator:enum',
     'generator:int',
     'generator:float',

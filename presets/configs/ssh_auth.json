@@ -9,14 +9,14 @@
     {
       "name": "ssh_log",
       "dimensions": [
+        {"name": "time", "type": "generator:clock"},
         {"name": "action", "type": "variable", "variable": "var_action"},
         {"name": "hostname", "type": "variable", "variable": "var_hostname"},
         {"name": "line_type", "type": "variable", "variable": "var_line_type"},
         {"name": "pid", "type": "variable", "variable": "var_pid"},
         {"name": "src_ip", "type": "variable", "variable": "var_src_ip"},
         {"name": "src_port", "type": "variable", "variable": "var_src_port"},
-        {"name": "user", "type": "variable", "variable": "var_user"},
-        {"name": "time", "type": "generator:clock"}
+        {"name": "user", "type": "variable", "variable": "var_user"}
       ]
     }
   ],

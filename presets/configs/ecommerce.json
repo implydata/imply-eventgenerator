@@ -43,6 +43,7 @@
     {
       "name": "web_log",
       "dimensions": [
+        {"name": "time", "type": "generator:clock"},
         {"name": "cookie", "type": "static", "value": "-"},
         {"name": "ident", "type": "static", "value": "-"},
         {"name": "client", "type": "variable", "variable": "var_client"},
@@ -55,7 +56,6 @@
         {"name": "uri_path", "type": "variable", "variable": "var_uri_path"},
         {"name": "uri_query", "type": "variable", "variable": "var_uri_query"},
         {"name": "user", "type": "variable", "variable": "var_user"},
-        {"name": "time", "type": "generator:clock"},
         {
           "name": "dest_port", "type": "generator:enum",
           "values": ["443", "80", "8080"],

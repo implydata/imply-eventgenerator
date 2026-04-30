@@ -10,6 +10,7 @@
       "name": "inbound_log",
       "_comment": "Inbound traffic: internet IP is src, local host IP is dest",
       "dimensions": [
+        {"name": "time", "type": "generator:clock"},
         {"name": "direction", "type": "static", "value": "RECEIVE"},
         {"name": "dest", "type": "variable", "variable": "var_local_ip"},
         {"name": "dest_port", "type": "variable", "variable": "var_dest_port"},
@@ -17,14 +18,14 @@
         {"name": "src", "type": "variable", "variable": "var_internet_ip"},
         {"name": "src_port", "type": "variable", "variable": "var_src_port"},
         {"name": "transport", "type": "variable", "variable": "var_transport"},
-        {"name": "win_action", "type": "variable", "variable": "var_win_action"},
-        {"name": "time", "type": "generator:clock"}
+        {"name": "win_action", "type": "variable", "variable": "var_win_action"}
       ]
     },
     {
       "name": "outbound_log",
       "_comment": "Outbound traffic: local host IP is src, internet IP is dest",
       "dimensions": [
+        {"name": "time", "type": "generator:clock"},
         {"name": "direction", "type": "static", "value": "SEND"},
         {"name": "dest", "type": "variable", "variable": "var_internet_ip"},
         {"name": "dest_port", "type": "variable", "variable": "var_dest_port"},
@@ -32,8 +33,7 @@
         {"name": "src", "type": "variable", "variable": "var_local_ip"},
         {"name": "src_port", "type": "variable", "variable": "var_src_port"},
         {"name": "transport", "type": "variable", "variable": "var_transport"},
-        {"name": "win_action", "type": "variable", "variable": "var_win_action"},
-        {"name": "time", "type": "generator:clock"}
+        {"name": "win_action", "type": "variable", "variable": "var_win_action"}
       ]
     }
   ],

@@ -1010,8 +1010,8 @@
       "name": "setup_port_scan", "type": "activity",
       "_comment": "Setup port scan: capture 5-tuple, var_action REJECT, and var_start before timer delay",
       "variables": [
-        {"name": "var_action", "type": "static", "value": "REJECT"},
         {"name": "var_start", "type": "generator:clock"},
+        {"name": "var_action", "type": "static", "value": "REJECT"},
         {
           "name": "var_dstport", "type": "generator:int",
           "cardinality": 0,
@@ -1129,8 +1129,8 @@
       "name": "setup_port_scan_closed", "type": "activity",
       "_comment": "Port closed response - Setup: Capture var_start for RST",
       "variables": [
-        {"name": "var_action", "type": "static", "value": "ACCEPT"},
-        {"name": "var_start", "type": "generator:clock"}
+        {"name": "var_start", "type": "generator:clock"},
+        {"name": "var_action", "type": "static", "value": "ACCEPT"}
       ],
       "next": "pause_port_scan_closed_activity"
     },
@@ -1170,8 +1170,8 @@
       "name": "setup_port_scan_honeypot", "type": "activity",
       "_comment": "Honeypot response - Setup: Capture var_start for SYN-ACK",
       "variables": [
-        {"name": "var_action", "type": "static", "value": "ACCEPT"},
-        {"name": "var_start", "type": "generator:clock"}
+        {"name": "var_start", "type": "generator:clock"},
+        {"name": "var_action", "type": "static", "value": "ACCEPT"}
       ],
       "next": "pause_port_scan_honeypot_activity"
     },
