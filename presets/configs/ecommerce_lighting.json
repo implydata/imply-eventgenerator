@@ -670,7 +670,6 @@
         {"name": "var_http_method", "type": "static", "value": "GET"},
         {"name": "var_http_referrer", "type": "static", "value": "-"},
         {"name": "var_uri_query", "type": "static", "value": ""},
-        {"name": "var_user", "type": "static", "value": "-"},
         {
           "name": "var_status", "type": "generator:enum",
           "values": [200, 200, 200, 200, 200, 200, 301, 301, 404],

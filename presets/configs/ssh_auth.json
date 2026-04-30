@@ -135,8 +135,7 @@
     {
       "name": "emit_session_closed", "type": "activity",
       "variables": [
-        {"name": "var_action", "type": "static", "value": "session closed"},
-        {"name": "var_line_type", "type": "static", "value": "session"}
+        {"name": "var_action", "type": "static", "value": "session closed"}
       ],
       "emitter": "ssh_log",
       "next": "session_end"

@@ -50,6 +50,7 @@
     {
       "name": "setup_connection", "type": "activity",
       "variables": [
+        {"name": "var_transport", "type": "static", "value": "TCP"},
         {
           "name": "var_local_ip", "type": "generator:ipaddress",
           "cardinality": 5,
@@ -85,7 +86,6 @@
       "name": "emit_inbound_https", "type": "activity",
       "_comment": "HTTPS (443) inbound — ALLOW (85% of HTTPS traffic).",
       "variables": [
-        {"name": "var_transport", "type": "static", "value": "TCP"},
         {"name": "var_win_action", "type": "static", "value": "ALLOW"},
         {
           "name": "var_dest_port", "type": "generator:int",
@@ -131,7 +131,6 @@
       "name": "emit_inbound_https_drop", "type": "activity",
       "_comment": "HTTPS (443) inbound — DROP (15% of HTTPS traffic).",
       "variables": [
-        {"name": "var_transport", "type": "static", "value": "TCP"},
         {"name": "var_win_action", "type": "static", "value": "DROP"},
         {
           "name": "var_dest_port", "type": "generator:int",
@@ -177,7 +176,6 @@
       "name": "emit_inbound_http", "type": "activity",
       "_comment": "HTTP (80) inbound — ALLOW (80% of HTTP traffic).",
       "variables": [
-        {"name": "var_transport", "type": "static", "value": "TCP"},
         {"name": "var_win_action", "type": "static", "value": "ALLOW"},
         {
           "name": "var_dest_port", "type": "generator:int",
@@ -223,7 +221,6 @@
       "name": "emit_inbound_http_drop", "type": "activity",
       "_comment": "HTTP (80) inbound — DROP (20% of HTTP traffic).",
       "variables": [
-        {"name": "var_transport", "type": "static", "value": "TCP"},
         {"name": "var_win_action", "type": "static", "value": "DROP"},
         {
           "name": "var_dest_port", "type": "generator:int",
@@ -269,7 +266,6 @@
       "name": "emit_inbound_rdp", "type": "activity",
       "_comment": "RDP (3389) inbound — ALLOW. Authorised remote desktop (25% of RDP traffic).",
       "variables": [
-        {"name": "var_transport", "type": "static", "value": "TCP"},
         {"name": "var_win_action", "type": "static", "value": "ALLOW"},
         {
           "name": "var_dest_port", "type": "generator:int",
@@ -315,7 +311,6 @@
       "name": "emit_inbound_rdp_drop", "type": "activity",
       "_comment": "RDP (3389) inbound — DROP. Brute-force/scanning from internet (75% of RDP traffic).",
       "variables": [
-        {"name": "var_transport", "type": "static", "value": "TCP"},
         {"name": "var_win_action", "type": "static", "value": "DROP"},
         {
           "name": "var_dest_port", "type": "generator:int",
@@ -361,7 +356,6 @@
       "name": "emit_inbound_smb_drop", "type": "activity",
       "_comment": "SMB (445) inbound — DROP. Should never be open to the internet; all attempts blocked.",
       "variables": [
-        {"name": "var_transport", "type": "static", "value": "TCP"},
         {"name": "var_win_action", "type": "static", "value": "DROP"},
         {
           "name": "var_dest_port", "type": "generator:int",
@@ -407,7 +401,6 @@
       "name": "emit_inbound_smtp", "type": "activity",
       "_comment": "SMTP (25) inbound — ALLOW. Legitimate email delivery (60% of SMTP traffic).",
       "variables": [
-        {"name": "var_transport", "type": "static", "value": "TCP"},
         {"name": "var_win_action", "type": "static", "value": "ALLOW"},
         {
           "name": "var_dest_port", "type": "generator:int",
@@ -453,7 +446,6 @@
       "name": "emit_inbound_smtp_drop", "type": "activity",
       "_comment": "SMTP (25) inbound — DROP. Spam/relay attempts blocked by policy (40% of SMTP traffic).",
       "variables": [
-        {"name": "var_transport", "type": "static", "value": "TCP"},
         {"name": "var_win_action", "type": "static", "value": "DROP"},
         {
           "name": "var_dest_port", "type": "generator:int",
@@ -597,7 +589,6 @@
       "name": "emit_outbound_update", "type": "activity",
       "_comment": "HTTPS (443) outbound — ALLOW. Windows Update, telemetry, cloud agent traffic.",
       "variables": [
-        {"name": "var_transport", "type": "static", "value": "TCP"},
         {"name": "var_win_action", "type": "static", "value": "ALLOW"},
         {
           "name": "var_dest_port", "type": "generator:int",
