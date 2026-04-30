@@ -18,7 +18,10 @@ from sortedcontainers import SortedList
 
 from ieg.dimensions import DimensionTimestampClock, DimensionVariable, get_dimensions, get_variables
 from ieg.distributions import parse_distribution, parse_schedule
-from ieg.states import Controller, State, Transition
+from ieg.states import (Controller,
+                        ActivityState, EventEndState, EventStartTimerState,
+                        EventStartMessageState, EventIntermediateTimerState,
+                        GatewayExclusiveState, SubprocessMultiVariablesState)
 from ieg.validate import validate_config
 
 from jinja2 import Environment, Undefined, UndefinedError
@@ -297,10 +300,43 @@ class DataDriver:
                     record[element.name] = element.get_stochastic_value()
         return record
 
-    def set_variable_values(self, variables, dimensions):
-        """Sample stochastic values from dimensions and store them in the variables dict."""
-        for d in dimensions:
-            variables[d.name] = d.get_stochastic_value()
+    def _parse_event_end(self, state):
+        return EventEndState(state['name'])
+
+    def _parse_event_start_timer(self, state):
+        return EventStartTimerState(state['name'], state['next'])
+
+    def _parse_gateway_exclusive(self, state):
+        transitions = state['transitions']
+        return GatewayExclusiveState(
+            state['name'],
+            [t['next'] for t in transitions],
+            [float(t['probability']) for t in transitions]
+        )
+
+    def _parse_event_intermediate_timer(self, state):
+        delay = parse_distribution(state['cardinality_distribution'], clock=self.global_clock)
+        return EventIntermediateTimerState(state['name'], delay, state['next'])
+
+    def _parse_activity(self, state, emitters):
+        emitter_name = state.get('emitter')
+        dimensions = emitters[emitter_name] if emitter_name is not None else None
+        variables_list = get_variables(state.get('variables', []), self.global_clock)
+        return ActivityState(state['name'], dimensions, variables_list, state['next'])
+
+    def _parse_event_start_message(self, state):
+        variables_list = get_variables(state.get('variables', []), self.global_clock)
+        return EventStartMessageState(state['name'], state['next'], variables_list)
+
+    def _parse_subprocess_multi_variables(self, state):
+        with open(state['states']) as f:
+            child_config = json.load(f)
+        child_emitters = {**self.emitters}
+        child_emitters.update({e['name']: get_dimensions(e['dimensions'], self.global_clock)
+                               for e in child_config.get('emitters', [])})
+        child_states, _ = self._parse_states(child_config['states'], emitters=child_emitters)
+        in_collection = [get_variables(item, self.global_clock) for item in state['items']]
+        return SubprocessMultiVariablesState(state['name'], state['next'], child_states, in_collection)
 
     def _parse_states(self, state_desc_list, emitters=None):
         """Parse a list of state dicts into (states_dict, initial_state). emitters defaults to self.emitters."""
@@ -308,95 +344,41 @@ class DataDriver:
             emitters = self.emitters
         states = {}
         initial_state = None
-        _zero = {'type': 'constant', 'value': 0}
         for state in state_desc_list:
             name = state['name']
             state_type = state.get('type')
             if state_type is None:
                 raise RuntimeError(f"State '{state.get('name', '?')}' is missing required field 'type'.")
-            emitter_name = state.get('emitter')
-            dimensions = emitters[emitter_name] if emitter_name is not None else None
-            variables_list = get_variables(state['variables'], self.global_clock) if 'variables' in state else []
-            in_collection = None
-            sub_states = None
-            if state_type == 'event:end':
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = []
+            if state_type == 'activity':
+                states[name] = self._parse_activity(state, emitters)
+            elif state_type == 'event:end':
+                states[name] = self._parse_event_end(state)
             elif state_type == 'event:start:timer':
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = [Transition(state['next'], 1.0)]
-            elif state_type == 'event:start:message':
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = [Transition(state['next'], 1.0)]
-            elif state_type == 'event:intermediate:timer':
-                delay = parse_distribution(state['cardinality_distribution'], clock=self.global_clock)
-                transitions = [Transition(state['next'], 1.0)]
-            elif state_type == 'activity':
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = [Transition(state['next'], 1.0)]
-            elif state_type == 'gateway:exclusive':
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = Transition.parse_transitions(state['transitions'])
-            elif state_type == 'subprocess:multi:variables':
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = [Transition(state['next'], 1.0)]
-                with open(state['states']) as f:
-                    child_config = json.load(f)
-                child_emitters = {**self.emitters}
-                child_emitters.update({e['name']: get_dimensions(e['dimensions'], self.global_clock)
-                                       for e in child_config.get('emitters', [])})
-                child_states, _ = self._parse_states(child_config['states'], emitters=child_emitters)
-                in_collection = [get_variables(item, self.global_clock) for item in state['items']]
-                sub_states = child_states
-            else:
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = Transition.parse_transitions(state.get('transitions', []))
-            this_state = State(name, state_type, dimensions, delay, transitions, variables_list,
-                               in_collection=in_collection, sub_states=sub_states)
-            states[name] = this_state
-            if state_type == 'event:start:timer':
+                this_state = self._parse_event_start_timer(state)
+                states[name] = this_state
                 initial_state = this_state
+            elif state_type == 'gateway:exclusive':
+                states[name] = self._parse_gateway_exclusive(state)
+            elif state_type == 'event:intermediate:timer':
+                states[name] = self._parse_event_intermediate_timer(state)
+            elif state_type == 'event:start:message':
+                states[name] = self._parse_event_start_message(state)
+            elif state_type == 'subprocess:multi:variables':
+                states[name] = self._parse_subprocess_multi_variables(state)
+            else:
+                raise RuntimeError(f"Unknown state type: {state_type}")
         return states, initial_state
 
     def run_state_machine(self, states, variables, entry_state=None):
         current_state = entry_state if entry_state is not None else list(states.values())[0]
         while True:
-            if current_state is None:
-                raise RuntimeError("Unexpected error: current state is None.")
-            if current_state.type in ('event:start:timer', 'event:start:message'):
-                logger.debug("Thread %s starting process instance", threading.current_thread().name)
-            delta = float(current_state.delay.get_sample())
-            self.global_clock.sleep(delta)
             self.status_msg = f"Running, Sim Clock: {self.global_clock.now()}"
-            self.set_variable_values(variables, current_state.variables)
-            if current_state.type == 'subprocess:multi:variables':
-                msg_start = next(
-                    (s for s in current_state.sub_states.values() if s.type == 'event:start:message'),
-                    None
-                )
-                if msg_start is None:
-                    raise RuntimeError(
-                        f"subprocess:multi:variables '{current_state.name}': child config has no "
-                        "'event:start:message' state. Configs designed for subprocess use must "
-                        "declare an 'event:start:message' entry point."
-                    )
-                for item_vars in current_state.in_collection:
-                    self.set_variable_values(variables, item_vars)
-                    self.run_state_machine(current_state.sub_states, variables, entry_state=msg_start)
-            elif current_state.dimensions is not None:
-                record = self.create_record(current_state.dimensions, variables)
-                self.target_printer.print(self.render_record(record))
-                self.sim_control.inc_rec_count()
-            if self.sim_control.is_done():
+            next_name = current_state.execute(variables, self)
+            if self.sim_control.is_done() or next_name is None:
                 break
-            next_state_name = current_state.get_next_state_name()
-            if next_state_name is None:
+            current_state = states.get(next_name)
+            if current_state is None:
                 break
-            next_state = states.get(next_state_name)
-            if next_state is None or next_state.type == 'event:end':
-                logger.debug("Thread %s reached event:end", threading.current_thread().name)
-                break
-            current_state = next_state
 
     def worker_thread(self):
         self.global_clock.activate_thread()

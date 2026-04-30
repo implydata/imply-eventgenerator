@@ -1,4 +1,4 @@
-"""State machine classes: Transition, State, and Controller. See docs/states.md."""
+"""State machine classes. See docs/states.md."""
 
 import logging
 import threading
@@ -8,252 +8,128 @@ import isodate
 
 logger = logging.getLogger('ieg')
 
-class Transition:
-    """A single weighted edge in a gateway:exclusive state's transitions list."""
-    def __init__(self, next_state, probability):
-        self.next_state = next_state
-        self.probability = probability
+class StateBase:
+    """Abstract base for all state types."""
 
-    def __str__(self):
-        return 'Transition(next_state='+str(self.next_state)+', probability='+str(self.probability)+')'
+    type = None  # set as a class attribute on each subclass
 
-    @staticmethod
-    def validate_desc(desc, context):
-        """Validate a single transition config dict. Logs errors and returns bool."""
-        valid = True
-        if 'next' not in desc:
-            logger.error("%s: transition missing required field 'next'", context)
-            valid = False
-        elif not isinstance(desc['next'], str):
-            logger.error("%s: transition 'next' must be a string, got %s", context, type(desc['next']).__name__)
-            valid = False
-        if 'probability' not in desc:
-            logger.error("%s: transition missing required field 'probability'", context)
-            valid = False
-        else:
-            try:
-                p = float(desc['probability'])
-                if not (0 < p <= 1):
-                    logger.error("%s: transition 'probability' must be in (0, 1], got %s", context, desc['probability'])
-                    valid = False
-            except (TypeError, ValueError):
-                logger.error("%s: transition 'probability' must be a number, got %r", context, desc['probability'])
-                valid = False
-        return valid
-
-    @staticmethod
-    def parse_transitions(desc):
-        transitions = []
-        for trans in desc:
-            next_state = trans['next']
-            probability = float(trans['probability'])
-            transitions.append(Transition(next_state, probability))
-        return transitions
-
-VALID_TYPES = {'activity', 'gateway:exclusive', 'event:start:timer', 'event:start:message', 'event:intermediate:timer', 'event:end', 'subprocess:multi:variables'}
-
-class State:
-    """A node in the Actor lifecycle state machine."""
-    def __init__(self, name, state_type, dimensions, delay, transitions, variables, in_collection=None, sub_states=None):
+    def __init__(self, name):
         self.name = name
-        self.type = state_type
-        self.dimensions = dimensions
-        self.delay = delay
-        self.transitions = transitions
-        self.transition_states = [t.next_state for t in transitions]
-        self.transition_probabilities = [t.probability for t in transitions]
-        self.variables = variables
-        self.in_collection = in_collection  # subprocess:multi:variables only
-        self.sub_states = sub_states        # subprocess:multi:variables only
 
     def __str__(self):
-        return 'State(name='+self.name+', type='+self.type+', dimensions='+str([str(d) for d in self.dimensions])+', delay='+str(self.delay)+', transition_states='+str(self.transition_states)+', transition_probabilities='+str(self.transition_probabilities)+'variables='+str([str(v) for v in self.variables])+')'
+        return f'{self.__class__.__name__}(name={self.name})'
 
-    @staticmethod
-    def validate_desc(desc, emitter_names, context):
-        """Validate a state config dict. Logs errors/warnings and returns bool."""
-        valid = True
-        if 'name' not in desc:
-            logger.error("%s: missing required field 'name'", context)
-            valid = False
+    def execute(self, variables, context):
+        """Perform this state's behaviour and return the name of the next state (or None to terminate)."""
+        raise NotImplementedError
 
-        state_type = desc.get('type')
-        if state_type is None:
-            logger.error("%s: missing required field 'type'", context)
-            return False
-        if state_type not in VALID_TYPES:
-            logger.error("%s: unknown state type '%s'", context, state_type)
-            return False  # nothing else meaningful to check
 
-        if state_type == 'event:end':
-            if desc.get('emitter') is not None:
-                logger.error("%s: event:end must not have an emitter", context)
-                valid = False
-            if 'variables' in desc or 'variables_on_entry' in desc:
-                logger.error("%s: event:end must not have variables — only activities can set variables", context)
-                valid = False
-            return valid
+class EventEndState(StateBase):
+    type = 'event:end'
 
-        if state_type == 'event:start:timer':
-            if 'cardinality_distribution' not in desc:
-                logger.error("%s: event:start:timer missing required field 'cardinality_distribution'", context)
-                valid = False
-            if desc.get('emitter') is not None:
-                logger.error("%s: event:start:timer must not have an emitter", context)
-                valid = False
-            if 'next' not in desc:
-                logger.error("%s: event:start:timer missing required field 'next'", context)
-                valid = False
-            elif not isinstance(desc['next'], str):
-                logger.error("%s: event:start:timer 'next' must be a string", context)
-                valid = False
-            if 'transitions' in desc:
-                logger.error("%s: event:start:timer uses 'next', not 'transitions'", context)
-                valid = False
-            if 'variables' in desc or 'variables_on_entry' in desc:
-                logger.error("%s: event:start:timer must not have variables — only activities can set variables", context)
-                valid = False
-            return valid
+    def execute(self, variables, context):
+        logger.debug("Thread %s reached event:end", threading.current_thread().name)
+        return None
 
-        if state_type == 'event:start:message':
-            if 'cardinality_distribution' in desc:
-                logger.error("%s: event:start:message must not have 'cardinality_distribution' — it is triggered by the parent, not a timer", context)
-                valid = False
-            if desc.get('emitter') is not None:
-                logger.error("%s: event:start:message must not have an emitter", context)
-                valid = False
-            if 'next' not in desc:
-                logger.error("%s: event:start:message missing required field 'next'", context)
-                valid = False
-            elif not isinstance(desc['next'], str):
-                logger.error("%s: event:start:message 'next' must be a string", context)
-                valid = False
-            if 'transitions' in desc:
-                logger.error("%s: event:start:message uses 'next', not 'transitions'", context)
-                valid = False
-            return valid
 
-        if state_type == 'event:intermediate:timer':
-            if 'cardinality_distribution' not in desc:
-                logger.error("%s: event:intermediate:timer missing required field 'cardinality_distribution'", context)
-                valid = False
-            if 'next' not in desc:
-                logger.error("%s: event:intermediate:timer missing required field 'next'", context)
-                valid = False
-            elif not isinstance(desc['next'], str):
-                logger.error("%s: event:intermediate:timer 'next' must be a string", context)
-                valid = False
-            if desc.get('emitter') is not None:
-                logger.error("%s: event:intermediate:timer must not have an emitter", context)
-                valid = False
-            if 'transitions' in desc:
-                logger.error("%s: event:intermediate:timer uses 'next', not 'transitions'", context)
-                valid = False
-            if 'variables' in desc or 'variables_on_entry' in desc:
-                logger.error("%s: event:intermediate:timer must not have variables — only activities can set variables", context)
-                valid = False
-            return valid
+class EventStartTimerState(StateBase):
+    type = 'event:start:timer'
 
-        if state_type == 'activity':
-            if 'cardinality_distribution' in desc:
-                logger.error("%s: activity must not have 'cardinality_distribution' — precede it with event:intermediate:timer", context)
-                valid = False
-            if 'transitions' in desc:
-                logger.error("%s: activity uses 'next', not 'transitions' — add a gateway:exclusive for routing", context)
-                valid = False
-            if 'next' not in desc:
-                logger.error("%s: activity missing required field 'next'", context)
-                valid = False
-            elif not isinstance(desc['next'], str):
-                logger.error("%s: activity 'next' must be a string", context)
-                valid = False
-            if 'variables_on_entry' in desc:
-                logger.error("%s: 'variables_on_entry' is not supported — use 'variables' in an activity", context)
-                valid = False
-            emitter = desc.get('emitter')
-            if emitter is not None and emitter not in emitter_names:
-                logger.error("%s: references emitter '%s' which is not defined in 'emitters'", context, emitter)
-                valid = False
-            return valid
+    def __init__(self, name, next_state):
+        super().__init__(name)
+        self.next_state = next_state
 
-        if state_type == 'gateway:exclusive':
-            if desc.get('emitter') is not None:
-                logger.error("%s: gateway:exclusive must not have an emitter", context)
-                valid = False
-            if 'cardinality_distribution' in desc:
-                logger.error("%s: gateway:exclusive must not have 'cardinality_distribution'", context)
-                valid = False
-            if 'next' in desc:
-                logger.error("%s: gateway:exclusive uses 'transitions', not 'next'", context)
-                valid = False
-            if 'variables' in desc or 'variables_on_entry' in desc:
-                logger.error("%s: gateway:exclusive must not have variables — only activities can set variables", context)
-                valid = False
-            transitions = desc.get('transitions')
-            if not transitions or not isinstance(transitions, list):
-                logger.error("%s: gateway:exclusive missing required field 'transitions'", context)
-                valid = False
-            else:
-                total_prob = 0.0
-                for i, trans in enumerate(transitions):
-                    trans_ctx = f"{context}, transition [{i}]"
-                    if not Transition.validate_desc(trans, trans_ctx):
-                        valid = False
-                    try:
-                        total_prob += float(trans.get('probability', 0))
-                    except (TypeError, ValueError):
-                        pass
-                if abs(total_prob - 1.0) > 0.01:
-                    logger.error(
-                        "%s: transition probabilities sum to %.4f, not 1.0",
-                        context, total_prob
-                    )
-                    valid = False
-            return valid
+    def execute(self, variables, context):
+        logger.debug("Thread %s starting process instance", threading.current_thread().name)
+        return self.next_state
 
-        if state_type == 'subprocess:multi:variables':
-            if 'items' not in desc:
-                logger.error("%s: subprocess:multi:variables missing required field 'items'", context)
-                valid = False
-            else:
-                in_val = desc['items']
-                if not isinstance(in_val, list) or len(in_val) == 0:
-                    logger.error("%s: subprocess:multi:variables 'in' must be a non-empty list", context)
-                    valid = False
-                else:
-                    for i, item in enumerate(in_val):
-                        if not isinstance(item, list) or len(item) == 0:
-                            logger.error("%s: subprocess:multi:variables 'in[%d]' must be a non-empty list of variable specs", context, i)
-                            valid = False
-            if 'states' not in desc:
-                logger.error("%s: subprocess:multi:variables missing required field 'states'", context)
-                valid = False
-            elif not isinstance(desc['states'], str):
-                logger.error("%s: subprocess:multi:variables 'states' must be a string (file path)", context)
-                valid = False
-            if 'next' not in desc:
-                logger.error("%s: subprocess:multi:variables missing required field 'next'", context)
-                valid = False
-            elif not isinstance(desc['next'], str):
-                logger.error("%s: subprocess:multi:variables 'next' must be a string", context)
-                valid = False
-            if desc.get('emitter') is not None:
-                logger.error("%s: subprocess:multi:variables must not have an emitter", context)
-                valid = False
-            if 'variables' in desc:
-                logger.error("%s: subprocess:multi:variables must not have variables", context)
-                valid = False
-            if 'transitions' in desc:
-                logger.error("%s: subprocess:multi:variables uses 'next', not 'transitions'", context)
-                valid = False
-            return valid
 
-        return valid
+class EventStartMessageState(StateBase):
+    type = 'event:start:message'
 
-    def get_next_state_name(self):
-        if not self.transition_states:
-            return None
-        return random.choices(self.transition_states, weights=self.transition_probabilities, k=1)[0]
+    def __init__(self, name, next_state, variables):
+        super().__init__(name)
+        self.next_state = next_state
+        self.variables = variables
+
+    def execute(self, variables, context):
+        for d in self.variables:
+            variables[d.name] = d.get_stochastic_value()
+        logger.debug("Thread %s starting process instance", threading.current_thread().name)
+        return self.next_state
+
+
+class EventIntermediateTimerState(StateBase):
+    type = 'event:intermediate:timer'
+
+    def __init__(self, name, delay, next_state):
+        super().__init__(name)
+        self.delay = delay
+        self.next_state = next_state
+
+    def execute(self, variables, context):
+        delta = float(self.delay.get_sample())
+        context.global_clock.sleep(delta)
+        return self.next_state
+
+
+class ActivityState(StateBase):
+    type = 'activity'
+
+    def __init__(self, name, dimensions, variables, next_state):
+        super().__init__(name)
+        self.dimensions = dimensions
+        self.variables = variables
+        self.next_state = next_state
+
+    def execute(self, variables, context):
+        for d in self.variables:
+            variables[d.name] = d.get_stochastic_value()
+        if self.dimensions is not None:
+            record = context.create_record(self.dimensions, variables)
+            context.target_printer.print(context.render_record(record))
+            context.sim_control.inc_rec_count()
+        return self.next_state
+
+
+class GatewayExclusiveState(StateBase):
+    type = 'gateway:exclusive'
+
+    def __init__(self, name, next_states, probabilities):
+        super().__init__(name)
+        self.next_states = next_states
+        self.probabilities = probabilities
+
+    def execute(self, variables, context):
+        return random.choices(self.next_states, weights=self.probabilities, k=1)[0]
+
+
+class SubprocessMultiVariablesState(StateBase):
+    type = 'subprocess:multi:variables'
+
+    def __init__(self, name, next_state, sub_states, in_collection):
+        super().__init__(name)
+        self.next_state = next_state
+        self.sub_states = sub_states
+        self.in_collection = in_collection
+
+    def execute(self, variables, context):
+        msg_start = next(
+            (s for s in self.sub_states.values() if isinstance(s, EventStartMessageState)),
+            None
+        )
+        if msg_start is None:
+            raise RuntimeError(
+                f"subprocess:multi:variables '{self.name}': child config has no "
+                "'event:start:message' state. Configs designed for subprocess use must "
+                "declare an 'event:start:message' entry point."
+            )
+        for item_vars in self.in_collection:
+            for d in item_vars:
+                variables[d.name] = d.get_stochastic_value()
+            context.run_state_machine(self.sub_states, variables, entry_state=msg_start)
+        return self.next_state
+
 
 class Controller:
     # Manages the simulation end conditions.

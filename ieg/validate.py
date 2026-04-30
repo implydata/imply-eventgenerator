@@ -6,9 +6,202 @@ import re
 
 from ieg.distributions import validate_distribution_desc
 from ieg.dimensions import validate_dimension_desc
-from ieg.states import State, Transition
 
 logger = logging.getLogger('ieg')
+
+_VALID_STATE_TYPES = {'activity', 'gateway:exclusive', 'event:start:timer', 'event:start:message',
+                      'event:intermediate:timer', 'event:end', 'subprocess:multi:variables'}
+
+
+def _validate_state_desc(desc, emitter_names, context):
+    """Validate a state config dict. Logs errors and returns bool."""
+    valid = True
+    if 'name' not in desc:
+        logger.error("%s: missing required field 'name'", context)
+        valid = False
+
+    state_type = desc.get('type')
+    if state_type is None:
+        logger.error("%s: missing required field 'type'", context)
+        return False
+    if state_type not in _VALID_STATE_TYPES:
+        logger.error("%s: unknown state type '%s'", context, state_type)
+        return False
+
+    if state_type == 'event:end':
+        if desc.get('emitter') is not None:
+            logger.error("%s: event:end must not have an emitter", context)
+            valid = False
+        if 'variables' in desc or 'variables_on_entry' in desc:
+            logger.error("%s: event:end must not have variables — only activities can set variables", context)
+            valid = False
+        return valid
+
+    if state_type == 'event:start:timer':
+        if 'cardinality_distribution' not in desc:
+            logger.error("%s: event:start:timer missing required field 'cardinality_distribution'", context)
+            valid = False
+        if desc.get('emitter') is not None:
+            logger.error("%s: event:start:timer must not have an emitter", context)
+            valid = False
+        if 'next' not in desc:
+            logger.error("%s: event:start:timer missing required field 'next'", context)
+            valid = False
+        elif not isinstance(desc['next'], str):
+            logger.error("%s: event:start:timer 'next' must be a string", context)
+            valid = False
+        if 'transitions' in desc:
+            logger.error("%s: event:start:timer uses 'next', not 'transitions'", context)
+            valid = False
+        if 'variables' in desc or 'variables_on_entry' in desc:
+            logger.error("%s: event:start:timer must not have variables — only activities can set variables", context)
+            valid = False
+        return valid
+
+    if state_type == 'event:start:message':
+        if 'cardinality_distribution' in desc:
+            logger.error("%s: event:start:message must not have 'cardinality_distribution' — it is triggered by the parent, not a timer", context)
+            valid = False
+        if desc.get('emitter') is not None:
+            logger.error("%s: event:start:message must not have an emitter", context)
+            valid = False
+        if 'next' not in desc:
+            logger.error("%s: event:start:message missing required field 'next'", context)
+            valid = False
+        elif not isinstance(desc['next'], str):
+            logger.error("%s: event:start:message 'next' must be a string", context)
+            valid = False
+        if 'transitions' in desc:
+            logger.error("%s: event:start:message uses 'next', not 'transitions'", context)
+            valid = False
+        return valid
+
+    if state_type == 'event:intermediate:timer':
+        if 'cardinality_distribution' not in desc:
+            logger.error("%s: event:intermediate:timer missing required field 'cardinality_distribution'", context)
+            valid = False
+        if 'next' not in desc:
+            logger.error("%s: event:intermediate:timer missing required field 'next'", context)
+            valid = False
+        elif not isinstance(desc['next'], str):
+            logger.error("%s: event:intermediate:timer 'next' must be a string", context)
+            valid = False
+        if desc.get('emitter') is not None:
+            logger.error("%s: event:intermediate:timer must not have an emitter", context)
+            valid = False
+        if 'transitions' in desc:
+            logger.error("%s: event:intermediate:timer uses 'next', not 'transitions'", context)
+            valid = False
+        if 'variables' in desc or 'variables_on_entry' in desc:
+            logger.error("%s: event:intermediate:timer must not have variables — only activities can set variables", context)
+            valid = False
+        return valid
+
+    if state_type == 'activity':
+        if 'cardinality_distribution' in desc:
+            logger.error("%s: activity must not have 'cardinality_distribution' — precede it with event:intermediate:timer", context)
+            valid = False
+        if 'transitions' in desc:
+            logger.error("%s: activity uses 'next', not 'transitions' — add a gateway:exclusive for routing", context)
+            valid = False
+        if 'next' not in desc:
+            logger.error("%s: activity missing required field 'next'", context)
+            valid = False
+        elif not isinstance(desc['next'], str):
+            logger.error("%s: activity 'next' must be a string", context)
+            valid = False
+        if 'variables_on_entry' in desc:
+            logger.error("%s: 'variables_on_entry' is not supported — use 'variables' in an activity", context)
+            valid = False
+        emitter = desc.get('emitter')
+        if emitter is not None and emitter not in emitter_names:
+            logger.error("%s: references emitter '%s' which is not defined in 'emitters'", context, emitter)
+            valid = False
+        return valid
+
+    if state_type == 'gateway:exclusive':
+        if desc.get('emitter') is not None:
+            logger.error("%s: gateway:exclusive must not have an emitter", context)
+            valid = False
+        if 'cardinality_distribution' in desc:
+            logger.error("%s: gateway:exclusive must not have 'cardinality_distribution'", context)
+            valid = False
+        if 'next' in desc:
+            logger.error("%s: gateway:exclusive uses 'transitions', not 'next'", context)
+            valid = False
+        if 'variables' in desc or 'variables_on_entry' in desc:
+            logger.error("%s: gateway:exclusive must not have variables — only activities can set variables", context)
+            valid = False
+        transitions = desc.get('transitions')
+        if not transitions or not isinstance(transitions, list):
+            logger.error("%s: gateway:exclusive missing required field 'transitions'", context)
+            valid = False
+        else:
+            total_prob = 0.0
+            for i, trans in enumerate(transitions):
+                tctx = f"{context}, transition [{i}]"
+                if 'next' not in trans:
+                    logger.error("%s: missing required field 'next'", tctx)
+                    valid = False
+                elif not isinstance(trans['next'], str):
+                    logger.error("%s: 'next' must be a string, got %s", tctx, type(trans['next']).__name__)
+                    valid = False
+                if 'probability' not in trans:
+                    logger.error("%s: missing required field 'probability'", tctx)
+                    valid = False
+                else:
+                    try:
+                        p = float(trans['probability'])
+                        if not (0 < p <= 1):
+                            logger.error("%s: 'probability' must be in (0, 1], got %s", tctx, trans['probability'])
+                            valid = False
+                        total_prob += p
+                    except (TypeError, ValueError):
+                        logger.error("%s: 'probability' must be a number, got %r", tctx, trans['probability'])
+                        valid = False
+            if abs(total_prob - 1.0) > 0.01:
+                logger.error("%s: transition probabilities sum to %.4f, not 1.0", context, total_prob)
+                valid = False
+        return valid
+
+    if state_type == 'subprocess:multi:variables':
+        if 'items' not in desc:
+            logger.error("%s: subprocess:multi:variables missing required field 'items'", context)
+            valid = False
+        else:
+            in_val = desc['items']
+            if not isinstance(in_val, list) or len(in_val) == 0:
+                logger.error("%s: subprocess:multi:variables 'in' must be a non-empty list", context)
+                valid = False
+            else:
+                for i, item in enumerate(in_val):
+                    if not isinstance(item, list) or len(item) == 0:
+                        logger.error("%s: subprocess:multi:variables 'in[%d]' must be a non-empty list of variable specs", context, i)
+                        valid = False
+        if 'states' not in desc:
+            logger.error("%s: subprocess:multi:variables missing required field 'states'", context)
+            valid = False
+        elif not isinstance(desc['states'], str):
+            logger.error("%s: subprocess:multi:variables 'states' must be a string (file path)", context)
+            valid = False
+        if 'next' not in desc:
+            logger.error("%s: subprocess:multi:variables missing required field 'next'", context)
+            valid = False
+        elif not isinstance(desc['next'], str):
+            logger.error("%s: subprocess:multi:variables 'next' must be a string", context)
+            valid = False
+        if desc.get('emitter') is not None:
+            logger.error("%s: subprocess:multi:variables must not have an emitter", context)
+            valid = False
+        if 'variables' in desc:
+            logger.error("%s: subprocess:multi:variables must not have variables", context)
+            valid = False
+        if 'transitions' in desc:
+            logger.error("%s: subprocess:multi:variables uses 'next', not 'transitions'", context)
+            valid = False
+        return valid
+
+    return valid
 
 
 def validate_config(config, template_name=None):
@@ -88,7 +281,7 @@ def validate_config(config, template_name=None):
         # Per-state validation
         for i, state in enumerate(config['states']):
             ctx = f"state '{state.get('name', f'[{i}]')}'"
-            if not State.validate_desc(state, emitter_names, ctx):
+            if not _validate_state_desc(state, emitter_names, ctx):
                 valid = False
             state_type = state.get('type')
             if state_type == 'event:intermediate:timer' and 'cardinality_distribution' in state:
