@@ -40,7 +40,7 @@ STATE_FIELD_ORDER = {
 
 # Canonical field order for variable / dimension objects.
 VAR_FIELD_ORDER = [
-    'name', 'type', 'variable', 'value',
+    'name', 'type', 'variable', 'template', 'value',
     'values', 'chars',
     'cardinality', 'length_distribution', 'distribution', 'cardinality_distribution',
     '_comment',
@@ -60,6 +60,7 @@ _DIM_TYPE_RANK = {t: i for i, t in enumerate([
     'generator:clock',
     'static',
     'variable',
+    'variable:template',
     'generator:enum',
     'generator:int',
     'generator:float',
@@ -223,7 +224,7 @@ def fmt(value, depth: int = 0, key: str = None) -> str:
             return _inline(value)
         # variable/dimension objects → single line if they fit, else type+name open line
         if _is_variable_or_dimension(value):
-            if value.get('type') in ('variable', 'static', 'generator:clock') or _fits_one_line(value):
+            if value.get('type') in ('variable', 'variable:template', 'static', 'generator:clock') or _fits_one_line(value):
                 return _inline(value)
             # name and type share the opening line; remaining fields expand below
             opening = (

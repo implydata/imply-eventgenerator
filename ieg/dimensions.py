@@ -11,7 +11,10 @@ import random
 import string
 import re
 from datetime import datetime, timezone
+from jinja2 import Environment, StrictUndefined
 from ieg.distributions import parse_distribution, parse_timestamp_distribution, validate_distribution_desc
+
+_dim_jinja_env = Environment(undefined=StrictUndefined)
 
 logger = logging.getLogger('ieg')
 
@@ -862,6 +865,38 @@ class DimensionVariable:
         value = variables[self.variable_name]
         return '"'+self.name+'":"'+str(value)+'"'
 
+
+class DimensionVariableTemplate:
+    """Composes multiple namespace variables into a single string via a Jinja2 template.
+    Config type: "variable:template". Only valid in emitter dimensions.
+
+    The template is rendered against the full variable namespace at emit time.
+    Any namespace key can be referenced directly: {{ var_category }}, {{ var_product }}, etc.
+    Raises jinja2.UndefinedError if a referenced variable is not in the namespace.
+    """
+    def __init__(self, desc):
+        self.name = desc['name']
+        self.template = _dim_jinja_env.from_string(desc['template'])
+
+    def __str__(self):
+        return f'DimensionVariableTemplate(name={self.name})'
+
+    @staticmethod
+    def validate_desc(desc, context):
+        valid = True
+        if 'name' not in desc:
+            logger.error("%s: missing required field 'name'", context)
+            valid = False
+        if 'template' not in desc:
+            logger.error("%s: missing required field 'template'", context)
+            valid = False
+        return valid
+
+    def get_json_field_string(self, variables):
+        value = self.template.render(**variables)
+        return '"' + self.name + '":"' + str(value) + '"'
+
+
 #
 # Configuration parsing functions
 #
@@ -898,6 +933,8 @@ def parse_element(desc, global_clock):
         return DimensionStatic(desc)
     elif t == 'variable':
         return DimensionVariable(desc)
+    elif t == 'variable:template':
+        return DimensionVariableTemplate(desc)
     elif t in _GENERATOR_FACTORIES:
         return _GENERATOR_FACTORIES[t](desc, global_clock)
     else:
@@ -915,7 +952,7 @@ def get_dimensions(desc, global_clock):
     elements = get_variables(desc, global_clock)  # Pass global_clock
     return elements
 
-KNOWN_DIMENSION_TYPES = ('static', 'variable') + tuple(sorted(_GENERATOR_FACTORIES))
+KNOWN_DIMENSION_TYPES = ('static', 'variable', 'variable:template') + tuple(sorted(_GENERATOR_FACTORIES))
 
 def validate_dimension_desc(desc, context):
     """
@@ -933,6 +970,8 @@ def validate_dimension_desc(desc, context):
         return DimensionStatic.validate_desc(desc, context)
     elif dim_type == 'variable':
         return DimensionVariable.validate_desc(desc, context)
+    elif dim_type == 'variable:template':
+        return DimensionVariableTemplate.validate_desc(desc, context)
     elif dim_type in _GENERATOR_VALIDATORS:
         return _GENERATOR_VALIDATORS[dim_type].validate_desc(desc, context)
     else:

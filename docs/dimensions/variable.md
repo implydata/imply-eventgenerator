@@ -20,7 +20,7 @@ Only valid in `emitter.dimensions`. Using it in `state.variables` is a validatio
 
 Every worker thread has its own **variable namespace** — a dict that persists for the lifetime of that worker's journey through the state machine. It is the mechanism by which state-side values are passed to the emitter.
 
-```
+```text
 state.variables  ──write──►  namespace  ──read──►  emitter.dimensions (type: variable)
 ```
 
@@ -64,3 +64,30 @@ In `emitter.dimensions`, `"type": "variable"` looks up the key at emit time:
 ### Runtime error
 
 If the referenced key has not been written into the namespace by the time the emitter runs, the engine raises a `KeyError`. `--validate` catches the case where a variable is *never* set by any state, but not the case where an execution path can reach the emitter before the state that sets it. Always write variables in a setup activity that runs before any emit state that reads them.
+
+---
+
+## variable:template
+
+`"type": "variable:template"` is the multi-variable form of `variable`. Instead of reading a single key, it renders a Jinja2 template string against the full variable namespace, allowing multiple namespace values to be composed into one output field.
+
+Only valid in `emitter.dimensions`.
+
+| Field | Required? | Description |
+| --- | --- | --- |
+| `type` | Yes | `variable:template` |
+| `name` | Yes | Output field name in the emitted record. |
+| `template` | Yes | Jinja2 template string. Reference namespace variables by name: `{{ var_foo }}`. |
+
+```json
+{"name": "uri_path", "type": "variable:template", "template": "/assets/{{ var_category }}/{{ var_product }}_icon.png"}
+```
+
+Any Jinja2 expression or filter is valid inside the template:
+
+```json
+{"name": "feed_url", "type": "variable:template", "template": "/static/feeds/product_feed_{{ var_category }}.json"}
+{"name": "label",    "type": "variable:template", "template": "{{ var_product | upper }} ({{ var_category }})"}
+```
+
+If a referenced variable is not in the namespace at emit time, the engine raises a `jinja2.UndefinedError`. The same setup-before-emit rule applies as for `variable`.
