@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 
 from sortedcontainers import SortedList
 
-from ieg.dimensions import DimensionGeneratorClock, DimensionVariable, get_dimensions, get_variables
+from ieg.dimensions import DimensionGeneratorClock, DimensionVariable, DimensionVariableTemplate, get_dimensions, get_variables
 from ieg.distributions import parse_distribution, parse_schedule
 from ieg.states import (Controller,
                         ActivityState, EventEndState, EventStartTimerState,
@@ -295,6 +295,8 @@ class DataDriver:
         for element in dimensions:
             if isinstance(element, DimensionVariable):
                 record[element.name] = variables[element.variable_name]
+            elif isinstance(element, DimensionVariableTemplate):
+                record[element.name] = element.template.render(**variables)
             else:
                 if isinstance(element, DimensionGeneratorClock) or not element.is_missing():
                     record[element.name] = element.get_stochastic_value()

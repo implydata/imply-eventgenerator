@@ -18,7 +18,8 @@ Each entry in `dimensions` answers one question: **where does this field's value
 | Kind | Type syntax | Description |
 | --- | --- | --- |
 | [static](./dimensions/static.md) | `"type": "static"` | A fixed literal value — the same every time. |
-| [variable](./dimensions/variable.md) | `"type": "variable"` | A lookup from the worker's [variable namespace](./dimensions/variable.md). |
+| [variable](./dimensions/variable/lookup.md) | `"type": "variable"` | A lookup from the worker's [variable namespace](./dimensions/variable.md). |
+| [variable:template](./dimensions/variable/template.md) | `"type": "variable:template"` | Composes multiple namespace values into one field via a Jinja2 template. |
 | [generator](./dimensions/generator.md) | `"type": "generator:<class>"` | A freshly sampled value — `generator:int`, `generator:enum`, `generator:clock`, etc. |
 
 Fields appear in the output record in the order they are listed in `dimensions`.
