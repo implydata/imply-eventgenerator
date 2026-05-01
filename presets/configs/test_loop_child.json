@@ -1,4 +1,17 @@
 {
+  "emitters": [
+    {
+      "name": "web_log",
+      "dimensions": [
+        {"name": "time", "type": "generator:clock"},
+        {"name": "client", "type": "variable", "variable": "var_client"},
+        {"name": "http_content_type", "type": "variable", "variable": "var_http_content_type"},
+        {"name": "http_method", "type": "variable", "variable": "var_http_method"},
+        {"name": "status", "type": "variable", "variable": "var_status"},
+        {"name": "uri_path", "type": "variable:template", "template": "/{{ var_asset_dir }}/{{ var_asset_name }}.{{ var_asset_ext }}"}
+      ]
+    }
+  ],
   "states": [
     {"name": "init", "type": "event:start:message", "next": "load_delay"},
     {

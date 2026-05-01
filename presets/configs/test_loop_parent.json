@@ -64,6 +64,7 @@
     {
       "name": "setup_session", "type": "activity",
       "variables": [
+        {"name": "var_asset_dir", "type": "static", "value": "static"},
         {
           "name": "var_http_referrer", "type": "generator:enum",
           "values": ["https://www.google.com/", "https://www.bing.com/", "-"],
@@ -118,20 +119,24 @@
       "name": "load_assets", "type": "subprocess:multi:variables",
       "items": [
         [
-          {"name": "var_http_content_type", "type": "static", "value": "text/css"},
-          {"name": "var_uri_path", "type": "static", "value": "/static/style.css"}
+          {"name": "var_asset_ext", "type": "static", "value": "css"},
+          {"name": "var_asset_name", "type": "static", "value": "style"},
+          {"name": "var_http_content_type", "type": "static", "value": "text/css"}
         ],
         [
-          {"name": "var_http_content_type", "type": "static", "value": "application/javascript"},
-          {"name": "var_uri_path", "type": "static", "value": "/static/app.js"}
+          {"name": "var_asset_ext", "type": "static", "value": "js"},
+          {"name": "var_asset_name", "type": "static", "value": "app"},
+          {"name": "var_http_content_type", "type": "static", "value": "application/javascript"}
         ],
         [
-          {"name": "var_http_content_type", "type": "static", "value": "image/png"},
-          {"name": "var_uri_path", "type": "static", "value": "/static/logo.png"}
+          {"name": "var_asset_ext", "type": "static", "value": "png"},
+          {"name": "var_asset_name", "type": "static", "value": "logo"},
+          {"name": "var_http_content_type", "type": "static", "value": "image/png"}
         ],
         [
-          {"name": "var_http_content_type", "type": "static", "value": "image/jpeg"},
-          {"name": "var_uri_path", "type": "static", "value": "/static/hero.jpg"}
+          {"name": "var_asset_ext", "type": "static", "value": "jpg"},
+          {"name": "var_asset_name", "type": "static", "value": "hero"},
+          {"name": "var_http_content_type", "type": "static", "value": "image/jpeg"}
         ]
       ],
       "states": "presets/configs/test_loop_child.json",
