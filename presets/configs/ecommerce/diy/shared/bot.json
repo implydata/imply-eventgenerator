@@ -1,0 +1,89 @@
+{
+  "states": [
+    {
+      "name": "init", "type": "event:start:message",
+      "next": "setup"
+    },
+    {
+      "name": "setup", "type": "activity",
+      "variables": [
+        {"name": "var_http_content_type", "type": "static", "value": "-"},
+        {"name": "var_http_method", "type": "static", "value": "GET"},
+        {"name": "var_http_referrer", "type": "static", "value": "-"},
+        {"name": "var_http_version", "type": "static", "value": "HTTP/1.1"},
+        {"name": "var_uri_query", "type": "static", "value": ""},
+        {"name": "var_user", "type": "static", "value": "-"},
+        {
+          "name": "var_http_user_agent", "type": "generator:enum",
+          "values": [
+            "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+            "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+            "Mozilla/5.0 (compatible; Applebot/0.1; +http://www.apple.com/go/applebot)",
+            "SemrushBot/7~bl", "AhrefsBot/7.0; +https://ahrefs.com/robot/",
+            "DotBot/1.2", "python-requests/2.28.1", "curl/7.68.0",
+            "Scrapy/2.11.0 (+https://scrapy.org)"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 8}
+        },
+        {
+          "name": "var_client", "type": "generator:ipaddress",
+          "cardinality": 5,
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        }
+      ],
+      "next": "pause_crawl"
+    },
+    {
+      "name": "pause_crawl", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "exponential", "mean": 1.0},
+      "next": "emit_crawl"
+    },
+    {
+      "name": "emit_crawl", "type": "activity",
+      "variables": [
+        {
+          "name": "var_status", "type": "generator:enum",
+          "values": [200, 200, 200, 200, 200, 200, 301, 301, 404],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 8}
+        },
+        {
+          "name": "var_uri_path", "type": "generator:enum",
+          "values": [
+            "/robots.txt", "/sitemap.xml", "/", "/categories/power-tools",
+            "/categories/hand-tools", "/categories/plumbing",
+            "/categories/electrical", "/categories/paint", "/categories/lumber",
+            "/categories/garden", "/categories/power-tools/drill",
+            "/categories/power-tools/circular-saw",
+            "/categories/power-tools/orbital-sander",
+            "/categories/hand-tools/hammer",
+            "/categories/hand-tools/screwdriver-set",
+            "/categories/hand-tools/tape-measure",
+            "/categories/plumbing/ball-valve",
+            "/categories/plumbing/shower-head",
+            "/categories/electrical/multimeter",
+            "/categories/electrical/circuit-breaker",
+            "/categories/paint/roller-kit", "/categories/paint/spray-paint",
+            "/categories/lumber/plywood-sheet", "/categories/garden/garden-hose",
+            "/categories/garden/wheelbarrow"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
+        }
+      ],
+      "emitter": "web_log",
+      "next": "route_crawl"
+    },
+    {
+      "name": "route_crawl", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_crawl", "probability": 0.98},
+        {"next": "done", "probability": 0.02}
+      ]
+    },
+    {"name": "done", "type": "event:end"}
+  ]
+}

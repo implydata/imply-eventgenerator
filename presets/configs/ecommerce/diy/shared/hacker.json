@@ -1,0 +1,97 @@
+{
+  "states": [
+    {
+      "name": "init", "type": "event:start:message",
+      "next": "setup"
+    },
+    {
+      "name": "setup", "type": "activity",
+      "variables": [
+        {"name": "var_http_referrer", "type": "static", "value": "-"},
+        {"name": "var_http_version", "type": "static", "value": "HTTP/1.1"},
+        {"name": "var_user", "type": "static", "value": "-"},
+        {
+          "name": "var_http_user_agent", "type": "generator:enum",
+          "values": [
+            "sqlmap/1.7.8#stable (https://sqlmap.org)", "Nikto/2.1.6",
+            "masscan/1.3 (https://github.com/robertdavidgraham/masscan)",
+            "zgrab/0.x", "curl/7.68.0", "python-requests/2.28.1",
+            "Go-http-client/1.1", "Wget/1.21.2"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
+        },
+        {
+          "name": "var_client", "type": "generator:ipaddress",
+          "cardinality": 3,
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        }
+      ],
+      "next": "pause_probe"
+    },
+    {
+      "name": "pause_probe", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "exponential", "mean": 0.01},
+      "next": "emit_probe"
+    },
+    {
+      "name": "emit_probe", "type": "activity",
+      "variables": [
+        {
+          "name": "var_http_content_type", "type": "generator:enum",
+          "values": ["-", "application/json", "application/x-www-form-urlencoded"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "var_http_method", "type": "generator:enum",
+          "values": ["GET", "POST", "PUT", "DELETE"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_status", "type": "generator:enum",
+          "values": [400, 401, 403, 404, 500, 502, 503],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 6}
+        },
+        {
+          "name": "var_uri_path", "type": "generator:enum",
+          "values": [
+            "/admin", "/login", "/etc/passwd", "/wp-admin", "/sql",
+            "/../../../../etc/shadow", "/cgi-bin/test.cgi", "/.git/config",
+            "/config.php.bak", "/debug.log", "/.env", "/.htaccess",
+            "/.bash_history", "/.ssh/id_rsa", "/private.key", "/backup.sql",
+            "/old/config.php", "/phpinfo.php", "/server-status", "/error.log",
+            "/vulnerable.php", "/admin/login", "/admin/dashboard",
+            "/admin/config", "/admin/settings", "/admin/users", "/admin/backup",
+            "/admin/logs", "/admin/reports", "/admin/test", "/admin/debug",
+            "/admin/hidden", "/admin/secret", "/admin/private",
+            "/admin/passwords", "/admin/keys", "/admin/data", "/admin/files",
+            "/admin/uploads", "/admin/sql", "/admin/db"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 40}
+        },
+        {
+          "name": "var_uri_query", "type": "generator:enum",
+          "values": [
+            "", "user=admin'--", "query=SELECT%20*%20FROM%20users", "debug=true",
+            "cmd=whoami"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        }
+      ],
+      "emitter": "web_log",
+      "next": "route_probe"
+    },
+    {
+      "name": "route_probe", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_probe", "probability": 0.99},
+        {"next": "done", "probability": 0.01}
+      ]
+    },
+    {"name": "done", "type": "event:end"}
+  ]
+}

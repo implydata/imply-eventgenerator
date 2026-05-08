@@ -1,0 +1,116 @@
+{
+  "states": [
+    {
+      "name": "init", "type": "event:start:message",
+      "next": "emit_browse"
+    },
+    {
+      "name": "emit_browse", "type": "activity",
+      "variables": [
+        {"name": "var_category", "type": "static", "value": "lumber"},
+        {"name": "var_uri_path", "type": "static", "value": "/categories/lumber"}
+      ],
+      "emitter": "web_log",
+      "next": "load_statics"
+    },
+    {
+      "name": "load_statics", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/shared/load_statics.json",
+      "next": "load_cat_assets"
+    },
+    {
+      "name": "load_cat_assets", "type": "subprocess:multi:variables",
+      "config": "presets/configs/ecommerce/diy/shared/load_cat_image.json",
+      "items": [
+        [
+          {"name": "var_asset_name", "type": "static", "value": "banner"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "2x4"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "4x4"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "plywood-sheet"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "particle-board"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "pine-trim"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "decking-board"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "furring-strip"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "mdf-sheet"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "cedar-picket"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "wood-dowel"}
+        ]
+      ],
+      "next": "pause_browse"
+    },
+    {
+      "name": "pause_browse", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 15.0, "max": 45.0},
+      "next": "route_after_cat"
+    },
+    {
+      "name": "route_after_cat", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "emit_view_product", "probability": 0.75},
+        {"next": "done", "probability": 0.25}
+      ]
+    },
+    {
+      "name": "emit_view_product", "type": "activity",
+      "variables": [
+        {
+          "name": "var_product", "type": "generator:enum",
+          "values": [
+            "2x4", "4x4", "plywood-sheet", "particle-board", "pine-trim",
+            "decking-board", "furring-strip", "mdf-sheet", "cedar-picket",
+            "wood-dowel"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        },
+        {"name": "var_uri_path", "type": "variable:template", "template": "/categories/{{ var_category }}/{{ var_product }}"}
+      ],
+      "emitter": "web_log",
+      "next": "load_product_assets"
+    },
+    {
+      "name": "load_product_assets", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/shared/load_product_assets.json",
+      "next": "pause_view_product"
+    },
+    {
+      "name": "pause_view_product", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 5.0, "max": 20.0},
+      "next": "route_after_product"
+    },
+    {
+      "name": "route_after_product", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "emit_view_product", "probability": 0.25},
+        {"next": "emit_browse", "probability": 0.15},
+        {"next": "add_to_cart", "probability": 0.45},
+        {"next": "done", "probability": 0.15}
+      ]
+    },
+    {
+      "name": "add_to_cart", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/shared/add_to_cart.json",
+      "next": "done"
+    },
+    {"name": "done", "type": "event:end"}
+  ]
+}

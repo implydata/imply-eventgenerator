@@ -868,11 +868,12 @@ class DimensionVariable:
 
 class DimensionVariableTemplate:
     """Composes multiple namespace variables into a single string via a Jinja2 template.
-    Config type: "variable:template". Only valid in emitter dimensions.
+    Config type: "variable:template". Valid in both emitter dimensions and variables blocks.
 
-    The template is rendered against the full variable namespace at emit time.
+    The template is rendered against the full variable namespace at render time.
     Any namespace key can be referenced directly: {{ var_category }}, {{ var_product }}, etc.
     Raises jinja2.UndefinedError if a referenced variable is not in the namespace.
+    When used in a variables block, earlier variables in the same block are already visible.
     """
     def __init__(self, desc):
         self.name = desc['name']
@@ -891,6 +892,9 @@ class DimensionVariableTemplate:
             logger.error("%s: missing required field 'template'", context)
             valid = False
         return valid
+
+    def evaluate(self, namespace):
+        return self.template.render(**namespace)
 
     def get_json_field_string(self, variables):
         value = self.template.render(**variables)

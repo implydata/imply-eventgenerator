@@ -21,7 +21,7 @@ from ieg.distributions import parse_distribution, parse_schedule
 from ieg.states import (Controller,
                         ActivityState, EventEndState, EventStartTimerState,
                         EventStartMessageState, EventIntermediateTimerState,
-                        GatewayExclusiveState, SubprocessMultiVariablesState)
+                        GatewayExclusiveState, SubprocessMultiVariablesState, SubprocessState)
 from ieg.validate import validate_config
 
 from jinja2 import Environment, Undefined, UndefinedError
@@ -331,7 +331,7 @@ class DataDriver:
         return EventStartMessageState(state['name'], state['next'], variables_list)
 
     def _parse_subprocess_multi_variables(self, state):
-        with open(state['states']) as f:
+        with open(state['config']) as f:
             child_config = json.load(f)
         child_emitters = {**self.emitters}
         child_emitters.update({e['name']: get_dimensions(e['dimensions'], self.global_clock)
@@ -339,6 +339,15 @@ class DataDriver:
         child_states, _ = self._parse_states(child_config['states'], emitters=child_emitters)
         in_collection = [get_variables(item, self.global_clock) for item in state['items']]
         return SubprocessMultiVariablesState(state['name'], state['next'], child_states, in_collection)
+
+    def _parse_subprocess(self, state):
+        with open(state['config']) as f:
+            child_config = json.load(f)
+        child_emitters = {**self.emitters}
+        child_emitters.update({e['name']: get_dimensions(e['dimensions'], self.global_clock)
+                               for e in child_config.get('emitters', [])})
+        child_states, _ = self._parse_states(child_config['states'], emitters=child_emitters)
+        return SubprocessState(state['name'], state['next'], child_states)
 
     def _parse_states(self, state_desc_list, emitters=None):
         """Parse a list of state dicts into (states_dict, initial_state). emitters defaults to self.emitters."""
@@ -367,6 +376,8 @@ class DataDriver:
                 states[name] = self._parse_event_start_message(state)
             elif state_type == 'subprocess:multi:variables':
                 states[name] = self._parse_subprocess_multi_variables(state)
+            elif state_type == 'subprocess':
+                states[name] = self._parse_subprocess(state)
             else:
                 raise RuntimeError(f"Unknown state type: {state_type}")
         return states, initial_state

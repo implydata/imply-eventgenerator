@@ -10,7 +10,8 @@ from ieg.dimensions import validate_dimension_desc
 logger = logging.getLogger('ieg')
 
 _VALID_STATE_TYPES = {'activity', 'gateway:exclusive', 'event:start:timer', 'event:start:message',
-                      'event:intermediate:timer', 'event:end', 'subprocess:multi:variables'}
+                      'event:intermediate:timer', 'event:end', 'subprocess:multi:variables',
+                      'subprocess'}
 
 
 def _validate_state_desc(desc, emitter_names, context):
@@ -178,11 +179,11 @@ def _validate_state_desc(desc, emitter_names, context):
                     if not isinstance(item, list) or len(item) == 0:
                         logger.error("%s: subprocess:multi:variables 'in[%d]' must be a non-empty list of variable specs", context, i)
                         valid = False
-        if 'states' not in desc:
-            logger.error("%s: subprocess:multi:variables missing required field 'states'", context)
+        if 'config' not in desc:
+            logger.error("%s: subprocess:multi:variables missing required field 'config'", context)
             valid = False
-        elif not isinstance(desc['states'], str):
-            logger.error("%s: subprocess:multi:variables 'states' must be a string (file path)", context)
+        elif not isinstance(desc['config'], str):
+            logger.error("%s: subprocess:multi:variables 'config' must be a string (file path)", context)
             valid = False
         if 'next' not in desc:
             logger.error("%s: subprocess:multi:variables missing required field 'next'", context)
@@ -198,6 +199,30 @@ def _validate_state_desc(desc, emitter_names, context):
             valid = False
         if 'transitions' in desc:
             logger.error("%s: subprocess:multi:variables uses 'next', not 'transitions'", context)
+            valid = False
+        return valid
+
+    if state_type == 'subprocess':
+        if 'config' not in desc:
+            logger.error("%s: subprocess missing required field 'config'", context)
+            valid = False
+        elif not isinstance(desc['config'], str):
+            logger.error("%s: subprocess 'config' must be a string (file path)", context)
+            valid = False
+        if 'next' not in desc:
+            logger.error("%s: subprocess missing required field 'next'", context)
+            valid = False
+        elif not isinstance(desc['next'], str):
+            logger.error("%s: subprocess 'next' must be a string", context)
+            valid = False
+        if desc.get('emitter') is not None:
+            logger.error("%s: subprocess must not have an emitter", context)
+            valid = False
+        if 'variables' in desc:
+            logger.error("%s: subprocess must not have variables", context)
+            valid = False
+        if 'transitions' in desc:
+            logger.error("%s: subprocess uses 'next', not 'transitions'", context)
             valid = False
         return valid
 

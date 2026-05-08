@@ -24,8 +24,9 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 STATE_TYPES = {
-    'event:start:timer', 'event:intermediate:timer', 'event:end',
+    'event:start:timer', 'event:start:message', 'event:intermediate:timer', 'event:end',
     'activity', 'gateway:exclusive',
+    'subprocess', 'subprocess:multi:variables',
 }
 
 # Canonical field order for each state type.
@@ -36,6 +37,8 @@ STATE_FIELD_ORDER = {
     'activity':                 ['name', 'type', '_comment', 'variables', 'emitter', 'next'],
     'gateway:exclusive':        ['name', 'type', '_comment', 'transitions'],
     'event:end':                ['name', 'type'],
+    'subprocess':               ['name', 'type', '_comment', 'config', 'next'],
+    'subprocess:multi:variables': ['name', 'type', '_comment', 'config', 'items', 'next'],
 }
 
 # Canonical field order for variable / dimension objects.
@@ -55,12 +58,15 @@ DIST_FIELD_ORDER = [
 INDENT = '  '
 
 # Canonical dimension type ordering: clock first (always the record timestamp),
-# then static/variable, then remaining generators by complexity.
+# then static/variable, then generators by complexity, then variable:template last.
+# variable:template must sort after all generator types because templates are often
+# used in variables blocks to compose values from previously-set generated variables
+# (e.g. var_uri_path renders {{ var_category }}/{{ var_product }}). Sorting templates
+# after generators ensures the referenced variables are set before the template runs.
 _DIM_TYPE_RANK = {t: i for i, t in enumerate([
     'generator:clock',
     'static',
     'variable',
-    'variable:template',
     'generator:enum',
     'generator:int',
     'generator:float',
@@ -70,6 +76,7 @@ _DIM_TYPE_RANK = {t: i for i, t in enumerate([
     'generator:timestamp',
     'generator:object',
     'generator:list',
+    'variable:template',
 ])}
 
 

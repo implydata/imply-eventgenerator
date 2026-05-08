@@ -1,0 +1,22 @@
+{
+  "states": [
+    {
+      "name": "init", "type": "event:start:message",
+      "next": "pause_add_to_cart"
+    },
+    {
+      "name": "pause_add_to_cart", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 5.0, "max": 15.0},
+      "next": "emit_add_to_cart"
+    },
+    {
+      "name": "emit_add_to_cart", "type": "activity",
+      "variables": [
+        {"name": "var_uri_path", "type": "variable:template", "template": "/cart/add/{{ var_category }}/{{ var_product }}"}
+      ],
+      "emitter": "web_log",
+      "next": "done"
+    },
+    {"name": "done", "type": "event:end"}
+  ]
+}

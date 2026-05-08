@@ -1,0 +1,22 @@
+{
+  "states": [
+    {
+      "name": "init", "type": "event:start:message",
+      "next": "load_delay"
+    },
+    {
+      "name": "load_delay", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 0.05, "max": 0.3},
+      "next": "emit_product_image"
+    },
+    {
+      "name": "emit_product_image", "type": "activity",
+      "variables": [
+        {"name": "var_uri_path", "type": "variable:template", "template": "/images/{{ var_category }}/{{ var_product }}.jpg"}
+      ],
+      "emitter": "web_log",
+      "next": "done"
+    },
+    {"name": "done", "type": "event:end"}
+  ]
+}

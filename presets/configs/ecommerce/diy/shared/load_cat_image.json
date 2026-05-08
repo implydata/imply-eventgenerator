@@ -1,0 +1,22 @@
+{
+  "states": [
+    {
+      "name": "init", "type": "event:start:message",
+      "next": "load_delay"
+    },
+    {
+      "name": "load_delay", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 0.01, "max": 0.15},
+      "next": "emit_asset"
+    },
+    {
+      "name": "emit_asset", "type": "activity",
+      "variables": [
+        {"name": "var_uri_path", "type": "variable:template", "template": "{% if var_asset_name.startswith('/') %}{{ var_asset_name }}{% else %}/images/{{ var_category }}/{{ var_asset_name }}.jpg{% endif %}"}
+      ],
+      "emitter": "web_log",
+      "next": "done"
+    },
+    {"name": "done", "type": "event:end"}
+  ]
+}

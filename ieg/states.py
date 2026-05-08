@@ -84,7 +84,8 @@ class ActivityState(StateBase):
 
     def execute(self, variables, context):
         for d in self.variables:
-            variables[d.name] = d.get_stochastic_value()
+            fn = getattr(d, 'evaluate', None)
+            variables[d.name] = fn(variables) if fn is not None else d.get_stochastic_value()
         if self.dimensions is not None:
             record = context.create_record(self.dimensions, variables)
             context.target_printer.print(context.render_record(record))
@@ -126,8 +127,32 @@ class SubprocessMultiVariablesState(StateBase):
             )
         for item_vars in self.in_collection:
             for d in item_vars:
-                variables[d.name] = d.get_stochastic_value()
+                fn = getattr(d, 'evaluate', None)
+                variables[d.name] = fn(variables) if fn is not None else d.get_stochastic_value()
             context.run_state_machine(self.sub_states, variables, entry_state=msg_start)
+        return self.next_state
+
+
+class SubprocessState(StateBase):
+    type = 'subprocess'
+
+    def __init__(self, name, next_state, sub_states):
+        super().__init__(name)
+        self.next_state = next_state
+        self.sub_states = sub_states
+
+    def execute(self, variables, context):
+        msg_start = next(
+            (s for s in self.sub_states.values() if isinstance(s, EventStartMessageState)),
+            None
+        )
+        if msg_start is None:
+            raise RuntimeError(
+                f"subprocess '{self.name}': child config has no "
+                "'event:start:message' state. Configs designed for subprocess use must "
+                "declare an 'event:start:message' entry point."
+            )
+        context.run_state_machine(self.sub_states, variables, entry_state=msg_start)
         return self.next_state
 
 

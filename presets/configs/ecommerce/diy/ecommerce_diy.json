@@ -1,0 +1,308 @@
+{
+  "templates": {
+    "apache:access:json": {
+      "body": "{\"time\": {{ time.timestamp()|int }}, \"bytes_in\": {{ bytes_in }}, \"bytes_out\": {{ bytes_out }}, \"cookie\": \"{{ cookie }}\", \"server\": \"{{ server }}\", \"dest_port\": \"{{ dest_port }}\", \"http_content_type\": \"{{ http_content_type }}\", \"http_method\": \"{{ http_method }}\", \"http_referrer\": \"{{ http_referrer }}\", \"http_user_agent\": \"{{ http_user_agent }}\", \"ident\": \"{{ ident }}\", \"response_time_microseconds\": {{ response_time_microseconds }}, \"client\": \"{{ client }}\", \"status\": {{ status }}, \"uri_path\": \"{{ uri_path }}\", \"uri_query\": \"{{ uri_query }}\", \"user\": \"{{ user }}\"}"
+    },
+    "apache:access:kv": {
+      "body": "time={{ time.timestamp()|int }} bytes_in={{ bytes_in }} bytes_out={{ bytes_out }} cookie=\"{{ cookie }}\" server=\"{{ server }}\" dest_port=\"{{ dest_port }}\" http_content_type=\"{{ http_content_type }}\" http_method=\"{{ http_method }}\" http_referrer=\"{{ http_referrer }}\" http_user_agent=\"{{ http_user_agent }}\" ident=\"{{ ident }}\" response_time_microseconds={{ response_time_microseconds }} client=\"{{ client }}\" status={{ status }} uri_path=\"{{ uri_path }}\" uri_query=\"{{ uri_query }}\" user=\"{{ user }}\""
+    },
+    "apache:access:combined": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }} \"{{ http_referrer }}\" \"{{ http_user_agent }}\""
+    },
+    "access_combined": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }} \"{{ http_referrer }}\" \"{{ http_user_agent }}\""
+    },
+    "access_combined_wcookie": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }} \"{{ http_referrer }}\" \"{{ http_user_agent }}\" \"{{ cookie }}\""
+    },
+    "access_common": {
+      "body": "{{ client }} {{ ident }} {{ user }} [{{ time.strftime('%d/%b/%Y:%H:%M:%S') }} +0000] \"{{ http_method }} {{ uri_path }}{% if uri_query %}?{{ uri_query }}{% endif %} {{ http_version }}\" {{ status }} {{ bytes_out }}"
+    },
+    "csv": {
+      "header": "time,bytes_in,bytes_out,cookie,server,dest_port,http_content_type,http_method,http_referrer,http_user_agent,ident,response_time_microseconds,client,status,uri_path,uri_query,user",
+      "body": "{{ time.timestamp()|int }},{{ bytes_in }},{{ bytes_out }},\"{{ cookie }}\",\"{{ server }}\",{{ dest_port }},\"{{ http_content_type }}\",\"{{ http_method }}\",\"{{ http_referrer }}\",\"{{ http_user_agent }}\",\"{{ ident }}\",{{ response_time_microseconds }},{{ client }},{{ status }},\"{{ uri_path }}\",\"{{ uri_query }}\",\"{{ user }}\""
+    },
+    "ms:iis:auto": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }}"
+    },
+    "ms:iis:default:85": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }}"
+    },
+    "ms:iis:default": {
+      "header": "#Fields: date time cs-uri-stem cs-uri-query s-contentpath sc-status s-computername cs(Referer) sc-win32-status sc-bytes cs-bytes TimeTakenMS s-sitename s-ip s-port RequestsPerSecond cs-host c-ip cs-version c-protocol cs-method CPU-Utilization W3WP-PrivateBytes cs-username cs(User-Agent) time-local sc-substatus s-proxy date-local cs(Cookie)",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} - {{ status }} WEB-SERVER {{ http_referrer }} 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }} W3SVC1 {{ server }} {{ dest_port }} - {{ server }} {{ client }} {{ http_version }} - {{ http_method }} - - {{ user }} {{ http_user_agent|replace(' ', '+') }} - 0 - - {{ cookie }}"
+    },
+    "ms:iis:splunk": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken X-Forwarded-For Content-Type https",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }} - {{ http_content_type }} {% if dest_port == '443' %}https{% else %}-{% endif %}"
+    }
+  },
+  "emitters": [
+    {
+      "name": "web_log",
+      "dimensions": [
+        {"name": "time", "type": "generator:clock"},
+        {"name": "cookie", "type": "static", "value": "-"},
+        {"name": "ident", "type": "static", "value": "-"},
+        {"name": "client", "type": "variable", "variable": "var_client"},
+        {"name": "http_content_type", "type": "variable", "variable": "var_http_content_type"},
+        {"name": "http_method", "type": "variable", "variable": "var_http_method"},
+        {"name": "http_referrer", "type": "variable", "variable": "var_http_referrer"},
+        {"name": "http_user_agent", "type": "variable", "variable": "var_http_user_agent"},
+        {"name": "http_version", "type": "variable", "variable": "var_http_version"},
+        {"name": "status", "type": "variable", "variable": "var_status"},
+        {"name": "uri_path", "type": "variable", "variable": "var_uri_path"},
+        {"name": "uri_query", "type": "variable", "variable": "var_uri_query"},
+        {"name": "user", "type": "variable", "variable": "var_user"},
+        {
+          "name": "dest_port", "type": "generator:enum",
+          "values": ["443", "80"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
+        },
+        {
+          "name": "server", "type": "generator:enum",
+          "values": ["10.0.1.15", "10.0.1.16", "10.0.1.17", "10.0.1.18", "10.0.1.19"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        },
+        {
+          "name": "bytes_in", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 200
+          }
+        },
+        {
+          "name": "bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1000,
+            "max": 512000
+          }
+        },
+        {
+          "name": "response_time_microseconds", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "exponential",
+            "mean": 20000
+          }
+        }
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "session_start", "type": "event:start:timer",
+      "cardinality_distribution": {"type": "exponential", "mean": 0.5},
+      "next": "route_actor"
+    },
+    {
+      "name": "route_actor", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "setup_session", "probability": 0.997},
+        {"next": "browse_hacker", "probability": 0.001},
+        {"next": "browse_bot", "probability": 0.002}
+      ]
+    },
+    {
+      "name": "setup_session", "type": "activity",
+      "variables": [
+        {"name": "var_http_content_type", "type": "static", "value": "-"},
+        {"name": "var_http_method", "type": "static", "value": "GET"},
+        {"name": "var_status", "type": "static", "value": 200},
+        {"name": "var_uri_path", "type": "static", "value": "/"},
+        {"name": "var_uri_query", "type": "static", "value": ""},
+        {
+          "name": "var_http_referrer", "type": "generator:enum",
+          "values": [
+            "https://www.google.com/", "https://www.bing.com/",
+            "https://search.yahoo.com/", "https://duckduckgo.com/",
+            "https://www.baidu.com/", "https://yandex.com/",
+            "https://www.facebook.com/", "https://www.instagram.com/",
+            "https://twitter.com/", "https://www.linkedin.com/",
+            "https://www.pinterest.com/", "https://www.reddit.com/",
+            "https://www.tiktok.com/", "https://www.amazon.com/",
+            "https://www.ebay.com/", "https://www.homedepot.com/",
+            "https://www.lowes.com/", "https://www.bunnings.com.au/",
+            "https://www.youtube.com/", "https://medium.com/",
+            "https://www.quora.com/", "https://www.thisoldhouse.com/",
+            "https://www.familyhandyman.com/", "https://www.retailmenot.com/",
+            "https://www.slickdeals.net/"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
+        },
+        {
+          "name": "var_http_user_agent", "type": "generator:enum",
+          "values": [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/91.0.864.59",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+            "Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 9; SM-A505F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 8.1.0; Nexus 5X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Brave/91.0.4472.124 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 7.1.1; Moto G5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Vivaldi/4.0.2312.27 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 6P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Opera/77.0.4054.172 Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 5.1.1; Nexus 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
+        },
+        {
+          "name": "var_http_version", "type": "generator:enum",
+          "values": ["HTTP/1.0", "HTTP/1.1", "HTTP/2"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "var_user", "type": "generator:enum",
+          "values": [
+            "natalie38", "herbertdixon", "-", "gusosborne", "sallyosborne",
+            "willowlim", "mialim", "miltonle", "bambismith", "rocketsmith",
+            "hannahrobinson", "aaron94", "jasmine23", "bernd73",
+            "kennethjohnson", "alice997", "janet27", "ochambers", "jaredevans",
+            "charlenefields", "davidbarry", "roy04", "rhawkins", "michelle00",
+            "geraldine77", "elaine554", "grahambrown", "-", "eileenconnor", "-",
+            "ethelmcdonald", "tiffany76", "-", "carrillojames", "aliciaclark",
+            "fosternicole", "byrdjennifer", "donald43", "lharmon",
+            "lynnkristina", "gonzalesbrad", "suzanne83", "tsummers", "kevin19",
+            "anthonyvincent", "daniel79", "cmolina", "watsontracey", "-",
+            "jenkinskrista", "shawkatherine", "sentancefinley",
+            "waniarchasamuel", "cunninghammary", "pandrews", "windsorbella",
+            "nielsenursula", "parkeranthony", "horace778"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 58}
+        },
+        {
+          "name": "var_client", "type": "generator:ipaddress",
+          "cardinality": 3000,
+          "distribution": {
+            "type": "uniform",
+            "min": 184549376,
+            "max": 2127008767
+          },
+          "cardinality_distribution": {"type": "exponential", "mean": 300}
+        }
+      ],
+      "emitter": "web_log",
+      "next": "route_browse"
+    },
+    {
+      "name": "route_browse", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "browse_power_tools", "probability": 0.3},
+        {"next": "browse_hand_tools", "probability": 0.2},
+        {"next": "browse_plumbing", "probability": 0.15},
+        {"next": "browse_electrical", "probability": 0.15},
+        {"next": "browse_paint", "probability": 0.1},
+        {"next": "browse_lumber", "probability": 0.05},
+        {"next": "browse_garden", "probability": 0.05}
+      ]
+    },
+    {
+      "name": "browse_power_tools", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/categories/power_tools.json",
+      "next": "route_continue"
+    },
+    {
+      "name": "browse_hand_tools", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/categories/hand_tools.json",
+      "next": "route_continue"
+    },
+    {
+      "name": "browse_plumbing", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/categories/plumbing.json",
+      "next": "route_continue"
+    },
+    {
+      "name": "browse_electrical", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/categories/electrical.json",
+      "next": "route_continue"
+    },
+    {
+      "name": "browse_paint", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/categories/paint.json",
+      "next": "route_continue"
+    },
+    {
+      "name": "browse_lumber", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/categories/lumber.json",
+      "next": "route_continue"
+    },
+    {
+      "name": "browse_garden", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/categories/garden.json",
+      "next": "route_continue"
+    },
+    {
+      "name": "browse_hacker", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/shared/hacker.json",
+      "next": "session_end"
+    },
+    {
+      "name": "browse_bot", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/shared/bot.json",
+      "next": "session_end"
+    },
+    {
+      "name": "route_continue", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "route_browse", "probability": 0.45},
+        {"next": "pause_checkout", "probability": 0.3},
+        {"next": "session_end", "probability": 0.25}
+      ]
+    },
+    {
+      "name": "pause_checkout", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 30.0, "max": 120.0},
+      "next": "emit_checkout"
+    },
+    {
+      "name": "emit_checkout", "type": "activity",
+      "variables": [
+        {"name": "var_uri_path", "type": "static", "value": "/checkout"}
+      ],
+      "emitter": "web_log",
+      "next": "route_checkout"
+    },
+    {
+      "name": "route_checkout", "type": "gateway:exclusive",
+      "transitions": [
+        {"next": "pause_thank_you", "probability": 0.65},
+        {"next": "route_browse", "probability": 0.35}
+      ]
+    },
+    {
+      "name": "pause_thank_you", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 5.0, "max": 15.0},
+      "next": "emit_thank_you"
+    },
+    {
+      "name": "emit_thank_you", "type": "activity",
+      "variables": [
+        {"name": "var_uri_path", "type": "static", "value": "/thank-you"}
+      ],
+      "emitter": "web_log",
+      "next": "session_end"
+    },
+    {"name": "session_end", "type": "event:end"}
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "states": [
+    {
+      "name": "init", "type": "event:start:message",
+      "next": "load_all"
+    },
+    {
+      "name": "load_all", "type": "subprocess:multi:variables",
+      "config": "presets/configs/ecommerce/diy/shared/load_cat_image.json",
+      "items": [
+        [
+          {"name": "var_asset_name", "type": "static", "value": "/static/app.js"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "/static/vendor.js"}
+        ],
+        [
+          {"name": "var_asset_name", "type": "static", "value": "/static/main.css"}
+        ]
+      ],
+      "next": "done"
+    },
+    {"name": "done", "type": "event:end"}
+  ]
+}
