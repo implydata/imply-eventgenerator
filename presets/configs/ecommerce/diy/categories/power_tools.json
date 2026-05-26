@@ -8,54 +8,18 @@
       "name": "emit_browse", "type": "activity",
       "variables": [
         {"name": "var_category", "type": "static", "value": "power-tools"},
-        {"name": "var_uri_path", "type": "static", "value": "/categories/power-tools"}
+        {"name": "var_uri_path", "type": "static", "value": "/categories/power-tools"},
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 8000,
+            "max": 60000
+          }
+        }
       ],
       "emitter": "web_log",
-      "next": "load_statics"
-    },
-    {
-      "name": "load_statics", "type": "subprocess",
-      "config": "presets/configs/ecommerce/diy/shared/load_statics.json",
-      "next": "load_cat_assets"
-    },
-    {
-      "name": "load_cat_assets", "type": "subprocess:multi:variables",
-      "config": "presets/configs/ecommerce/diy/shared/load_cat_image.json",
-      "items": [
-        [
-          {"name": "var_asset_name", "type": "static", "value": "banner"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "drill"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "circular-saw"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "jigsaw"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "orbital-sander"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "router"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "angle-grinder"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "reciprocating-saw"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "heat-gun"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "nail-gun"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "impact-driver"}
-        ]
-      ],
       "next": "pause_browse"
     },
     {
@@ -81,6 +45,15 @@
             "impact-driver"
           ],
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        },
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10000,
+            "max": 80000
+          }
         },
         {"name": "var_uri_path", "type": "variable:template", "template": "/categories/{{ var_category }}/{{ var_product }}"}
       ],

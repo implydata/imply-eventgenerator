@@ -8,54 +8,18 @@
       "name": "emit_browse", "type": "activity",
       "variables": [
         {"name": "var_category", "type": "static", "value": "garden"},
-        {"name": "var_uri_path", "type": "static", "value": "/categories/garden"}
+        {"name": "var_uri_path", "type": "static", "value": "/categories/garden"},
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 8000,
+            "max": 60000
+          }
+        }
       ],
       "emitter": "web_log",
-      "next": "load_statics"
-    },
-    {
-      "name": "load_statics", "type": "subprocess",
-      "config": "presets/configs/ecommerce/diy/shared/load_statics.json",
-      "next": "load_cat_assets"
-    },
-    {
-      "name": "load_cat_assets", "type": "subprocess:multi:variables",
-      "config": "presets/configs/ecommerce/diy/shared/load_cat_image.json",
-      "items": [
-        [
-          {"name": "var_asset_name", "type": "static", "value": "banner"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "garden-hose"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "impact-sprinkler"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "round-shovel"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "bow-rake"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "bypass-pruner"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "wheelbarrow"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "digging-fork"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "hand-trowel"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "kneeling-pad"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "garden-dibber"}
-        ]
-      ],
       "next": "pause_browse"
     },
     {
@@ -81,6 +45,15 @@
             "kneeling-pad", "garden-dibber"
           ],
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        },
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10000,
+            "max": 80000
+          }
         },
         {"name": "var_uri_path", "type": "variable:template", "template": "/categories/{{ var_category }}/{{ var_product }}"}
       ],

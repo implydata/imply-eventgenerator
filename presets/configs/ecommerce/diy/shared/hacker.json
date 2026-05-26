@@ -80,6 +80,15 @@
             "cmd=whoami"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        },
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 5000
+          }
         }
       ],
       "emitter": "web_log",

@@ -7,21 +7,21 @@
     {
       "name": "load_delay", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 0.01, "max": 0.15},
-      "next": "emit_asset"
+      "next": "emit_file"
     },
     {
-      "name": "emit_asset", "type": "activity",
+      "name": "emit_file", "type": "activity",
       "variables": [
         {
           "name": "var_bytes_out", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
-            "min": 4000,
-            "max": 35000
+            "min": 30000,
+            "max": 500000
           }
         },
-        {"name": "var_uri_path", "type": "variable:template", "template": "/images/{{ var_category }}/{{ var_asset_name }}-thumb.jpg"}
+        {"name": "var_uri_path", "type": "variable:template", "template": "{{ var_asset_name }}"}
       ],
       "emitter": "web_log",
       "next": "done"

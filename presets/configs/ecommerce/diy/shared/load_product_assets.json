@@ -7,12 +7,55 @@
     {
       "name": "load_delay", "type": "event:intermediate:timer",
       "cardinality_distribution": {"type": "uniform", "min": 0.05, "max": 0.3},
-      "next": "emit_product_image"
+      "next": "emit_hero"
     },
     {
-      "name": "emit_product_image", "type": "activity",
+      "name": "emit_hero", "type": "activity",
       "variables": [
-        {"name": "var_uri_path", "type": "variable:template", "template": "/images/{{ var_category }}/{{ var_product }}.jpg"}
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 120000,
+            "max": 600000
+          }
+        },
+        {"name": "var_uri_path", "type": "variable:template", "template": "/images/{{ var_category }}/{{ var_product }}-hero.jpg"}
+      ],
+      "emitter": "web_log",
+      "next": "emit_gallery_1"
+    },
+    {
+      "name": "emit_gallery_1", "type": "activity",
+      "variables": [
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 80000,
+            "max": 350000
+          }
+        },
+        {"name": "var_uri_path", "type": "variable:template", "template": "/images/{{ var_category }}/{{ var_product }}-gallery-1.jpg"}
+      ],
+      "emitter": "web_log",
+      "next": "emit_gallery_2"
+    },
+    {
+      "name": "emit_gallery_2", "type": "activity",
+      "variables": [
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 80000,
+            "max": 350000
+          }
+        },
+        {"name": "var_uri_path", "type": "variable:template", "template": "/images/{{ var_category }}/{{ var_product }}-gallery-2.jpg"}
       ],
       "emitter": "web_log",
       "next": "done"

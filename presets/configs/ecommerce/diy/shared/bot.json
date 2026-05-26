@@ -72,6 +72,15 @@
             "/categories/garden/wheelbarrow"
           ],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 24}
+        },
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5000,
+            "max": 80000
+          }
         }
       ],
       "emitter": "web_log",

@@ -46,6 +46,7 @@
         {"name": "time", "type": "generator:clock"},
         {"name": "cookie", "type": "static", "value": "-"},
         {"name": "ident", "type": "static", "value": "-"},
+        {"name": "bytes_out", "type": "variable", "variable": "var_bytes_out"},
         {"name": "client", "type": "variable", "variable": "var_client"},
         {"name": "http_content_type", "type": "variable", "variable": "var_http_content_type"},
         {"name": "http_method", "type": "variable", "variable": "var_http_method"},
@@ -73,15 +74,6 @@
             "type": "uniform",
             "min": 0,
             "max": 200
-          }
-        },
-        {
-          "name": "bytes_out", "type": "generator:int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 1000,
-            "max": 512000
           }
         },
         {
@@ -192,6 +184,15 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 58}
         },
         {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5000,
+            "max": 80000
+          }
+        },
+        {
           "name": "var_client", "type": "generator:ipaddress",
           "cardinality": 3000,
           "distribution": {
@@ -203,6 +204,16 @@
         }
       ],
       "emitter": "web_log",
+      "next": "load_statics"
+    },
+    {
+      "name": "load_statics", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/shared/load_statics.json",
+      "next": "preload_assets"
+    },
+    {
+      "name": "preload_assets", "type": "subprocess",
+      "config": "presets/configs/ecommerce/diy/shared/preload_assets.json",
       "next": "route_browse"
     },
     {
@@ -278,7 +289,16 @@
     {
       "name": "emit_checkout", "type": "activity",
       "variables": [
-        {"name": "var_uri_path", "type": "static", "value": "/checkout"}
+        {"name": "var_uri_path", "type": "static", "value": "/checkout"},
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5000,
+            "max": 30000
+          }
+        }
       ],
       "emitter": "web_log",
       "next": "route_checkout"
@@ -298,7 +318,16 @@
     {
       "name": "emit_thank_you", "type": "activity",
       "variables": [
-        {"name": "var_uri_path", "type": "static", "value": "/thank-you"}
+        {"name": "var_uri_path", "type": "static", "value": "/thank-you"},
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 3000,
+            "max": 20000
+          }
+        }
       ],
       "emitter": "web_log",
       "next": "session_end"

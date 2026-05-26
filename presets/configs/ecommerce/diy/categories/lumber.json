@@ -8,54 +8,18 @@
       "name": "emit_browse", "type": "activity",
       "variables": [
         {"name": "var_category", "type": "static", "value": "lumber"},
-        {"name": "var_uri_path", "type": "static", "value": "/categories/lumber"}
+        {"name": "var_uri_path", "type": "static", "value": "/categories/lumber"},
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 8000,
+            "max": 60000
+          }
+        }
       ],
       "emitter": "web_log",
-      "next": "load_statics"
-    },
-    {
-      "name": "load_statics", "type": "subprocess",
-      "config": "presets/configs/ecommerce/diy/shared/load_statics.json",
-      "next": "load_cat_assets"
-    },
-    {
-      "name": "load_cat_assets", "type": "subprocess:multi:variables",
-      "config": "presets/configs/ecommerce/diy/shared/load_cat_image.json",
-      "items": [
-        [
-          {"name": "var_asset_name", "type": "static", "value": "banner"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "2x4"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "4x4"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "plywood-sheet"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "particle-board"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "pine-trim"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "decking-board"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "furring-strip"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "mdf-sheet"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "cedar-picket"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "wood-dowel"}
-        ]
-      ],
       "next": "pause_browse"
     },
     {
@@ -81,6 +45,15 @@
             "wood-dowel"
           ],
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        },
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10000,
+            "max": 80000
+          }
         },
         {"name": "var_uri_path", "type": "variable:template", "template": "/categories/{{ var_category }}/{{ var_product }}"}
       ],

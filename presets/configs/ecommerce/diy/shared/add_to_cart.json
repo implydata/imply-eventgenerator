@@ -12,6 +12,15 @@
     {
       "name": "emit_add_to_cart", "type": "activity",
       "variables": [
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 2000
+          }
+        },
         {"name": "var_uri_path", "type": "variable:template", "template": "/cart/add/{{ var_category }}/{{ var_product }}"}
       ],
       "emitter": "web_log",

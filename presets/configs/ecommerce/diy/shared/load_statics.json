@@ -6,7 +6,7 @@
     },
     {
       "name": "load_all", "type": "subprocess:multi:variables",
-      "config": "presets/configs/ecommerce/diy/shared/load_cat_image.json",
+      "config": "presets/configs/ecommerce/diy/shared/load_static_file.json",
       "items": [
         [
           {"name": "var_asset_name", "type": "static", "value": "/static/app.js"}

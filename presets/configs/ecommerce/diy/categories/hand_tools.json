@@ -8,54 +8,18 @@
       "name": "emit_browse", "type": "activity",
       "variables": [
         {"name": "var_category", "type": "static", "value": "hand-tools"},
-        {"name": "var_uri_path", "type": "static", "value": "/categories/hand-tools"}
+        {"name": "var_uri_path", "type": "static", "value": "/categories/hand-tools"},
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 8000,
+            "max": 60000
+          }
+        }
       ],
       "emitter": "web_log",
-      "next": "load_statics"
-    },
-    {
-      "name": "load_statics", "type": "subprocess",
-      "config": "presets/configs/ecommerce/diy/shared/load_statics.json",
-      "next": "load_cat_assets"
-    },
-    {
-      "name": "load_cat_assets", "type": "subprocess:multi:variables",
-      "config": "presets/configs/ecommerce/diy/shared/load_cat_image.json",
-      "items": [
-        [
-          {"name": "var_asset_name", "type": "static", "value": "banner"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "hammer"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "screwdriver-set"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "wrench-set"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "spirit-level"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "tape-measure"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "utility-knife"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "chisel-set"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "needle-nose-pliers"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "rubber-mallet"}
-        ],
-        [
-          {"name": "var_asset_name", "type": "static", "value": "hand-saw"}
-        ]
-      ],
       "next": "pause_browse"
     },
     {
@@ -81,6 +45,15 @@
             "rubber-mallet", "hand-saw"
           ],
           "cardinality_distribution": {"type": "exponential", "mean": 2.0}
+        },
+        {
+          "name": "var_bytes_out", "type": "generator:int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10000,
+            "max": 80000
+          }
         },
         {"name": "var_uri_path", "type": "variable:template", "template": "/categories/{{ var_category }}/{{ var_product }}"}
       ],
