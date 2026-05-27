@@ -17,6 +17,9 @@ python generator.py -c presets/configs/ecommerce.json --template csv -n 1000 -s 
 # With time-of-day variation (schedule modulates the -m cap)
 python generator.py -c presets/configs/ecommerce.json --template access_combined \
   -m 300 -s "2025-01-01T00:00" --schedule presets/schedules/ecommerce.json
+
+# IIS W3C log (Splunk ms:iis:auto sourcetype — recommended)
+python generator.py -c presets/configs/ecommerce.json --template ms:iis:auto -r PT1H -s "2025-01-01T00:00"
 ```
 
 ## Templates
@@ -30,6 +33,12 @@ python generator.py -c presets/configs/ecommerce.json --template access_combined
 | `access_combined_wcookie` | NCSA combined log with cookie field appended |
 | `access_common` | NCSA common log (no referrer or user-agent) |
 | `csv` | CSV with header row |
+| `ms:iis:auto` | IIS W3C log (`ms:iis:auto` sourcetype) |
+| `ms:iis:default:85` | IIS W3C log (`ms:iis:default:85` sourcetype — identical output to `ms:iis:auto`, included for completeness) |
+| `ms:iis:default` | IIS W3C log (`ms:iis:default` sourcetype, IIS 7.0 field ordering) |
+| `ms:iis:splunk` | IIS W3C log (`ms:iis:splunk` sourcetype, adds `Content-Type` and `https` fields) |
+
+When generating IIS data for Splunk, use `--template ms:iis:auto` — the other IIS templates are included for completeness but have been marked as deprecated by Splunk.
 
 ## Output fields
 

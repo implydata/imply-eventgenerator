@@ -21,6 +21,22 @@
     "csv": {
       "header": "time,bytes_in,bytes_out,cookie,server,dest_port,http_content_type,http_method,http_referrer,http_user_agent,ident,response_time_microseconds,client,status,uri_path,uri_query,user",
       "body": "{{ time.timestamp()|int }},{{ bytes_in }},{{ bytes_out }},\"{{ cookie }}\",\"{{ server }}\",{{ dest_port }},\"{{ http_content_type }}\",\"{{ http_method }}\",\"{{ http_referrer }}\",\"{{ http_user_agent }}\",\"{{ ident }}\",{{ response_time_microseconds }},{{ client }},{{ status }},\"{{ uri_path }}\",\"{{ uri_query }}\",\"{{ user }}\""
+    },
+    "ms:iis:auto": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }}"
+    },
+    "ms:iis:default:85": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }}"
+    },
+    "ms:iis:default": {
+      "header": "#Fields: date time cs-uri-stem cs-uri-query s-contentpath sc-status s-computername cs(Referer) sc-win32-status sc-bytes cs-bytes TimeTakenMS s-sitename s-ip s-port RequestsPerSecond cs-host c-ip cs-version c-protocol cs-method CPU-Utilization W3WP-PrivateBytes cs-username cs(User-Agent) time-local sc-substatus s-proxy date-local cs(Cookie)",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} - {{ status }} WEB-SERVER {{ http_referrer }} 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }} W3SVC1 {{ server }} {{ dest_port }} - {{ server }} {{ client }} {{ http_version }} - {{ http_method }} - - {{ user }} {{ http_user_agent|replace(' ', '+') }} - 0 - - {{ cookie }}"
+    },
+    "ms:iis:splunk": {
+      "header": "#Fields: date time s-sitename s-computername s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs-version cs(User-Agent) cs(Cookie) cs(Referer) cs-host sc-status sc-substatus sc-win32-status sc-bytes cs-bytes time-taken X-Forwarded-For Content-Type https",
+      "body": "{{ time.strftime('%Y-%m-%d') }} {{ time.strftime('%H:%M:%S') }} W3SVC1 WEB-SERVER {{ server }} {{ http_method }} {{ uri_path }} {% if uri_query %}{{ uri_query }}{% else %}-{% endif %} {{ dest_port }} {{ user }} {{ client }} {{ http_version }} {{ http_user_agent|replace(' ', '+') }} {{ cookie }} {{ http_referrer }} {{ server }} {{ status }} 0 0 {{ bytes_out }} {{ bytes_in }} {{ (response_time_microseconds / 1000)|int }} - {{ http_content_type }} {% if dest_port == '443' %}https{% else %}-{% endif %}"
     }
   },
   "emitters": [
