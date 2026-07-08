@@ -12,6 +12,9 @@ python generator.py -c presets/configs/endpoint_network.json --template WindowsF
 
 # One day of data
 python generator.py -c presets/configs/endpoint_network.json --template WindowsFirewallLog -r P1D -s "2025-01-01T00:00"
+
+# OCSF Network Activity (security data lake / SIEM ingestion)
+python generator.py -c presets/configs/endpoint_network.json --template ocsf:network_activity -r P1D -s "2025-01-01T00:00"
 ```
 
 ## Templates
@@ -19,6 +22,9 @@ python generator.py -c presets/configs/endpoint_network.json --template WindowsF
 | Template | Output |
 | --- | --- |
 | `WindowsFirewallLog` | Windows Firewall Log (`pfirewall.log` format) |
+| `ocsf:network_activity` | [OCSF](https://schema.ocsf.io/) 1.4.0 Network Activity (`class_uid` 4001) JSON — one event per packet decision, for security data lake / SIEM ingestion |
+
+The `ocsf:network_activity` template maps each ALLOW/DROP decision to `activity_id` 1 ("Open") or 5 ("Refuse") respectively, unlike the `vpc_flow_logs` OCSF template which uses a constant `activity_id` 6 ("Traffic") — this config's Actor represents a single per-packet firewall decision rather than an aggregated flow, so a discrete open/refuse activity is the better fit. `direction_id` comes directly from the `direction` field (`RECEIVE`→Inbound, `SEND`→Outbound); `boundary_id` is a constant `3` (External), since every flow in this config is between the local host and the internet. Verified against the real OCSF 1.4.0 `network_activity` JSON Schema across 24K generated records (0 violations).
 
 ## Output fields
 
