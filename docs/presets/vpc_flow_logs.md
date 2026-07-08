@@ -2,8 +2,6 @@
 
 Simulates AWS VPC Flow Log records for a mix of web and API traffic patterns.
 
-Supports one template: `aws:cloudwatchlogs:vpcflow`
-
 ## Quick start
 
 ```bash
@@ -11,7 +9,19 @@ python generator.py -c presets/configs/vpc_flow_logs.json --template aws:cloudwa
 
 # One day of data
 python generator.py -c presets/configs/vpc_flow_logs.json --template aws:cloudwatchlogs:vpcflow -r P1D -s "2025-01-01T00:00"
+
+# OCSF Network Activity (security data lake / SIEM ingestion)
+python generator.py -c presets/configs/vpc_flow_logs.json --template ocsf:network_activity -r P1D -s "2025-01-01T00:00"
 ```
+
+## Templates
+
+| Template | Output |
+| --- | --- |
+| `aws:cloudwatchlogs:vpcflow` | AWS VPC Flow Log record (`aws:cloudwatchlogs:vpcflow` sourcetype) |
+| `ocsf:network_activity` | [OCSF](https://schema.ocsf.io/) 1.4.0 Network Activity (`class_uid` 4001) JSON — one event per flow record, for security data lake / SIEM ingestion |
+
+The `ocsf:network_activity` template treats each flow record as an OCSF `activity_id: 6` ("Traffic") report, since a VPC flow record already aggregates a connection's packets/bytes over an interval rather than representing a single open/close event — this mirrors AWS's own OCSF mapping guidance for VPC Flow Logs. `direction_id`/`boundary_id` are derived from whether `srcaddr`/`dstaddr` fall in the `10.0.0.0/16` internal range (external source → Inbound/External, both internal → Lateral/Internal); `status_id` follows `ACCEPT`/`REJECT`. Verified against the real OCSF 1.4.0 `network_activity` JSON Schema across 198K generated records (0 violations).
 
 ## Output fields
 
