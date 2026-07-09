@@ -12,6 +12,10 @@ python generator.py -c presets/configs/ecommerce.json --template access_combined
 
 `--template` and `-f` are mutually exclusive. If the config has a `templates` block, use `--template`; if you have a standalone format file, use `-f`.
 
+### Output shape vs. downstream configuration
+
+A template name (`access_combined`, `ms:iis:auto`, `ocsf:http_activity`, etc.) documents what shape the rendered output matches — an NCSA log line, a Splunk-recognized field layout, an OCSF class's JSON structure. Selecting a template only changes what bytes the generator writes; it does not configure any downstream system. Assigning a sourcetype in Splunk, registering a parser in a SIEM, or otherwise telling an ingestion pipeline how to interpret the data is the user's responsibility on their end — the generator has no connection to, and cannot configure, whatever system consumes its output.
+
 ## The `templates` block
 
 Templates live in a top-level `templates` object in the generator config, keyed by template name:
