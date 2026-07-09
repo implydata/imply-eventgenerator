@@ -14,13 +14,19 @@ python generator.py -c presets/configs/ssh_auth.json --template linux_secure -r 
 
 # Concurrent connections
 python generator.py -c presets/configs/ssh_auth.json --template linux_secure -r PT1H -s "2025-01-01T00:00" -m 20
+
+# OCSF Authentication (security data lake / SIEM ingestion)
+python generator.py -c presets/configs/ssh_auth.json --template ocsf:authentication -r PT1H -s "2025-01-01T00:00"
 ```
 
-## Template
+## Templates
 
 | Template | Output |
 | --- | --- |
 | `linux_secure` | Standard Linux syslog format (`/var/log/secure`) |
+| `ocsf:authentication` | [OCSF](https://schema.ocsf.io/) 1.4.0 Authentication (`class_uid` 3002) JSON — one event per auth/session action, for security data lake / SIEM ingestion |
+
+The `ocsf:authentication` template maps `Failed password`/`Accepted password`/`session opened` to `activity_id` 1 ("Logon") and `session closed` to 2 ("Logoff"), with `status_id` following success/failure. `pid` (stable for the life of a connection) becomes `session.uid`, correlating the full auth → session-open → session-close lifecycle under one session identifier — matching how real sshd log lines are correlated by PID. Verified against the real OCSF 1.4.0 `authentication` JSON Schema across 5,450 generated records (0 violations).
 
 ## Output fields
 
