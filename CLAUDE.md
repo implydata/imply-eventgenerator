@@ -66,6 +66,16 @@ python generator.py -c presets/configs/<name>.json -r PT1H -s "2024-01-01T00:00:
 
 Config errors (bad field references, wrong distributions, missing variables) often only surface after a reasonable volume of data — run the PT1H test before declaring a preset done.
 
+### Testing `ocsf:*` templates
+
+Any template emitting OCSF output must be validated against the real OCSF JSON Schema, not just eyeballed — the JSON can look plausible while still violating the schema (wrong field type, invalid enum value, missing required nested field). Use `tools/ocsf/validate.py` rather than writing an ad hoc check:
+
+```bash
+python tools/ocsf/validate.py -c presets/configs/<name>.json --template ocsf:<class_name>
+```
+
+See `tools/ocsf/README.md` for the field-mapping conventions (`activity_id`/`severity_id` derivation, etc.) used across existing `ocsf:*` templates, and two Jinja/jsonschema pitfalls worth knowing before writing a new one.
+
 ## Config JSON authoring
 
 Before writing any JSON, read `docs/how-to-build-a-config.md` — it walks through the full design process from Actor definition to tested config (Steps 1–10). The reference docs listed above are authoritative on what the engine supports; flag any discrepancy rather than guessing.
