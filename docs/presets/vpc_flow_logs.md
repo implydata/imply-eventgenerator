@@ -54,29 +54,33 @@ flowchart LR
     D --> E(["<b>connection_end</b><br/>event:end"])
 ```
 
-## Concurrency (`-m`)
+## Volume
 
-The `-m` ceiling is ~66. Setting `-m` above this has no effect — the worker pool is never fully used.
+The `-m` ceiling at the preset's default interarrival interval is ~66. Setting `-m` above this has no effect — the worker pool is never fully used. To model heavier network traffic, lower the interarrival interval instead (via `--start-interval`, or by editing the config's `event:start:timer` directly).
 
-The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start`.
+Halving the interval (2x arrival rate) raises the ceiling to ~132; doubling it (0.5x arrival rate) lowers it to ~33. The ceiling scales linearly with arrival rate.
 
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 6,116 | 0.5 |
-| 2 | 11,771 | 0.9 |
-| 3 | 17,362 | 1.2 |
-| 5 | 28,940 | 1.9 |
-| 9 | 51,778 | 3.3 |
-| 15 | 85,101 | 5.3 |
-| 26 | 140,958 | 9.0 |
-| 45 | 195,269 | 12.2 |
-| 77 | 198,392 | 12.6 |
-| 132 | 198,392 | 12.4 |
+The table below shows how output scales with `-m` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start --compare-start-interval`.
+
+| `-m` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
+| ---: | ---: | ---: | ---: |
+| 1 | 6,115 | 6,116 | 6,140 |
+| 2 | 11,749 | 11,771 | 11,397 |
+| 3 | 17,196 | 17,362 | 16,878 |
+| 6 | 34,522 | 33,806 | 33,800 |
+| 12 | 68,828 | 67,583 | 64,278 |
+| 22 | 126,496 | 122,248 | 97,322 |
+| 41 | 231,698 | 192,555 | 99,766 |
+| 76 | 386,451 | 198,392 | 99,766 |
+| 142 | 400,625 | 198,392 | 99,766 |
+| 264 | 400,625 | 198,392 | 99,766 |
 
 ```mermaid
 xychart-beta
-    title "vpc_flow_logs — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
-    y-axis "Rows" 0 --> 230000
-    line [6116, 11771, 17362, 28940, 51778, 85101, 140958, 195269, 198392, 198392]
+    title "vpc_flow_logs — rows vs -m by interarrival interval (PT6H, seed=42)"
+    x-axis [1, 2, 3, 6, 12, 22, 41, 76, 142, 264]
+    y-axis "Rows" 0 --> 470000
+    line [6115, 11749, 17196, 34522, 68828, 126496, 231698, 386451, 400625, 400625]
+    line [6116, 11771, 17362, 33806, 67583, 122248, 192555, 198392, 198392, 198392]
+    line [6140, 11397, 16878, 33800, 64278, 97322, 99766, 99766, 99766, 99766]
 ```

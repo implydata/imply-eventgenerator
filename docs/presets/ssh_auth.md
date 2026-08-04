@@ -60,29 +60,33 @@ Variables set in `initial` (hostname, username, source IP, port, PID) persist fo
 
 Session dwell time is drawn from an exponential distribution with mean 600 seconds (~10 minutes).
 
-## Concurrency (`-m`)
+## Volume
 
-The `-m` ceiling is ~66. Setting `-m` above this has no effect — the worker pool is never fully used.
+The `-m` ceiling at the preset's default interarrival interval is ~66. Setting `-m` above this has no effect — the worker pool is never fully used. To model heavier SSH traffic, lower the interarrival interval instead (via `--start-interval`, or by editing the config's `event:start:timer` directly).
 
-The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ssh_auth.json`.
+Halving the interval (2x arrival rate) raises the ceiling to ~132; doubling it (0.5x arrival rate) lowers it to ~33. The ceiling scales linearly with arrival rate.
 
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 136 | 0.2 |
-| 2 | 296 | 0.2 |
-| 3 | 390 | 0.2 |
-| 5 | 769 | 0.2 |
-| 9 | 1,169 | 0.2 |
-| 15 | 1,988 | 0.3 |
-| 26 | 3,395 | 0.3 |
-| 45 | 5,366 | 0.4 |
-| 77 | 5,450 | 0.4 |
-| 132 | 5,450 | 0.4 |
+The table below shows how output scales with `-m` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ssh_auth.json --compare-start-interval`.
+
+| `-m` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
+| ---: | ---: | ---: | ---: |
+| 1 | 136 | 136 | 136 |
+| 2 | 247 | 296 | 280 |
+| 3 | 375 | 390 | 404 |
+| 6 | 840 | 762 | 769 |
+| 12 | 1,635 | 1,789 | 1,417 |
+| 22 | 3,107 | 3,084 | 2,437 |
+| 41 | 5,714 | 4,942 | 2,679 |
+| 76 | 9,502 | 5,450 | 2,679 |
+| 142 | 10,857 | 5,450 | 2,679 |
+| 264 | 10,857 | 5,450 | 2,679 |
 
 ```mermaid
 xychart-beta
-    title "ssh_auth — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
-    y-axis "Rows" 0 --> 6300
-    line [136, 296, 390, 769, 1169, 1988, 3395, 5366, 5450, 5450]
+    title "ssh_auth — rows vs -m by interarrival interval (PT6H, seed=42)"
+    x-axis [1, 2, 3, 6, 12, 22, 41, 76, 142, 264]
+    y-axis "Rows" 0 --> 13000
+    line [136, 247, 375, 840, 1635, 3107, 5714, 9502, 10857, 10857]
+    line [136, 296, 390, 762, 1789, 3084, 4942, 5450, 5450, 5450]
+    line [136, 280, 404, 769, 1417, 2437, 2679, 2679, 2679, 2679]
 ```

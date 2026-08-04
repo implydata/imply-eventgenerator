@@ -62,28 +62,32 @@ flowchart TD
 
 The `ringing` state models real ring time (5–30 s) before the outcome is determined. Answered calls spend an additional ~3 minutes in `answered` before the CDR is emitted — so `-m` controls how many calls are genuinely in progress simultaneously, in both real-time and simulated modes.
 
-## Concurrency (`-m`)
+## Volume
 
-The `-m` ceiling is ~9. Setting `-m` above this has no effect — the worker pool is never fully used. To model a busier PBX, lower the `interarrival` mean in the config.
+The `-m` ceiling at the preset's default interarrival interval is ~9. Setting `-m` above this has no effect — the worker pool is never fully used. To model a busier PBX, lower the interarrival interval instead (via `--start-interval`, or by editing the config's `event:start:timer` directly).
 
-The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/pbx_calls.json`.
+Halving the interval (2x arrival rate) raises the ceiling to ~17; doubling it (0.5x arrival rate) lowers it to ~9. The ceiling scales with arrival rate. At this preset's low call volume, treat these as approximate rather than exact.
 
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 140 | 0.2 |
-| 2 | 254 | 0.2 |
-| 3 | 404 | 0.2 |
-| 4 | 492 | 0.2 |
-| 5 | 572 | 0.2 |
-| 7 | 660 | 0.2 |
-| 9 | 721 | 0.2 |
-| 13 | 773 | 0.2 |
-| 18 | 773 | 0.2 |
+The table below shows how output scales with `-m` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/pbx_calls.json --compare-start-interval`.
+
+| `-m` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
+| ---: | ---: | ---: | ---: |
+| 1 | 144 | 140 | 130 |
+| 2 | 317 | 254 | 215 |
+| 3 | 395 | 404 | 308 |
+| 5 | 695 | 572 | 324 |
+| 7 | 983 | 660 | 384 |
+| 10 | 1,248 | 679 | 385 |
+| 16 | 1,475 | 773 | 385 |
+| 23 | 1,508 | 773 | 385 |
+| 34 | 1,508 | 773 | 385 |
 
 ```mermaid
 xychart-beta
-    title "pbx_calls — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 2, 3, 4, 5, 7, 9, 13, 18]
-    y-axis "Rows" 0 --> 830
-    line [140, 254, 404, 492, 572, 660, 721, 773, 773]
+    title "pbx_calls — rows vs -m by interarrival interval (PT6H, seed=42)"
+    x-axis [1, 2, 3, 5, 7, 10, 16, 23, 34]
+    y-axis "Rows" 0 --> 1800
+    line [144, 317, 395, 695, 983, 1248, 1475, 1508, 1508]
+    line [140, 254, 404, 572, 660, 679, 773, 773, 773]
+    line [130, 215, 308, 324, 384, 385, 385, 385, 385]
 ```

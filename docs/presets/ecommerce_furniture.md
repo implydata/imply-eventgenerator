@@ -183,29 +183,33 @@ The loop continues with 98% probability, averaging ~50 crawl requests per sessio
 
 ---
 
-## Concurrency (`-m`)
+## Volume
 
-The `-m` ceiling is ~528. Setting `-m` above this has no effect — the worker pool is never fully used.
+The `-m` ceiling at the preset's default interarrival interval is ~528. Setting `-m` above this has no effect — the worker pool is never fully used. To model heavier traffic, lower the interarrival interval instead (via `--start-interval`, or by editing the config's `event:start:timer` directly).
 
-The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce_furniture.json`.
+Halving the interval (2x arrival rate) raises the ceiling to ~1,056; doubling it (0.5x arrival rate) lowers it to ~264. The ceiling scales linearly with arrival rate.
 
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 178 | 0.2 |
-| 2 | 393 | 0.2 |
-| 5 | 1,002 | 0.2 |
-| 10 | 1,889 | 0.3 |
-| 22 | 4,125 | 0.4 |
-| 48 | 9,817 | 0.7 |
-| 104 | 20,167 | 1.3 |
-| 225 | 42,012 | 2.6 |
-| 487 | 71,882 | 4.6 |
-| 1,056 | 72,343 | 4.7 |
+The table below shows how output scales with `-m` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce_furniture.json --compare-start-interval`.
+
+| `-m` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
+| ---: | ---: | ---: | ---: |
+| 1 | 181 | 181 | 183 |
+| 2 | 386 | 381 | 361 |
+| 5 | 936 | 968 | 909 |
+| 13 | 2,551 | 2,448 | 2,475 |
+| 30 | 6,089 | 5,718 | 5,702 |
+| 70 | 13,230 | 13,162 | 13,362 |
+| 165 | 32,248 | 31,399 | 30,590 |
+| 385 | 73,385 | 68,947 | 35,131 |
+| 902 | 142,163 | 72,369 | 35,711 |
+| 2,112 | 141,907 | 71,584 | 34,668 |
 
 ```mermaid
 xychart-beta
-    title "ecommerce_furniture — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 2, 5, 10, 22, 48, 104, 225, 487, 1056]
-    y-axis "Rows" 0 --> 82000
-    line [178, 393, 1002, 1889, 4125, 9817, 20167, 42012, 71882, 72343]
+    title "ecommerce_furniture — rows vs -m by interarrival interval (PT6H, seed=42)"
+    x-axis [1, 2, 5, 13, 30, 70, 165, 385, 902, 2112]
+    y-axis "Rows" 0 --> 170000
+    line [181, 386, 936, 2551, 6089, 13230, 32248, 73385, 142163, 141907]
+    line [181, 381, 968, 2448, 5718, 13162, 31399, 68947, 72369, 71584]
+    line [183, 361, 909, 2475, 5702, 13362, 30590, 35131, 35711, 34668]
 ```

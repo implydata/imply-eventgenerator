@@ -32,7 +32,7 @@ Every `docs/presets/<name>.md` must follow this structure:
 3. **Templates** — table of available `--template` values and their output
 4. **Output fields** — table of emitted fields and descriptions
 5. [Preset-specific sections] — e.g. product categories, session routing, per-Actor flow diagrams
-6. **Concurrency (`-m`)** — state the empirical `-m` ceiling plainly ("The `-m` ceiling is ~N"), followed by the empirical scaling table and Mermaid `xychart-beta`. Always required — users need to know there is an upper limit on volume. Run `tools/bench_config.py` to measure it (see Step 10 of `docs/how-to-build-a-config.md`).
+6. **Volume** — state the empirical `-m` ceiling plainly ("The `-m` ceiling is ~N"), followed by a three-series empirical scaling table and Mermaid `xychart-beta` comparing the preset's default `event:start:timer` interval against half and double that interval (½× interval = 2× arrival rate; 2× interval = 0.5× arrival rate). Always required — users need to know there is an upper limit on volume. Run `tools/bench_config.py --compare-start-interval` to measure it (see Step 10 of `docs/how-to-build-a-config.md`). Keep the prose to plain, direct statements of fact about the preset (ceiling, how it scales, what lever controls volume) — do not narrate the measurement methodology, the benchmarking tool's internals, or Mermaid's own rendering limitations; those belong in `tools/bench_config.py`'s docstring or this file, not a preset doc. For a very low (single-digit) ceiling, state the numbers as approximate rather than exact, without explaining why.
 
 ## Keeping docs and code in sync
 

@@ -77,23 +77,27 @@ flowchart TD
     D & E & F & G & H & I & J & K --> Z(["<b>connection_end</b><br/>event:end"])
 ```
 
-## Concurrency (`-m`)
+## Volume
 
 There is no meaningful `-m` ceiling. Each worker completes a single packet decision with zero delay and immediately exits, so the worker pool is never the bottleneck. `-m 1` is always sufficient; raising it has no effect on throughput.
 
-The table below shows expected output volume (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/endpoint_network.json`.
+The interarrival interval is the only lever that controls volume here. The table below compares the preset's default interval against half and double it (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/endpoint_network.json --compare-start-interval`.
 
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 71,928 | 5.4 |
-| 2 | 71,928 | 5.3 |
-| 3 | 71,928 | 5.3 |
-| 4 | 71,928 | 5.2 |
+| `-m` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
+| ---: | ---: | ---: | ---: |
+| 1 | 143,843 | 71,928 | 35,980 |
+| 2 | 143,843 | 71,928 | 35,980 |
+| 3 | 143,843 | 71,928 | 35,980 |
+| 4 | 143,843 | 71,928 | 35,980 |
 
 ```mermaid
 xychart-beta
-    title "endpoint_network — rows vs -m (PT6H, seed=42)"
+    title "endpoint_network — rows vs -m by interarrival interval (PT6H, seed=42)"
     x-axis [1, 2, 3, 4]
-    y-axis "Rows" 0 --> 83000
+    y-axis "Rows" 0 --> 170000
+    line [143843, 143843, 143843, 143843]
     line [71928, 71928, 71928, 71928]
+    line [35980, 35980, 35980, 35980]
 ```
+
+Rows scale directly with arrival rate: halving the interval doubles output, doubling it halves output.

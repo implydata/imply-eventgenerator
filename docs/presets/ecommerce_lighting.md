@@ -183,29 +183,33 @@ The loop continues with 98% probability, averaging ~50 crawl requests per sessio
 
 ---
 
-## Concurrency (`-m`)
+## Volume
 
-The `-m` ceiling is ~2,112. Setting `-m` above this has no effect — the worker pool is never fully used.
+The `-m` ceiling at the preset's default interarrival interval is ~2,112. Setting `-m` above this has no effect — the worker pool is never fully used. To model heavier traffic, lower the interarrival interval instead (via `--start-interval`, or by editing the config's `event:start:timer` directly).
 
-The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce_lighting.json`.
+Halving the interval (2x arrival rate) raises the ceiling to ~4,224; doubling it (0.5x arrival rate) lowers it to ~1,056. The ceiling scales linearly with arrival rate.
 
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 256 | 0.3 |
-| 3 | 703 | 0.3 |
-| 6 | 1,429 | 0.4 |
-| 16 | 3,670 | 0.5 |
-| 41 | 9,771 | 0.8 |
-| 103 | 24,374 | 1.6 |
-| 261 | 62,009 | 4.0 |
-| 661 | 155,900 | 10.6 |
-| 1,671 | 309,593 | 24.5 |
-| 4,224 | 309,297 | 24.5 |
+The table below shows how output scales with `-m` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce_lighting.json --compare-start-interval`.
+
+| `-m` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
+| ---: | ---: | ---: | ---: |
+| 1 | 256 | 256 | 256 |
+| 3 | 745 | 734 | 703 |
+| 7 | 1,717 | 1,671 | 1,666 |
+| 20 | 4,913 | 4,646 | 4,844 |
+| 56 | 13,309 | 13,301 | 13,660 |
+| 152 | 36,306 | 36,530 | 35,897 |
+| 415 | 98,807 | 98,536 | 96,976 |
+| 1,133 | 269,641 | 263,054 | 157,490 |
+| 3,093 | 623,397 | 314,170 | 155,461 |
+| 8,448 | 629,831 | 307,943 | 157,076 |
 
 ```mermaid
 xychart-beta
-    title "ecommerce_lighting — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 3, 6, 16, 41, 103, 261, 661, 1671, 4224]
-    y-axis "Rows" 0 --> 360000
-    line [256, 703, 1429, 3670, 9771, 24374, 62009, 155900, 309593, 309297]
+    title "ecommerce_lighting — rows vs -m by interarrival interval (PT6H, seed=42)"
+    x-axis [1, 3, 7, 20, 56, 152, 415, 1133, 3093, 8448]
+    y-axis "Rows" 0 --> 730000
+    line [256, 745, 1717, 4913, 13309, 36306, 98807, 269641, 623397, 629831]
+    line [256, 734, 1671, 4646, 13301, 36530, 98536, 263054, 314170, 307943]
+    line [256, 703, 1666, 4844, 13660, 35897, 96976, 157490, 155461, 157076]
 ```
