@@ -14,6 +14,8 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Contributing to the `tools/` scripts (e.g. `tools/ocsf/validate.py`) requires a couple of additional dev-only dependencies: `pip install -r requirements-dev.txt`.
+
 ## Quickstart
 
 Run the following example to test the generator script:

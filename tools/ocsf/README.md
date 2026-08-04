@@ -23,8 +23,13 @@ schema's snake_case identifier; the schema library expects `http_activity`,
 looked up from `class_uid` via `lookup_class_name_from_uid`).
 
 Schemas are generated locally by the [`ocsf-json-schema`](https://github.com/nsmithuk/ocsf-json-schema)
-package — no network calls once it's installed. Run `pip install -r requirements.txt`
-to get it and `jsonschema`.
+package — no network calls once it's installed. These are dev-only dependencies
+(only this tool imports them, not `generator.py`/`ieg/`), so they live in
+`requirements-dev.txt`, not the main `requirements.txt`:
+
+```bash
+pip install -r requirements-dev.txt
+```
 
 ## Why this exists
 

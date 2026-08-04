@@ -4,5 +4,3 @@ sortedcontainers
 isodate
 jinja2
 rich
-jsonschema
-ocsf-json-schema
