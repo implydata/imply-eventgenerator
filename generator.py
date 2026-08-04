@@ -21,6 +21,48 @@ def validate_concurrency(value):
     except ValueError:
         raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 1000.")
 
+def validate_start_interval(value):
+    try:
+        fvalue = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("Start interval must be a number.")
+    if fvalue <= 0:
+        raise argparse.ArgumentTypeError("Start interval must be greater than 0.")
+    return fvalue
+
+def apply_start_interval_override(config, override_value):
+    """Override the event:start:timer state's cardinality_distribution in place.
+
+    Each supported distribution type has a different field that governs the
+    average interarrival period, so the override target is dispatched explicitly
+    per type rather than inferred:
+      - constant: 'value' (every worker waits exactly this long)
+      - exponential, normal: 'mean'
+      - gmm_temporal: 'mean' (the base period; the time-of-day 'days' shape is untouched)
+    Anything else (e.g. 'uniform', which has no single central-tendency field) is
+    unsupported and raises, rather than silently no-op'ing on a field that isn't read.
+    """
+    states = config.get('states', [])
+    timer_state = next((s for s in states if s.get('type') == 'event:start:timer'), None)
+    if timer_state is None:
+        raise ValueError("Config has no event:start:timer state; cannot apply --start-interval override.")
+
+    dist = timer_state.get('cardinality_distribution', {})
+    dist_type = dist.get('type')
+    if dist_type == 'constant':
+        field = 'value'
+    elif dist_type in ('exponential', 'normal', 'gmm_temporal'):
+        field = 'mean'
+    else:
+        raise ValueError(
+            f"--start-interval does not support the event:start:timer state's cardinality_distribution "
+            f"type '{dist_type}'. Supported types: constant, exponential, normal, gmm_temporal."
+        )
+
+    original_value = dist.get(field)
+    logger.warning("Over-riding preset start mean %s with %s.", original_value, override_value)
+    dist[field] = override_value
+
 def main(argv=None):
     logging.basicConfig(
         level=logging.DEBUG,
@@ -60,6 +102,15 @@ def main(argv=None):
         dest='schedule_file',
         default=None,
         help='Schedule file (JSON) for modulating max_entities over time. Defaults to full capacity if not specified.'
+    )
+
+    parser.add_argument(
+        '--start-interval',
+        dest='start_interval',
+        type=validate_start_interval,
+        default=None,
+        help="Override the event:start:timer state's interarrival period (seconds), e.g. 0.1 = one worker "
+             "dispatched every 1/10s, 5 = one worker every 5s. Overrides the preset's own value."
     )
 
     parser.add_argument(
@@ -116,6 +167,9 @@ def main(argv=None):
                 config = json.load(f)
             except json.JSONDecodeError as e:
                 raise ValueError(f"Error parsing config file '{args.config_file}': {e}")
+
+        if args.start_interval is not None:
+            apply_start_interval_override(config, args.start_interval)
 
         # --validate: run pre-flight checks and exit
         if args.validate:

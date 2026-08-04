@@ -63,6 +63,7 @@ python generator.py \
         -n <record limit> \
         -r <duration limit in ISO8610 format> \
         --schedule <schedule file> \
+        --start-interval <seconds> \
         --debug \
         --seed <integer>
 ```
@@ -76,6 +77,7 @@ python generator.py \
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
 | [`-r`](#generation-limits) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
 | [`--schedule`](docs/schedules.md) | A JSON file that modulates the number of active workers over time, producing time-of-day traffic variation. See the [schedule documentation](docs/schedules.md) for available schedules and how to write your own. |
+| [`--start-interval`](docs/states.md#eventstarttimer) | Override the preset's `event:start:timer` interarrival period (seconds), e.g. `0.1` = one worker dispatched every 1/10s, `5` = one worker every 5s. Lower values mean more data. Supported for `constant`/`exponential`/`normal`/`gmm_temporal` start-timer distributions; raises on others. Logs a warning showing the original and overridden value. |
 | `--debug` | Enable debug logging. Outputs detailed thread scheduling and event queue information to stderr. |
 | [`--seed`](docs/deterministic.md) | An integer seed for deterministic data generation. Use with `-s` for fully reproducible output. |
 

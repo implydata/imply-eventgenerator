@@ -51,6 +51,8 @@ List all states in the `states` array of the configuration file. The first entry
 
 The first state in every config. Its sole job is to control how fast new workers are spawned (the interarrival interval). It does not emit a record and cannot set variables.
 
+Its `cardinality_distribution` can be overridden at runtime without editing the config, via `--start-interval <seconds>` — supported for `constant` (overrides `value`), `exponential` and `normal` (overrides `mean`), and `gmm_temporal` (overrides the base `mean`, leaving its time-of-day shape untouched). Unsupported types (e.g. `uniform`) raise an error rather than silently no-op. See the [command-line reference](../README.md#command-line-reference).
+
 | Field | Description | Required? |
 | --- | --- | --- |
 | `name` | Unique name for this state. | Yes |
