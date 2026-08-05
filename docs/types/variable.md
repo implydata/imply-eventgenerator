@@ -109,11 +109,11 @@ Both activities use the `click` emitter, which contains:
 Save the JSON above as `example.json` and run it with the following command.
 
 ```bash
-python generator.py -c example.json -n 15 -m 2 -s "2009-05-21T08:00:10"
+python generator.py -c example.json -n 15 -w 2 -s "2009-05-21T08:00:10"
 ```
 
 * `-n 15` specifies a maximum of 15 records.
-* `-m 2` sets a maximum of 2 workers.
+* `-w 2` sets a maximum of 2 workers.
 * `-s` instructs the data generator to use a simulated clock.
 
 Here is an example of the output:

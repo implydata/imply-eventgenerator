@@ -5,8 +5,8 @@
 Every config must have an agreed **Actor** before any JSON is written. An Actor is the entity that flows through the state machine — one worker thread, one journey. Propose the Actor(s) and their high-level workflow and wait for confirmation before writing any config.
 
 - A config can have multiple Actor *types* (e.g. Human, Hacker, Bot in the ecommerce preset), routed at session start via a routing state such as `global_init`.
-- All Actor types share the same `-m` worker pool, capped by Little's Law.
-- `-m` caps the number of simultaneously active sessions. When set below the natural concurrency (L = λW), it reduces throughput — in both real-time and simulated modes. When at or above L, it has no effect on throughput; the interarrival `mean` is the binding constraint.
+- All Actor types share the same `-w` worker pool, capped by Little's Law.
+- `-w` caps the number of simultaneously active sessions. When set below the natural concurrency (L = λW), it reduces throughput — in both real-time and simulated modes. When at or above L, it has no effect on throughput; the interarrival `mean` is the binding constraint.
 - In simulated mode, the Clock serialises threads for **time-ordering** (advancing simulated time in scheduled-event order). This is separate from the concurrency cap: the spawning thread still enforces `effective_max` and sleeps 5 simulated seconds when at capacity. Do not conflate time-ordering serialisation with bypassing the concurrency constraint.
 
 ## Preset structure
@@ -32,7 +32,7 @@ Every `docs/presets/<name>.md` must follow this structure:
 3. **Templates** — table of available `--template` values and their output
 4. **Output fields** — table of emitted fields and descriptions
 5. [Preset-specific sections] — e.g. product categories, session routing, per-Actor flow diagrams
-6. **Volume** — state the empirical `-m` ceiling plainly ("The `-m` ceiling is ~N"), followed by a three-series empirical scaling table and Mermaid `xychart-beta` comparing the preset's default `event:start:timer` interval against half and double that interval (½× interval = 2× arrival rate; 2× interval = 0.5× arrival rate). Always required — users need to know there is an upper limit on volume. Run `tools/bench_config.py --compare-start-interval` to measure it (see Step 10 of `docs/how-to-build-a-config.md`). Keep the prose to plain, direct statements of fact about the preset (ceiling, how it scales, what lever controls volume) — do not narrate the measurement methodology, the benchmarking tool's internals, or Mermaid's own rendering limitations; those belong in `tools/bench_config.py`'s docstring or this file, not a preset doc. For a very low (single-digit) ceiling, state the numbers as approximate rather than exact, without explaining why.
+6. **Volume** — state the empirical `-w` ceiling plainly ("The `-w` ceiling is ~N"), followed by a three-series empirical scaling table and Mermaid `xychart-beta` comparing the preset's default `event:start:timer` interval against half and double that interval (½× interval = 2× arrival rate; 2× interval = 0.5× arrival rate). Always required — users need to know there is an upper limit on volume. Run `tools/bench_config.py --compare-start-interval` to measure it (see Step 10 of `docs/how-to-build-a-config.md`). Keep the prose to plain, direct statements of fact about the preset (ceiling, how it scales, what lever controls volume) — do not narrate the measurement methodology, the benchmarking tool's internals, or Mermaid's own rendering limitations; those belong in `tools/bench_config.py`'s docstring or this file, not a preset doc. For a very low (single-digit) ceiling, state the numbers as approximate rather than exact, without explaining why.
 
 ## Keeping docs and code in sync
 

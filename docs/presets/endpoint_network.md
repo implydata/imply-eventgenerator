@@ -79,11 +79,11 @@ flowchart TD
 
 ## Volume
 
-There is no meaningful `-m` ceiling. Each worker completes a single packet decision with zero delay and immediately exits, so the worker pool is never the bottleneck. `-m 1` is always sufficient; raising it has no effect on throughput.
+There is no meaningful `-w` ceiling. Each worker completes a single packet decision with zero delay and immediately exits, so the worker pool is never the bottleneck. `-w 1` is always sufficient; raising it has no effect on throughput.
 
 The interarrival interval is the only lever that controls volume here. The table below compares the preset's default interval against half and double it (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/endpoint_network.json --compare-start-interval`.
 
-| `-m` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
+| `-w` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
 | ---: | ---: | ---: | ---: |
 | 1 | 143,843 | 71,928 | 35,980 |
 | 2 | 143,843 | 71,928 | 35,980 |
@@ -92,7 +92,7 @@ The interarrival interval is the only lever that controls volume here. The table
 
 ```mermaid
 xychart-beta
-    title "endpoint_network — rows vs -m by interarrival interval (PT6H, seed=42)"
+    title "endpoint_network — rows vs -w by interarrival interval (PT6H, seed=42)"
     x-axis [1, 2, 3, 4]
     y-axis "Rows" 0 --> 170000
     line [143843, 143843, 143843, 143843]

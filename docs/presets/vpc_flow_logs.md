@@ -56,13 +56,13 @@ flowchart LR
 
 ## Volume
 
-The `-m` ceiling at the preset's default interarrival interval is ~66. Setting `-m` above this has no effect — the worker pool is never fully used. To model heavier network traffic, lower the interarrival interval instead (via `--start-interval`, or by editing the config's `event:start:timer` directly).
+The `-w` ceiling at the preset's default interarrival interval is ~66. Setting `-w` above this has no effect — the worker pool is never fully used. To model heavier network traffic, lower the interarrival interval instead (via `-i`, or by editing the config's `event:start:timer` directly).
 
 Halving the interval (2x arrival rate) raises the ceiling to ~132; doubling it (0.5x arrival rate) lowers it to ~33. The ceiling scales linearly with arrival rate.
 
-The table below shows how output scales with `-m` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start --compare-start-interval`.
+The table below shows how output scales with `-w` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start --compare-start-interval`.
 
-| `-m` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
+| `-w` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
 | ---: | ---: | ---: | ---: |
 | 1 | 6,115 | 6,116 | 6,140 |
 | 2 | 11,749 | 11,771 | 11,397 |
@@ -77,7 +77,7 @@ The table below shows how output scales with `-m` at each interval (`--seed 42`,
 
 ```mermaid
 xychart-beta
-    title "vpc_flow_logs — rows vs -m by interarrival interval (PT6H, seed=42)"
+    title "vpc_flow_logs — rows vs -w by interarrival interval (PT6H, seed=42)"
     x-axis [1, 2, 3, 6, 12, 22, 41, 76, 142, 264]
     y-axis "Rows" 0 --> 470000
     line [6115, 11749, 17196, 34522, 68828, 126496, 231698, 386451, 400625, 400625]

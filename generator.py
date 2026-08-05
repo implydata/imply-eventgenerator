@@ -12,14 +12,40 @@ logger = logging.getLogger('ieg')
 
 DEFAULT_CONCURRENCY = 100
 
+MAX_WORKERS = 10000
+WORKERS_LOUD_WARNING_THRESHOLD = 8000
+WORKERS_WARNING_THRESHOLD = 5000
+
 def validate_concurrency(value):
     try:
         ivalue = int(value)
-        if ivalue < 1 or ivalue > 100000:
-            raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 100000.")
-        return ivalue
     except ValueError:
-        raise argparse.ArgumentTypeError("Concurrency must be an integer between 1 and 1000.")
+        raise argparse.ArgumentTypeError(f"-w must be an integer between 1 and {MAX_WORKERS}.")
+    if ivalue < 1 or ivalue > MAX_WORKERS:
+        raise argparse.ArgumentTypeError(f"-w must be an integer between 1 and {MAX_WORKERS}.")
+    return ivalue
+
+def warn_if_worker_count_risky(max_entities):
+    """OS thread-creation limits are a separate concern from Little's Law throttling —
+    a high enough -w can crash the process outright ("can't start new thread") well
+    before any data-volume ceiling is reached. Thresholds are round numbers, not a
+    measured guarantee: the real limit is machine- and load-dependent (see the -w
+    section of the README)."""
+    if max_entities > WORKERS_LOUD_WARNING_THRESHOLD:
+        logger.warning(
+            "⚠️  -w %d is very high. OS thread-creation limits can cause the process to "
+            "crash outright (\"can't start new thread\") well before this, and thread "
+            "contention slows the run sharply even when it doesn't crash. Lower -w or "
+            "raise -i instead if you need more volume.",
+            max_entities
+        )
+    elif max_entities > WORKERS_WARNING_THRESHOLD:
+        logger.warning(
+            "-w %d is high enough that OS thread-creation limits could become a factor "
+            "on constrained machines. If the run fails with \"can't start new thread\", "
+            "lower -w.",
+            max_entities
+        )
 
 def validate_start_interval(value):
     try:
@@ -45,7 +71,7 @@ def apply_start_interval_override(config, override_value):
     states = config.get('states', [])
     timer_state = next((s for s in states if s.get('type') == 'event:start:timer'), None)
     if timer_state is None:
-        raise ValueError("Config has no event:start:timer state; cannot apply --start-interval override.")
+        raise ValueError("Config has no event:start:timer state; cannot apply -i override.")
 
     dist = timer_state.get('cardinality_distribution', {})
     dist_type = dist.get('type')
@@ -55,7 +81,7 @@ def apply_start_interval_override(config, override_value):
         field = 'mean'
     else:
         raise ValueError(
-            f"--start-interval does not support the event:start:timer state's cardinality_distribution "
+            f"-i does not support the event:start:timer state's cardinality_distribution "
             f"type '{dist_type}'. Supported types: constant, exponential, normal, gmm_temporal."
         )
 
@@ -89,12 +115,13 @@ def main(argv=None):
     group.add_argument('-n', dest='n_recs', help='Number of records to generate (may not be used with -r)')
 
     parser.add_argument(
-        '-m',
+        '-w', '-m',
         dest='concurrency',
         type=validate_concurrency,
         nargs='?',
         default=DEFAULT_CONCURRENCY,
-        help='Max entities concurrently generating events (1-1000)'
+        help=f'Max entities (workers) concurrently generating events (1-{MAX_WORKERS}). '
+             f'-m alias will be removed in future versions.'
     )
 
     parser.add_argument(
@@ -105,7 +132,7 @@ def main(argv=None):
     )
 
     parser.add_argument(
-        '--start-interval',
+        '-i',
         dest='start_interval',
         type=validate_start_interval,
         default=None,
@@ -158,6 +185,7 @@ def main(argv=None):
 
     runtime = args.time
     max_entities = int(args.concurrency)  # Convert to integer. Safe as there is a default.
+    warn_if_worker_count_risky(max_entities)
     total_recs = int(args.n_recs) if args.n_recs else None
 
     try:
@@ -209,6 +237,9 @@ def main(argv=None):
 
     except ValueError as e:
         logger.error("Value error: %s", e)
+        sys.exit(1)
+    except RuntimeError as e:
+        logger.error("Runtime error: %s", e)
         sys.exit(1)
     except Exception as e:
         logger.error("An unexpected error occurred: %s", e)

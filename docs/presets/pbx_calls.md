@@ -13,7 +13,7 @@ python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -n
 python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -r PT1H -s "2025-01-01T00:00"
 
 # Concurrent callers
-python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -r PT1H -s "2025-01-01T00:00" -m 5
+python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -r PT1H -s "2025-01-01T00:00" -w 5
 ```
 
 ## Template
@@ -60,17 +60,17 @@ flowchart TD
     H --> Z
 ```
 
-The `ringing` state models real ring time (5–30 s) before the outcome is determined. Answered calls spend an additional ~3 minutes in `answered` before the CDR is emitted — so `-m` controls how many calls are genuinely in progress simultaneously, in both real-time and simulated modes.
+The `ringing` state models real ring time (5–30 s) before the outcome is determined. Answered calls spend an additional ~3 minutes in `answered` before the CDR is emitted — so `-w` controls how many calls are genuinely in progress simultaneously, in both real-time and simulated modes.
 
 ## Volume
 
-The `-m` ceiling at the preset's default interarrival interval is ~9. Setting `-m` above this has no effect — the worker pool is never fully used. To model a busier PBX, lower the interarrival interval instead (via `--start-interval`, or by editing the config's `event:start:timer` directly).
+The `-w` ceiling at the preset's default interarrival interval is ~9. Setting `-w` above this has no effect — the worker pool is never fully used. To model a busier PBX, lower the interarrival interval instead (via `-i`, or by editing the config's `event:start:timer` directly).
 
 Halving the interval (2x arrival rate) raises the ceiling to ~17; doubling it (0.5x arrival rate) lowers it to ~9. The ceiling scales with arrival rate. At this preset's low call volume, treat these as approximate rather than exact.
 
-The table below shows how output scales with `-m` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/pbx_calls.json --compare-start-interval`.
+The table below shows how output scales with `-w` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/pbx_calls.json --compare-start-interval`.
 
-| `-m` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
+| `-w` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
 | ---: | ---: | ---: | ---: |
 | 1 | 144 | 140 | 130 |
 | 2 | 317 | 254 | 215 |
@@ -84,7 +84,7 @@ The table below shows how output scales with `-m` at each interval (`--seed 42`,
 
 ```mermaid
 xychart-beta
-    title "pbx_calls — rows vs -m by interarrival interval (PT6H, seed=42)"
+    title "pbx_calls — rows vs -w by interarrival interval (PT6H, seed=42)"
     x-axis [1, 2, 3, 5, 7, 10, 16, 23, 34]
     y-axis "Rows" 0 --> 1800
     line [144, 317, 395, 695, 983, 1248, 1475, 1508, 1508]

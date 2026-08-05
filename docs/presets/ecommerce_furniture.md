@@ -16,7 +16,7 @@ python generator.py -c presets/configs/ecommerce_furniture.json --template csv -
 
 # With time-of-day variation
 python generator.py -c presets/configs/ecommerce_furniture.json --template access_combined \
-  -m 200 --schedule presets/schedules/ecommerce.json
+  -w 200 --schedule presets/schedules/ecommerce.json
 
 # IIS W3C log (Splunk ms:iis:auto sourcetype — recommended)
 python generator.py -c presets/configs/ecommerce_furniture.json --template ms:iis:auto -r PT1H -s "2025-01-01T00:00"
@@ -185,13 +185,13 @@ The loop continues with 98% probability, averaging ~50 crawl requests per sessio
 
 ## Volume
 
-The `-m` ceiling at the preset's default interarrival interval is ~528. Setting `-m` above this has no effect — the worker pool is never fully used. To model heavier traffic, lower the interarrival interval instead (via `--start-interval`, or by editing the config's `event:start:timer` directly).
+The `-w` ceiling at the preset's default interarrival interval is ~528. Setting `-w` above this has no effect — the worker pool is never fully used. To model heavier traffic, lower the interarrival interval instead (via `-i`, or by editing the config's `event:start:timer` directly).
 
 Halving the interval (2x arrival rate) raises the ceiling to ~1,056; doubling it (0.5x arrival rate) lowers it to ~264. The ceiling scales linearly with arrival rate.
 
-The table below shows how output scales with `-m` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce_furniture.json --compare-start-interval`.
+The table below shows how output scales with `-w` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce_furniture.json --compare-start-interval`.
 
-| `-m` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
+| `-w` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
 | ---: | ---: | ---: | ---: |
 | 1 | 181 | 181 | 183 |
 | 2 | 386 | 381 | 361 |
@@ -206,7 +206,7 @@ The table below shows how output scales with `-m` at each interval (`--seed 42`,
 
 ```mermaid
 xychart-beta
-    title "ecommerce_furniture — rows vs -m by interarrival interval (PT6H, seed=42)"
+    title "ecommerce_furniture — rows vs -w by interarrival interval (PT6H, seed=42)"
     x-axis [1, 2, 5, 13, 30, 70, 165, 385, 902, 2112]
     y-axis "Rows" 0 --> 170000
     line [181, 386, 936, 2551, 6089, 13230, 32248, 73385, 142163, 141907]
