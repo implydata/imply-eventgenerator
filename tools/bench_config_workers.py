@@ -534,9 +534,9 @@ def main():
 
         print(
             f"The {interval_label}start interval for workers in this preset is {effective_i:g}"
-            f" seconds, with each worker busy for {avg_busy_s:.0f} seconds on average. The"
+            f" seconds, with each worker busy for {avg_busy_s:g} seconds on average. The"
             f" maximum number of workers that can be busy at the same time is therefore"
-            f" {avg_busy_s:.0f}/{effective_i:g} = {plateau_m:,}; increasing available workers"
+            f" {avg_busy_s:g}/{effective_i:g} = {plateau_m:,}; increasing available workers"
             f" (using `-w`) without adjusting how often they begin work (using `-i`) has no"
             f" effect.\n"
             f"\n"

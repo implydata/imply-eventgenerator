@@ -78,7 +78,7 @@ xychart-beta
 Adjust `-i` and `-w` to model heavier SSH traffic. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/ssh_auth.json`.
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 0.01 | 🟰 136 | 🟩 803 | 🟰 3,694 | 🟧 13,939 | 🟧 35,860 | 🟥 144,837 | 🟥 357,017 | 🟥 714,223 |
 | 0.1 | 🟩 136 | 🟩 584 | 🟨 3,694 | 🟧 14,312 | 🟧 35,888 | 🟥 141,811 | 🟥 353,328 | 🟥 535,124 |
 | 1 | 🟩 136 | 🟩 775 | 🟨 3,580 | 🟧 14,372 | 🟧 35,435 | 🟧 54,119 | 🟧 54,119 | 🟧 54,119 |

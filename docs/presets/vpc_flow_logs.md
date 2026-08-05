@@ -56,31 +56,26 @@ flowchart LR
 
 ## Volume
 
-The `-w` ceiling at the preset's default interarrival interval is ~66. Setting `-w` above this has no effect — the worker pool is never fully used. To model heavier network traffic, lower the interarrival interval instead (via `-i`, or by editing the config's `event:start:timer` directly).
+The default start interval for workers in this preset is 0.5 seconds, with each worker busy for 33 seconds on average. The maximum number of workers that can be busy at the same time is therefore 33/0.5 = 66; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect.
 
-Halving the interval (2x arrival rate) raises the ceiling to ~132; doubling it (0.5x arrival rate) lowers it to ~33. The ceiling scales linearly with arrival rate.
-
-The table below shows how output scales with `-w` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start --compare-start-interval`.
-
-| `-w` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
-| ---: | ---: | ---: | ---: |
-| 1 | 6,115 | 6,116 | 6,140 |
-| 2 | 11,749 | 11,771 | 11,397 |
-| 3 | 17,196 | 17,362 | 16,878 |
-| 6 | 34,522 | 33,806 | 33,800 |
-| 12 | 68,828 | 67,583 | 64,278 |
-| 22 | 126,496 | 122,248 | 97,322 |
-| 41 | 231,698 | 192,555 | 99,766 |
-| 76 | 386,451 | 198,392 | 99,766 |
-| 142 | 400,625 | 198,392 | 99,766 |
-| 264 | 400,625 | 198,392 | 99,766 |
+The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/vpc_flow_logs.json --clock-field start`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "vpc_flow_logs — rows vs -w by interarrival interval (PT6H, seed=42)"
-    x-axis [1, 2, 3, 6, 12, 22, 41, 76, 142, 264]
-    y-axis "Rows" 0 --> 470000
-    line [6115, 11749, 17196, 34522, 68828, 126496, 231698, 386451, 400625, 400625]
-    line [6116, 11771, 17362, 33806, 67583, 122248, 192555, 198392, 198392, 198392]
-    line [6140, 11397, 16878, 33800, 64278, 97322, 99766, 99766, 99766, 99766]
+    title "vpc_flow_logs — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
+    y-axis "Rows" 0 --> 230000
+    line [6116, 11771, 17362, 28940, 50317, 85101, 140958, 195269, 198392, 198392]
 ```
+
+Adjust `-i` and `-w` to model heavier network traffic. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/vpc_flow_logs.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0.01 | 🟰 6,117 | 🟰 28,081 | 🟧 143,265 | 🟥 573,880 | 🟥 1,422,597 | ⏱️ | ⏱️ | ⏱️ |
+| 0.1 | 🟩 6,117 | 🟨 28,081 | 🟧 142,994 | 🟥 564,511 | 🟥 996,861 | 🟥 996,861 | 🟥 996,861 | 🟰 |
+| 0.5 (default) | 🟩 6,116 | 🟨 28,940 | 🟧 135,770 | 🟧 198,392 | 🟧 198,392 | 🟧 198,392 | 🟰 | 🟰 |
+| 1 | 🟩 6,140 | 🟨 28,454 | 🟧 97,000 | 🟧 99,766 | 🟧 99,766 | 🟰 | 🟰 | 🟰 |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. 🟰 = Plateau (row-wise skip, or column-wise skip with its confirmed value shown).

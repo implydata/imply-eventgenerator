@@ -81,23 +81,24 @@ flowchart TD
 
 There is no meaningful `-w` ceiling. Each worker completes a single packet decision with zero delay and immediately exits, so the worker pool is never the bottleneck. `-w 1` is always sufficient; raising it has no effect on throughput.
 
-The interarrival interval is the only lever that controls volume here. The table below compares the preset's default interval against half and double it (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/endpoint_network.json --compare-start-interval`.
-
-| `-w` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
-| ---: | ---: | ---: | ---: |
-| 1 | 143,843 | 71,928 | 35,980 |
-| 2 | 143,843 | 71,928 | 35,980 |
-| 3 | 143,843 | 71,928 | 35,980 |
-| 4 | 143,843 | 71,928 | 35,980 |
+The start interval is the only lever that controls volume here. The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window) — flat, as expected. To regenerate: `python tools/bench_config_workers.py -c presets/configs/endpoint_network.json`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "endpoint_network — rows vs -w by interarrival interval (PT6H, seed=42)"
-    x-axis [1, 2, 3, 4]
-    y-axis "Rows" 0 --> 170000
-    line [143843, 143843, 143843, 143843]
+    title "endpoint_network — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 2, 3, 4]
+    y-axis "Rows" 0 --> 83000
     line [71928, 71928, 71928, 71928]
-    line [35980, 35980, 35980, 35980]
 ```
 
-Rows scale directly with arrival rate: halving the interval doubles output, doubling it halves output.
+Adjust `-i` to model heavier network traffic — `-w` won't help. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/endpoint_network.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0.01 | 🟥 2,159,389 | 🟥 2,159,389 | 🟥 2,159,389 | 🟰 | 🟰 | 🟰 | 🟰 | 🟰 |
+| 0.1 | 🟨 215,501 | 🟨 215,501 | 🟨 215,501 | 🟰 | 🟰 | 🟰 | 🟰 | 🟰 |
+| 0.3 (default) | 🟨 71,928 | 🟨 71,928 | 🟨 71,928 | 🟰 | 🟰 | 🟰 | 🟰 | 🟰 |
+| 1 | 🟩 21,551 | 🟩 21,551 | 🟩 21,551 | 🟰 | 🟰 | 🟰 | 🟰 | 🟰 |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. 🟰 = Plateau (row-wise skip, or column-wise skip with its confirmed value shown).

@@ -44,7 +44,7 @@ risk at the same -w, since risk here tracks worker count, not arrival rate.
 Contention near the OS thread-creation limit gets worse than linearly with
 -w well before it actually fails outright, so a cell can take minutes without
 crashing. Each cell therefore runs under a wall-clock budget (--cell-timeout,
-default 300s): if it's not done in time, it's killed and treated like a crash
+default 600s): if it's not done in time, it's killed and treated like a crash
 for that row's purposes (not a data-volume result). Progress is logged live --
 a heartbeat line every 10s of elapsed time while a cell runs, plus a result
 line when it finishes -- specifically so a slow cell doesn't look identical
@@ -93,7 +93,7 @@ DEFAULT_SEED = 42
 DEFAULT_START = "2024-01-01T00:00:00"
 DEFAULT_DURATION = "PT6H"
 PLATEAU_THRESHOLD = 0.10
-DEFAULT_CELL_TIMEOUT = 300.0
+DEFAULT_CELL_TIMEOUT = 600.0
 
 # Fixed, not computed -- a generic grid meant to be reused across presets without
 # per-profile tuning. See log_space()/linear_space() below if a custom scale is
@@ -141,6 +141,22 @@ def is_plateau(prev_rows, curr_rows, threshold):
     if prev_rows is None or prev_rows == 0:
         return curr_rows == 0
     return abs(curr_rows - prev_rows) / prev_rows < threshold
+
+
+def plateau_streak_step(prev_rows, rows, streak, threshold):
+    """Advance a plateau-confirmation streak by one reading. Normally requires two
+    consecutive within-threshold matches, not one -- a single near-match can be pure
+    noise when absolute counts are small. But an EXACT match (not just within
+    threshold) confirms immediately: once truly past a ceiling/floor there's no
+    worker contention left, so output for a fixed seed is fully deterministic --
+    bit-for-bit identical on every probe, not just close -- which is categorically
+    stronger evidence than a within-threshold match and was never what the
+    two-reading requirement was guarding against."""
+    if prev_rows is not None and rows == prev_rows:
+        return 2
+    if prev_rows is not None and is_plateau(prev_rows, rows, threshold):
+        return streak + 1
+    return 0
 
 
 def make_heartbeat(label, throttle=10.0):
@@ -302,12 +318,9 @@ def main():
                 # Feed the inferred value into the row's own bookkeeping too, so a
                 # row entirely covered by already-confirmed columns still triggers
                 # its own plateau stop instead of running out the rest for real.
-                if prev_rows is not None and is_plateau(prev_rows, confirmed, args.plateau_threshold):
-                    row_streak += 1
-                    if row_streak >= 2:
-                        stopped, stop_status = True, None
-                else:
-                    row_streak = 0
+                row_streak = plateau_streak_step(prev_rows, confirmed, row_streak, args.plateau_threshold)
+                if row_streak >= 2:
+                    stopped, stop_status = True, None
                 prev_rows = confirmed
                 continue
 
@@ -325,21 +338,15 @@ def main():
                 stopped, stop_status = True, status
                 continue
 
-            if prev_rows is not None and is_plateau(prev_rows, rows, args.plateau_threshold):
-                row_streak += 1
-                if row_streak >= 2:
-                    stopped, stop_status = True, None
-            else:
-                row_streak = 0
+            row_streak = plateau_streak_step(prev_rows, rows, row_streak, args.plateau_threshold)
+            if row_streak >= 2:
+                stopped, stop_status = True, None
             prev_rows = rows
 
             cs = col_state[w]
-            if cs["prev"] is not None and is_plateau(cs["prev"], rows, args.plateau_threshold):
-                cs["streak"] += 1
-                if cs["streak"] >= 2:
-                    cs["confirmed"] = rows
-            else:
-                cs["streak"] = 0
+            cs["streak"] = plateau_streak_step(cs["prev"], rows, cs["streak"], args.plateau_threshold)
+            if cs["streak"] >= 2:
+                cs["confirmed"] = rows
             cs["prev"] = rows
 
     logging.info(f"Ran {ran} of {total_cells} cells ({total_cells - ran} skipped by plateau/crash/timeout detection).")
@@ -361,7 +368,7 @@ def main():
 
     # --- Render markdown table: rows = -i, columns = -w ---
     header = ("| `-i` \\ `-w` | " + " | ".join(f"{w:,}" for w in w_values) + " |")
-    sep = "| ---: | " + " | ".join("---:" for _ in w_values) + " |"
+    sep = "| :--- | " + " | ".join(":---" for _ in w_values) + " |"
     lines = [header, sep]
     for i in i_values:
         cells = []
