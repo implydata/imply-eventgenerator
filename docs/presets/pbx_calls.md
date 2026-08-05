@@ -64,30 +64,26 @@ The `ringing` state models real ring time (5–30 s) before the outcome is deter
 
 ## Volume
 
-The `-w` ceiling at the preset's default interarrival interval is ~9. Setting `-w` above this has no effect — the worker pool is never fully used. To model a busier PBX, lower the interarrival interval instead (via `-i`, or by editing the config's `event:start:timer` directly).
+The default start interval for workers in this preset is 30 seconds, with each worker busy for 270 seconds on average. The maximum number of workers that can be busy at the same time is therefore 270/30 = 9; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect. At this preset's low volume, treat this as approximate rather than exact.
 
-Halving the interval (2x arrival rate) raises the ceiling to ~17; doubling it (0.5x arrival rate) lowers it to ~9. The ceiling scales with arrival rate. At this preset's low call volume, treat these as approximate rather than exact.
-
-The table below shows how output scales with `-w` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/pbx_calls.json --compare-start-interval`.
-
-| `-w` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
-| ---: | ---: | ---: | ---: |
-| 1 | 144 | 140 | 130 |
-| 2 | 317 | 254 | 215 |
-| 3 | 395 | 404 | 308 |
-| 5 | 695 | 572 | 324 |
-| 7 | 983 | 660 | 384 |
-| 10 | 1,248 | 679 | 385 |
-| 16 | 1,475 | 773 | 385 |
-| 23 | 1,508 | 773 | 385 |
-| 34 | 1,508 | 773 | 385 |
+The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/pbx_calls.json`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "pbx_calls — rows vs -w by interarrival interval (PT6H, seed=42)"
-    x-axis [1, 2, 3, 5, 7, 10, 16, 23, 34]
-    y-axis "Rows" 0 --> 1800
-    line [144, 317, 395, 695, 983, 1248, 1475, 1508, 1508]
-    line [140, 254, 404, 572, 660, 679, 773, 773, 773]
-    line [130, 215, 308, 324, 384, 385, 385, 385, 385]
+    title "pbx_calls — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 2, 3, 4, 5, 7, 9, 13, 18]
+    y-axis "Rows" 0 --> 830
+    line [140, 254, 404, 492, 572, 660, 721, 773, 773]
 ```
+
+Adjust `-i` and `-w` to model a busier PBX. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/pbx_calls.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.01 | 🟰 147 | 🟩 755 | 🟨 3,632 | 🟧 15,199 | 🟧 37,329 | 🟥 148,171 | 🟥 371,721 | 🟥 742,276 |
+| 0.1 | 🟩 147 | 🟩 717 | 🟨 3,615 | 🟧 14,953 | 🟧 36,938 | 🟥 147,531 | 🟥 213,583 | 🟥 213,583 |
+| 1 | 🟩 147 | 🟩 774 | 🟨 3,607 | 🟧 14,552 | 🟧 21,551 | 🟧 21,551 | 🟧 21,551 | 🟰 |
+| 30 (default) | 🟩 140 | 🟩 572 | 🟩 773 | 🟩 773 | 🟩 773 | 🟰 | 🟰 | 🟰 |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. 🟰 = Plateau (row-wise skip, or column-wise skip with its confirmed value shown).

@@ -62,31 +62,26 @@ Session dwell time is drawn from an exponential distribution with mean 600 secon
 
 ## Volume
 
-The `-w` ceiling at the preset's default interarrival interval is ~66. Setting `-w` above this has no effect — the worker pool is never fully used. To model heavier SSH traffic, lower the interarrival interval instead (via `-i`, or by editing the config's `event:start:timer` directly).
+The default start interval for workers in this preset is 10 seconds, with each worker busy for 660 seconds on average. The maximum number of workers that can be busy at the same time is therefore 660/10 = 66; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect.
 
-Halving the interval (2x arrival rate) raises the ceiling to ~132; doubling it (0.5x arrival rate) lowers it to ~33. The ceiling scales linearly with arrival rate.
-
-The table below shows how output scales with `-w` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ssh_auth.json --compare-start-interval`.
-
-| `-w` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
-| ---: | ---: | ---: | ---: |
-| 1 | 136 | 136 | 136 |
-| 2 | 247 | 296 | 280 |
-| 3 | 375 | 390 | 404 |
-| 6 | 840 | 762 | 769 |
-| 12 | 1,635 | 1,789 | 1,417 |
-| 22 | 3,107 | 3,084 | 2,437 |
-| 41 | 5,714 | 4,942 | 2,679 |
-| 76 | 9,502 | 5,450 | 2,679 |
-| 142 | 10,857 | 5,450 | 2,679 |
-| 264 | 10,857 | 5,450 | 2,679 |
+The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/ssh_auth.json`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "ssh_auth — rows vs -w by interarrival interval (PT6H, seed=42)"
-    x-axis [1, 2, 3, 6, 12, 22, 41, 76, 142, 264]
-    y-axis "Rows" 0 --> 13000
-    line [136, 247, 375, 840, 1635, 3107, 5714, 9502, 10857, 10857]
-    line [136, 296, 390, 762, 1789, 3084, 4942, 5450, 5450, 5450]
-    line [136, 280, 404, 769, 1417, 2437, 2679, 2679, 2679, 2679]
+    title "ssh_auth — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
+    y-axis "Rows" 0 --> 6300
+    line [136, 296, 390, 769, 1169, 1988, 3395, 5366, 5450, 5450]
 ```
+
+Adjust `-i` and `-w` to model heavier SSH traffic. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/ssh_auth.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.01 | 🟰 136 | 🟩 803 | 🟰 3,694 | 🟧 13,939 | 🟧 35,860 | 🟥 144,837 | 🟥 357,017 | 🟥 714,223 |
+| 0.1 | 🟩 136 | 🟩 584 | 🟨 3,694 | 🟧 14,312 | 🟧 35,888 | 🟥 141,811 | 🟥 353,328 | 🟥 535,124 |
+| 1 | 🟩 136 | 🟩 775 | 🟨 3,580 | 🟧 14,372 | 🟧 35,435 | 🟧 54,119 | 🟧 54,119 | 🟧 54,119 |
+| 10 (default) | 🟩 136 | 🟩 769 | 🟨 3,541 | 🟨 5,450 | 🟨 5,450 | 🟨 5,450 | 🟰 | 🟰 |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. 🟰 = Plateau (row-wise skip, or column-wise skip with its confirmed value shown).
