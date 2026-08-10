@@ -127,8 +127,8 @@ def validate_start_interval(value):
         fvalue = float(value)
     except ValueError:
         raise argparse.ArgumentTypeError("Start interval must be a number.")
-    if fvalue <= 0:
-        raise argparse.ArgumentTypeError("Start interval must be greater than 0.")
+    if fvalue < 0:
+        raise argparse.ArgumentTypeError("Start interval must be greater than or equal to 0.")
     return fvalue
 
 
@@ -531,10 +531,12 @@ def main():
         # needed, since this is the same equation either direction.
         avg_busy_s = plateau_m * effective_i
         interval_label = "default " if start_interval is None else ""
+        i_unit = "second" if effective_i == 1 else "seconds"
+        busy_unit = "second" if avg_busy_s == 1 else "seconds"
 
         print(
             f"The {interval_label}start interval for workers in this preset is {effective_i:g}"
-            f" seconds, with each worker busy for {avg_busy_s:g} seconds on average. The"
+            f" {i_unit}, with each worker busy for {avg_busy_s:g} {busy_unit} on average. The"
             f" maximum number of workers that can be busy at the same time is therefore"
             f" {avg_busy_s:g}/{effective_i:g} = {plateau_m:,}; increasing available workers"
             f" (using `-w`) without adjusting how often they begin work (using `-i`) has no"

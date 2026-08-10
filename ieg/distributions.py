@@ -90,8 +90,8 @@ class DistExponential:
             valid = False
         else:
             try:
-                if float(desc['mean']) <= 0:
-                    logger.error("%s: exponential distribution 'mean' must be > 0, got %s", context, desc['mean'])
+                if float(desc['mean']) < 0:
+                    logger.error("%s: exponential distribution 'mean' must be >= 0, got %s", context, desc['mean'])
                     valid = False
             except (TypeError, ValueError):
                 logger.error("%s: exponential distribution 'mean' must be a number, got %r", context, desc['mean'])
@@ -193,8 +193,8 @@ class DistGMMTemporal:
             valid = False
         else:
             try:
-                if float(desc['mean']) <= 0:
-                    logger.error("%s: gmm_temporal distribution 'mean' must be > 0, got %s", context, desc['mean'])
+                if float(desc['mean']) < 0:
+                    logger.error("%s: gmm_temporal distribution 'mean' must be >= 0, got %s", context, desc['mean'])
                     valid = False
             except (TypeError, ValueError):
                 logger.error("%s: gmm_temporal distribution 'mean' must be a number, got %r", context, desc['mean'])

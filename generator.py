@@ -52,8 +52,8 @@ def validate_start_interval(value):
         fvalue = float(value)
     except ValueError:
         raise argparse.ArgumentTypeError("Start interval must be a number.")
-    if fvalue <= 0:
-        raise argparse.ArgumentTypeError("Start interval must be greater than 0.")
+    if fvalue < 0:
+        raise argparse.ArgumentTypeError("Start interval must be greater than or equal to 0.")
     return fvalue
 
 def apply_start_interval_override(config, override_value):
