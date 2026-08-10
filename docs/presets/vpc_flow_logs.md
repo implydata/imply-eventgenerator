@@ -54,29 +54,28 @@ flowchart LR
     D --> E(["<b>connection_end</b><br/>event:end"])
 ```
 
-## Concurrency (`-m`)
+## Volume
 
-The `-m` ceiling is ~66. Setting `-m` above this has no effect — the worker pool is never fully used.
+The default start interval for workers in this preset is 0.5 seconds, with each worker busy for 33 seconds on average. The maximum number of workers that can be busy at the same time is therefore 33/0.5 = 66; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect.
 
-The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/vpc_flow_logs.json --clock-field start`.
-
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 6,116 | 0.5 |
-| 2 | 11,771 | 0.9 |
-| 3 | 17,362 | 1.2 |
-| 5 | 28,940 | 1.9 |
-| 9 | 51,778 | 3.3 |
-| 15 | 85,101 | 5.3 |
-| 26 | 140,958 | 9.0 |
-| 45 | 195,269 | 12.2 |
-| 77 | 198,392 | 12.6 |
-| 132 | 198,392 | 12.4 |
+The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/vpc_flow_logs.json --clock-field start`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "vpc_flow_logs — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
+    title "vpc_flow_logs — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
     y-axis "Rows" 0 --> 230000
-    line [6116, 11771, 17362, 28940, 51778, 85101, 140958, 195269, 198392, 198392]
+    line [6116, 11771, 17362, 28940, 50317, 85101, 140958, 195269, 198392, 198392]
 ```
+
+Adjust `-i` and `-w` to model heavier network traffic. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/vpc_flow_logs.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0.01 | ↕️ | ↕️ | 🟨 143,265 | 🟧 573,880 | 🟥 1,422,597 | 🟥 5,672,198 | ⏱️ | ⏱️ |
+| 0.1 | 🟩 6,117 | 🟩 28,081 | 🟨 142,994 | 🟧 564,511 | 🟧 996,861 | ↔️ | ↔️ | ↔️ |
+| 0.5 (default) | 🟩 6,116 | 🟩 28,940 | 🟨 135,770 | 🟧 198,392 | ↔️ | ↔️ | ↔️ | ↔️ |
+| 1 | 🟩 6,140 | 🟩 28,454 | 🟨 97,000 | 🟨 99,766 | ↔️ | ↔️ | ↔️ | ↔️ |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.

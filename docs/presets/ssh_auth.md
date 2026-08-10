@@ -13,7 +13,7 @@ python generator.py -c presets/configs/ssh_auth.json --template linux_secure -n 
 python generator.py -c presets/configs/ssh_auth.json --template linux_secure -r PT1H -s "2025-01-01T00:00"
 
 # Concurrent connections
-python generator.py -c presets/configs/ssh_auth.json --template linux_secure -r PT1H -s "2025-01-01T00:00" -m 20
+python generator.py -c presets/configs/ssh_auth.json --template linux_secure -r PT1H -s "2025-01-01T00:00" -w 20
 
 # OCSF Authentication (security data lake / SIEM ingestion)
 python generator.py -c presets/configs/ssh_auth.json --template ocsf:authentication -r PT1H -s "2025-01-01T00:00"
@@ -60,29 +60,28 @@ Variables set in `initial` (hostname, username, source IP, port, PID) persist fo
 
 Session dwell time is drawn from an exponential distribution with mean 600 seconds (~10 minutes).
 
-## Concurrency (`-m`)
+## Volume
 
-The `-m` ceiling is ~66. Setting `-m` above this has no effect — the worker pool is never fully used.
+The default start interval for workers in this preset is 10 seconds, with each worker busy for 660 seconds on average. The maximum number of workers that can be busy at the same time is therefore 660/10 = 66; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect.
 
-The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ssh_auth.json`.
-
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 136 | 0.2 |
-| 2 | 296 | 0.2 |
-| 3 | 390 | 0.2 |
-| 5 | 769 | 0.2 |
-| 9 | 1,169 | 0.2 |
-| 15 | 1,988 | 0.3 |
-| 26 | 3,395 | 0.3 |
-| 45 | 5,366 | 0.4 |
-| 77 | 5,450 | 0.4 |
-| 132 | 5,450 | 0.4 |
+The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/ssh_auth.json`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "ssh_auth — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
+    title "ssh_auth — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 2, 3, 5, 9, 15, 26, 45, 77, 132]
     y-axis "Rows" 0 --> 6300
     line [136, 296, 390, 769, 1169, 1988, 3395, 5366, 5450, 5450]
 ```
+
+Adjust `-i` and `-w` to model heavier SSH traffic. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/ssh_auth.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0.01 | ↕️ | 🟩 803 | ↕️ | 🟧 13,939 | 🟧 35,860 | 🟥 144,837 | 🟥 357,017 | 🟥 712,843 |
+| 0.1 | ↕️ | 🟩 584 | 🟨 3,694 | 🟧 14,312 | 🟧 35,888 | 🟥 141,811 | 🟥 353,328 | 🟥 533,909 |
+| 1 | ↕️ | 🟩 775 | 🟨 3,580 | 🟧 14,372 | 🟧 35,435 | 🟧 54,119 | ↔️ | ↔️ |
+| 10 (default) | 🟩 136 | 🟩 769 | 🟨 3,541 | 🟨 5,450 | ↔️ | ↔️ | ↔️ | ↔️ |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.

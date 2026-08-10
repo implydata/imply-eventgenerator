@@ -13,7 +13,7 @@ python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -n
 python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -r PT1H -s "2025-01-01T00:00"
 
 # Concurrent callers
-python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -r PT1H -s "2025-01-01T00:00" -m 5
+python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -r PT1H -s "2025-01-01T00:00" -w 5
 ```
 
 ## Template
@@ -60,30 +60,30 @@ flowchart TD
     H --> Z
 ```
 
-The `ringing` state models real ring time (5–30 s) before the outcome is determined. Answered calls spend an additional ~3 minutes in `answered` before the CDR is emitted — so `-m` controls how many calls are genuinely in progress simultaneously, in both real-time and simulated modes.
+The `ringing` state models real ring time (5–30 s) before the outcome is determined. Answered calls spend an additional ~3 minutes in `answered` before the CDR is emitted — so `-w` controls how many calls are genuinely in progress simultaneously, in both real-time and simulated modes.
 
-## Concurrency (`-m`)
+## Volume
 
-The `-m` ceiling is ~9. Setting `-m` above this has no effect — the worker pool is never fully used. To model a busier PBX, lower the `interarrival` mean in the config.
+The default start interval for workers in this preset is 30 seconds, with each worker busy for 270 seconds on average. The maximum number of workers that can be busy at the same time is therefore 270/30 = 9; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect. At this preset's low volume, treat this as approximate rather than exact.
 
-The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/pbx_calls.json`.
-
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 140 | 0.2 |
-| 2 | 254 | 0.2 |
-| 3 | 404 | 0.2 |
-| 4 | 492 | 0.2 |
-| 5 | 572 | 0.2 |
-| 7 | 660 | 0.2 |
-| 9 | 721 | 0.2 |
-| 13 | 773 | 0.2 |
-| 18 | 773 | 0.2 |
+The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/pbx_calls.json`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "pbx_calls — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 2, 3, 4, 5, 7, 9, 13, 18]
+    title "pbx_calls — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 2, 3, 4, 5, 7, 9, 13, 18]
     y-axis "Rows" 0 --> 830
     line [140, 254, 404, 492, 572, 660, 721, 773, 773]
 ```
+
+Adjust `-i` and `-w` to model a busier PBX. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/pbx_calls.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0.01 | ↕️ | 🟩 755 | 🟨 3,632 | 🟧 15,199 | 🟧 37,329 | 🟥 148,171 | 🟥 371,698 | 🟥 742,921 |
+| 0.1 | ↕️ | 🟩 717 | 🟨 3,615 | 🟧 14,953 | 🟧 36,938 | 🟥 147,531 | 🟥 213,583 | ↔️ |
+| 1 | 🟩 147 | 🟩 774 | 🟨 3,607 | 🟧 14,552 | 🟧 21,551 | ↔️ | ↔️ | ↔️ |
+| 30 (default) | 🟩 140 | 🟩 572 | 🟩 773 | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.
