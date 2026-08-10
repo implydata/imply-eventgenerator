@@ -81,9 +81,9 @@ Adjust `-i` and `-w` to model a busier PBX. The table below illustrates how outp
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | 🟰 147 | 🟩 755 | 🟨 3,632 | 🟧 15,199 | 🟧 37,329 | 🟥 148,171 | 🟥 371,721 | 🟥 742,276 |
-| 0.1 | 🟩 147 | 🟩 717 | 🟨 3,615 | 🟧 14,953 | 🟧 36,938 | 🟥 147,531 | 🟥 213,583 | 🟥 213,583 |
-| 1 | 🟩 147 | 🟩 774 | 🟨 3,607 | 🟧 14,552 | 🟧 21,551 | 🟧 21,551 | 🟧 21,551 | 🟰 |
-| 30 (default) | 🟩 140 | 🟩 572 | 🟩 773 | 🟩 773 | 🟩 773 | 🟰 | 🟰 | 🟰 |
+| 0.01 | ↕️ | 🟩 755 | 🟨 3,632 | 🟧 15,199 | 🟧 37,329 | 🟥 148,171 | 🟥 371,698 | 🟥 742,921 |
+| 0.1 | ↕️ | 🟩 717 | 🟨 3,615 | 🟧 14,953 | 🟧 36,938 | 🟥 147,531 | 🟥 213,583 | ↔️ |
+| 1 | 🟩 147 | 🟩 774 | 🟨 3,607 | 🟧 14,552 | 🟧 21,551 | ↔️ | ↔️ | ↔️ |
+| 30 (default) | 🟩 140 | 🟩 572 | 🟩 773 | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. 🟰 = Plateau (row-wise skip, or column-wise skip with its confirmed value shown).
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.

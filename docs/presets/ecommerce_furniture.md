@@ -185,31 +185,26 @@ The loop continues with 98% probability, averaging ~50 crawl requests per sessio
 
 ## Volume
 
-The `-w` ceiling at the preset's default interarrival interval is ~528. Setting `-w` above this has no effect — the worker pool is never fully used. To model heavier traffic, lower the interarrival interval instead (via `-i`, or by editing the config's `event:start:timer` directly).
+The default start interval for workers in this preset is 3 seconds, with each worker busy for 1584 seconds on average. The maximum number of workers that can be busy at the same time is therefore 1584/3 = 528; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect.
 
-Halving the interval (2x arrival rate) raises the ceiling to ~1,056; doubling it (0.5x arrival rate) lowers it to ~264. The ceiling scales linearly with arrival rate.
-
-The table below shows how output scales with `-w` at each interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce_furniture.json --compare-start-interval`.
-
-| `-w` | Rows — 1/2x interval | Rows — default | Rows — 2x interval |
-| ---: | ---: | ---: | ---: |
-| 1 | 181 | 181 | 183 |
-| 2 | 386 | 381 | 361 |
-| 5 | 936 | 968 | 909 |
-| 13 | 2,551 | 2,448 | 2,475 |
-| 30 | 6,089 | 5,718 | 5,702 |
-| 70 | 13,230 | 13,162 | 13,362 |
-| 165 | 32,248 | 31,399 | 30,590 |
-| 385 | 73,385 | 68,947 | 35,131 |
-| 902 | 142,163 | 72,369 | 35,711 |
-| 2,112 | 141,907 | 71,584 | 34,668 |
+The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/ecommerce_furniture.json`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "ecommerce_furniture — rows vs -w by interarrival interval (PT6H, seed=42)"
-    x-axis [1, 2, 5, 13, 30, 70, 165, 385, 902, 2112]
-    y-axis "Rows" 0 --> 170000
-    line [181, 386, 936, 2551, 6089, 13230, 32248, 73385, 142163, 141907]
-    line [181, 381, 968, 2448, 5718, 13162, 31399, 68947, 72369, 71584]
-    line [183, 361, 909, 2475, 5702, 13362, 30590, 35131, 35711, 34668]
+    title "ecommerce_furniture — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 2, 5, 10, 22, 48, 104, 225, 487, 1056]
+    y-axis "Rows" 0 --> 82000
+    line [178, 393, 1002, 1873, 4099, 9251, 19967, 42471, 70688, 71184]
 ```
+
+Adjust `-i` and `-w` to model heavier traffic. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/ecommerce_furniture.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0.01 | ↕️ | ↕️ | ↕️ | ↕️ | ↕️ | 🟥 193,568 | 🟥 479,280 | 🟥 959,390 |
+| 0.1 | ↕️ | 🟩 932 | 🟨 4,893 | 🟧 19,075 | 🟧 48,670 | 🟥 191,126 | 🟥 478,063 | 🟥 946,824 |
+| 1 | ↕️ | 🟩 922 | 🟨 4,905 | 🟧 19,291 | 🟧 47,730 | 🟥 183,144 | 🟥 215,581 | 🟥 210,690 |
+| 3 (default) | 🟩 178 | 🟩 917 | 🟨 4,749 | 🟧 19,317 | 🟧 46,772 | 🟧 70,270 | 🟧 71,630 | 🟧 72,509 |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.

@@ -96,9 +96,9 @@ Adjust `-i` to model heavier network traffic — `-w` won't help. The table belo
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | 🟥 2,159,389 | 🟥 2,159,389 | 🟥 2,159,389 | 🟰 | 🟰 | 🟰 | 🟰 | 🟰 |
-| 0.1 | 🟨 215,501 | 🟨 215,501 | 🟨 215,501 | 🟰 | 🟰 | 🟰 | 🟰 | 🟰 |
-| 0.3 (default) | 🟨 71,928 | 🟨 71,928 | 🟨 71,928 | 🟰 | 🟰 | 🟰 | 🟰 | 🟰 |
-| 1 | 🟩 21,551 | 🟩 21,551 | 🟩 21,551 | 🟰 | 🟰 | 🟰 | 🟰 | 🟰 |
+| 0.01 | 🟥 2,159,389 | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.1 | 🟨 215,501 | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.3 (default) | 🟨 71,928 | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 1 | 🟩 21,551 | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. 🟰 = Plateau (row-wise skip, or column-wise skip with its confirmed value shown).
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.
