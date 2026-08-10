@@ -109,7 +109,7 @@ Ever Actor is busy as it completes its own journey through [States](docs/states.
 - When the traversal is very long, Actors could be too busy to do anything else.
 - When the traversal is very short, Actors could be free with nothing to do.
 
-This is known as Little's Law, and together these three levers impact the amount of work done. In other words, the amount of data generated.
+This is known as Little's Law, and together these three levers impact the amount of work done and thus the amount of data generated.
 
 The documentation for each preset contains benchmarks showing the volume of data generated when `-w` and `-i` are varied.
 
