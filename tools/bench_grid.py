@@ -71,6 +71,8 @@ import sys
 import threading
 import time
 
+logger = logging.getLogger(__name__)
+
 # Python doesn't run cleanup code on SIGTERM by default, so killing this script
 # (e.g. because a cell is hung) would otherwise orphan its in-flight generator.py
 # child, which keeps running indefinitely -- this happened in practice while
@@ -81,7 +83,7 @@ _current_proc = [None]
 def _kill_current_and_exit(signum, frame):
     proc = _current_proc[0]
     if proc is not None and proc.poll() is None:
-        logging.warning("Received termination signal -- killing in-flight generator.py process")
+        logger.warning("Received termination signal -- killing in-flight generator.py process")
         proc.kill()
     sys.exit(1)
 
@@ -111,7 +113,8 @@ BASE_I_VALUES = [0.01, 0.1, 1.0]
 TIERS = ["🟩", "🟨", "🟧", "🟥"]
 CRASH_MARK = "💥"
 TIMEOUT_MARK = "⏱️"
-PLATEAU_MARK = "🟰"  # skipped -- row-wise or column-wise plateau already confirms this would match
+ROW_PLATEAU_MARK = "↔️"  # skipped -- flat going across (-w): this row's own ascent already plateaued
+COL_PLATEAU_MARK = "↕️"  # skipped -- flat going down (-i): this column already plateaued from an earlier row
 
 
 def log_space(lo, hi, n):
@@ -159,6 +162,48 @@ def plateau_streak_step(prev_rows, rows, streak, threshold):
     return 0
 
 
+def collapse_duplicates(cell_info, w_values, i_values):
+    """Presentation-only pass over an already-fully-measured grid -- entirely
+    separate from measurement, and never changes what was measured or why it
+    stopped. Two measurements landing on the same value is a perfectly good way
+    to confirm a fact; showing that same number twice to a reader is pure noise.
+    This converts any 'ok' cell that exactly repeats a value already established
+    elsewhere in its row or column into the corresponding mark, whether that
+    established value came from an independent measurement or an earlier skip.
+
+    Row-wise scans -w ascending (display order is also the direction the fact
+    propagates in: a larger -w matching a smaller one). Column-wise scans -i in
+    the same slowest-first order the measurement phase used, not the table's
+    ascending display order -- that's the direction the floor fact actually
+    propagates in (established at a slow -i, holding for every faster one).
+    """
+    display = dict(cell_info)
+
+    for i in i_values:
+        prev = None
+        for w in w_values:
+            rows, status = display[(w, i)]
+            if status == "ok" and prev is not None and rows == prev:
+                display[(w, i)] = (rows, "row-plateau")
+            elif status in ("ok", "row-plateau", "column-plateau"):
+                prev = rows
+            else:
+                prev = None
+
+    for w in w_values:
+        prev = None
+        for i in sorted(i_values, reverse=True):
+            rows, status = display[(w, i)]
+            if status == "ok" and prev is not None and rows == prev:
+                display[(w, i)] = (rows, "column-plateau")
+            elif status in ("ok", "row-plateau", "column-plateau"):
+                prev = rows
+            else:
+                prev = None
+
+    return display
+
+
 def make_heartbeat(label, throttle=10.0):
     """Log a liveness line every `throttle` seconds of elapsed time. run_cell polls
     every 1s internally for timeout accuracy, but logging that often would be noise."""
@@ -167,7 +212,7 @@ def make_heartbeat(label, throttle=10.0):
     def heartbeat(elapsed, rows_so_far):
         if state["last"] is None or elapsed < state["last"] or elapsed - state["last"] >= throttle:
             state["last"] = elapsed
-            logging.info(f"{label}  ... still running, {rows_so_far:,} rows so far ({elapsed:.0f}s)")
+            logger.info(f"{label}  ... still running, {rows_so_far:,} rows so far ({elapsed:.0f}s)")
     return heartbeat
 
 
@@ -274,7 +319,7 @@ def main():
     config_mean = get_config_mean_interval(args.config)
     if args.i_values is None:
         if config_mean is None:
-            logging.warning("Could not read the config's own event:start:timer mean -- "
+            logger.warning("Could not read the config's own event:start:timer mean -- "
                              "defaulting -i grid to %s only.", BASE_I_VALUES)
             i_values = sorted(BASE_I_VALUES)
         else:
@@ -284,10 +329,10 @@ def main():
 
     total_cells = len(w_values) * len(i_values)
     # cell_info[(w, i)] = (rows, status) where status is "ok", "crashed", "timeout",
-    # "row-plateau", or "column-plateau" -- the last two are skips, not measurements,
-    # but carry the confirmed value anyway (row-plateau's is never displayed; column-
-    # plateau's is, since unlike a row skip it wasn't independently re-verified but
-    # is still real, useful information for tier coloring).
+    # "row-plateau", or "column-plateau" -- the last two are skips, not measurements.
+    # Neither displays its value on the cell itself (that's presentation, not the
+    # fact being recorded) -- but column-plateau's value is still real, useful
+    # information for tier coloring elsewhere, unlike a row skip's placeholder 0.
     cell_info = {}
 
     # Column state, threaded across rows (processed slowest -i to fastest -- see
@@ -307,14 +352,20 @@ def main():
             label = f"-i {fmt_i(i):<6} -w {w:<6,}"
 
             if stopped:
-                cell_info[(w, i)] = (0, "row-plateau" if stop_status is None else stop_status)
-                logging.info(f"[{task_n}/{total_cells}] {label}  skipped (row {stop_status or 'plateau'})")
+                # prev_rows is the real confirmed value for a plateau skip (never
+                # independently re-measured, but known) -- 0 only for crashed/timeout,
+                # where there's no real value to speak of. Presentation never shows
+                # this number for a row-plateau cell, but the collapse_duplicates()
+                # pass below needs the true value to compare against other cells.
+                skip_value = prev_rows if stop_status is None else 0
+                cell_info[(w, i)] = (skip_value, "row-plateau" if stop_status is None else stop_status)
+                logger.info(f"[{task_n}/{total_cells}] {label}  skipped (row {stop_status or 'plateau'})")
                 continue
 
             confirmed = col_state[w]["confirmed"]
             if confirmed is not None:
                 cell_info[(w, i)] = (confirmed, "column-plateau")
-                logging.info(f"[{task_n}/{total_cells}] {label}  skipped (column plateau, {confirmed:,} rows)")
+                logger.info(f"[{task_n}/{total_cells}] {label}  skipped (column plateau, {confirmed:,} rows)")
                 # Feed the inferred value into the row's own bookkeeping too, so a
                 # row entirely covered by already-confirmed columns still triggers
                 # its own plateau stop instead of running out the rest for real.
@@ -324,7 +375,7 @@ def main():
                 prev_rows = confirmed
                 continue
 
-            logging.info(f"[{task_n}/{total_cells}] {label}  running...")
+            logger.info(f"[{task_n}/{total_cells}] {label}  running...")
             rows, status, elapsed = run_cell(
                 args.config, w, i, args.duration, args.start, args.seed,
                 args.cell_timeout, on_heartbeat=make_heartbeat(label),
@@ -332,7 +383,7 @@ def main():
             cell_info[(w, i)] = (rows, status)
             ran += 1
             status_text = {"ok": f"{rows:,} rows", "crashed": "CRASHED", "timeout": f"TIMED OUT ({rows:,} rows so far)"}[status]
-            logging.info(f"[{task_n}/{total_cells}] {label}  {status_text}  ({elapsed:.1f}s)")
+            logger.info(f"[{task_n}/{total_cells}] {label}  {status_text}  ({elapsed:.1f}s)")
 
             if status in ("crashed", "timeout"):
                 stopped, stop_status = True, status
@@ -349,7 +400,7 @@ def main():
                 cs["confirmed"] = rows
             cs["prev"] = rows
 
-    logging.info(f"Ran {ran} of {total_cells} cells ({total_cells - ran} skipped by plateau/crash/timeout detection).")
+    logger.info(f"Ran {ran} of {total_cells} cells ({total_cells - ran} skipped by plateau/crash/timeout detection).")
 
     # --- Color tiers from completed results (log-scale quartiles) ---
     ok_rows = sorted(rows for (rows, status) in cell_info.values() if status in ("ok", "column-plateau") and rows > 0)
@@ -367,19 +418,27 @@ def main():
         return TIERS[idx]
 
     # --- Render markdown table: rows = -i, columns = -w ---
+    # collapse_duplicates() is a separate presentation pass over the completed,
+    # already-accurate grid -- see its docstring. ok_rows/tier_for() above
+    # deliberately use the pre-collapse cell_info, since tier boundaries are a
+    # measurement-informed decision, not a presentation one.
+    display = collapse_duplicates(cell_info, w_values, i_values)
+
     header = ("| `-i` \\ `-w` | " + " | ".join(f"{w:,}" for w in w_values) + " |")
     sep = "| :--- | " + " | ".join(":---" for _ in w_values) + " |"
     lines = [header, sep]
     for i in i_values:
         cells = []
         for w in w_values:
-            rows, status = cell_info[(w, i)]
+            rows, status = display[(w, i)]
             if status == "crashed":
                 cells.append(CRASH_MARK)
             elif status == "timeout":
                 cells.append(TIMEOUT_MARK)
-            elif status in ("row-plateau", "column-plateau"):
-                cells.append(PLATEAU_MARK if status == "row-plateau" else f"{PLATEAU_MARK} {rows:,}")
+            elif status == "row-plateau":
+                cells.append(ROW_PLATEAU_MARK)
+            elif status == "column-plateau":
+                cells.append(COL_PLATEAU_MARK)
             else:
                 cells.append(f"{tier_for(rows)} {rows:,}")
         row_label = fmt_i(i) + (" (default)" if config_mean is not None and i == config_mean else "")
@@ -393,7 +452,8 @@ def main():
     print()
     print(f"{CRASH_MARK} = thread-creation limit hit. "
           f"{TIMEOUT_MARK} = Timeout. "
-          f"{PLATEAU_MARK} = Plateau (row-wise skip, or column-wise skip with its confirmed value shown).")
+          f"{ROW_PLATEAU_MARK} = Plateau -- increasing -w had no effect. "
+          f"{COL_PLATEAU_MARK} = Plateau -- decreasing -i had no effect.")
 
 
 if __name__ == "__main__":
