@@ -1,0 +1,1135 @@
+{
+  "templates": {
+    "zscalernss-web": {
+      "body": "datetime={{ datetime.strftime('%Y-%m-%d %H:%M:%S') }}\tuser={{ user }}\tdepartment={{ department }}\tdeviceowner={{ deviceowner }}\tdevicehostname={{ devicehostname }}\tlocation={{ location }}\tClientIP={{ ClientIP }}\tclientpublicIP={{ clientpublicIP }}\taction={{ action }}\treason={{ reason }}\tprotocol={{ protocol }}\trequestmethod={{ requestmethod }}\thostname={{ hostname }}\turl={{ url }}\tserverip={{ serverip }}\tstatus={{ status }}\turlcategory={{ urlcategory }}\turlsupercategory={{ urlsupercategory }}\turlclass={{ urlclass }}\tappname={{ appname }}\tappclass={{ appclass }}\tcontenttype={{ contenttype }}\tfiletype={{ filetype }}\tfileclass={{ fileclass }}\trefererURL={{ refererURL }}\tuseragent={{ useragent }}\trequestsize={{ requestsize }}\tresponsesize={{ responsesize }}\ttransactionsize={{ transactionsize }}\tclienttranstime={{ clienttranstime }}\tservertranstime={{ servertranstime }}\tthreatcategory={{ threatcategory }}\tthreatname={{ threatname }}\tthreatclass={{ threatclass }}\tpagerisk={{ pagerisk }}\tdlpengine={{ dlpengine }}\tdlpdictionaries={{ dlpdictionaries }}\tunscannabletype={{ unscannabletype }}\tmd5={{ md5 }}\tfilename={{ filename }}\tbwthrottle={{ bwthrottle }}",
+      "_comment": "Authentic Zscaler NSS feed wire format: tab-delimited key=value pairs, matching the zscalernss-web Splunk sourcetype"
+    },
+    "ocsf:http_activity": {
+      "body": "{% set method_map = {\"CONNECT\": 1, \"DELETE\": 2, \"GET\": 3, \"HEAD\": 4, \"OPTIONS\": 5, \"POST\": 6, \"PUT\": 7, \"TRACE\": 8} %}{% set activity_id = method_map.get(requestmethod, 99) %}{% set type_uid = 400200 + activity_id %}{% set is_blocked = action == \"Blocked\" %}{% set status_id = 2 if is_blocked else 1 %}{% set severity_id = (4 if threatcategory != \"None\" else 3) if is_blocked else 1 %}{\"activity_id\": {{ activity_id }}, \"activity_name\": \"{{ requestmethod }}\", \"category_uid\": 4, \"category_name\": \"Network Activity\", \"class_uid\": 4002, \"class_name\": \"HTTP Activity\", \"type_uid\": {{ type_uid }}, \"severity_id\": {{ severity_id }}, \"status_id\": {{ status_id }}, \"status\": \"{{ 'Success' if status_id == 1 else 'Failure' }}\", \"status_code\": \"{{ status }}\", \"time\": {{ (datetime.timestamp() * 1000)|int }}, \"app_name\": \"{{ appname }}\", \"metadata\": {\"version\": \"1.4.0\", \"product\": {\"name\": \"imply-eventgenerator\", \"vendor_name\": \"Imply\"}, \"log_provider\": \"imply-eventgenerator\", \"log_name\": \"zscaler_web_log\", \"original_time\": \"{{ datetime.isoformat() }}\"}, \"src_endpoint\": {\"ip\": \"{{ ClientIP }}\", \"hostname\": \"{{ devicehostname }}\", \"owner\": {\"name\": \"{{ user }}\", \"full_name\": \"{{ deviceowner }}\", \"groups\": [{\"name\": \"{{ department }}\"}]}}, \"dst_endpoint\": {\"ip\": \"{{ serverip }}\", \"hostname\": \"{{ hostname }}\"}, \"http_request\": {\"http_method\": \"{{ requestmethod }}\", \"user_agent\": \"{{ useragent }}\", \"referrer\": \"{{ refererURL }}\", \"length\": {{ requestsize }}, \"url\": {\"hostname\": \"{{ hostname }}\", \"path\": \"{{ url }}\", \"url_string\": \"https://{{ hostname }}{{ url }}\", \"categories\": [\"{{ urlcategory }}\", \"{{ urlsupercategory }}\", \"{{ urlclass }}\"]}}, \"http_response\": {\"code\": {{ status }}, \"content_type\": \"{{ contenttype }}\", \"length\": {{ responsesize }}, \"latency\": {{ clienttranstime + servertranstime }}}, \"traffic\": {\"bytes\": {{ transactionsize }}, \"bytes_in\": {{ responsesize }}, \"bytes_out\": {{ requestsize }}}, \"unmapped\": {\"location\": \"{{ location }}\", \"action\": \"{{ action }}\", \"reason\": \"{{ reason }}\", \"threatcategory\": \"{{ threatcategory }}\", \"threatname\": \"{{ threatname }}\", \"threatclass\": \"{{ threatclass }}\", \"pagerisk\": {{ pagerisk }}, \"dlpengine\": \"{{ dlpengine }}\", \"dlpdictionaries\": \"{{ dlpdictionaries }}\", \"unscannabletype\": \"{{ unscannabletype }}\", \"filename\": \"{{ filename }}\", \"md5\": \"{{ md5 }}\", \"filetype\": \"{{ filetype }}\", \"fileclass\": \"{{ fileclass }}\", \"appclass\": \"{{ appclass }}\", \"bwthrottle\": \"{{ bwthrottle }}\", \"clientpublicIP\": \"{{ clientpublicIP }}\", \"protocol\": \"{{ protocol }}\"}}"
+    }
+  },
+  "_comment": "Zscaler NSS-WEB (ZIA web/proxy) log generator",
+  "_description": "Models an employee's web browsing session through the Zscaler Internet Access (ZIA) proxy. Each transaction is one page/request the proxy observed, categorized, security-scanned, and allowed or blocked. Field names and value vocabulary follow the zscalernss-web sourcetype (Zscaler's Splunk CIM Technology Add-on) and Zscaler's public NSS Feed Output Format documentation for Web Logs.",
+  "emitters": [
+    {
+      "name": "zscaler_web_log",
+      "dimensions": [
+        {"name": "datetime", "type": "clock"},
+        {"name": "ClientIP", "type": "variable", "variable": "var_clientip"},
+        {"name": "action", "type": "variable", "variable": "var_action"},
+        {"name": "appclass", "type": "variable", "variable": "var_appclass"},
+        {"name": "appname", "type": "variable", "variable": "var_appname"},
+        {"name": "bwthrottle", "type": "variable", "variable": "var_bwthrottle"},
+        {"name": "clientpublicIP", "type": "variable", "variable": "var_clientpublicip"},
+        {"name": "clienttranstime", "type": "variable", "variable": "var_clienttranstime"},
+        {"name": "contenttype", "type": "variable", "variable": "var_contenttype"},
+        {"name": "department", "type": "variable", "variable": "var_department"},
+        {"name": "devicehostname", "type": "variable", "variable": "var_devicehostname"},
+        {"name": "deviceowner", "type": "variable", "variable": "var_deviceowner"},
+        {"name": "dlpdictionaries", "type": "variable", "variable": "var_dlpdictionaries"},
+        {"name": "dlpengine", "type": "variable", "variable": "var_dlpengine"},
+        {"name": "fileclass", "type": "variable", "variable": "var_fileclass"},
+        {"name": "filename", "type": "variable", "variable": "var_filename"},
+        {"name": "filetype", "type": "variable", "variable": "var_filetype"},
+        {"name": "hostname", "type": "variable", "variable": "var_hostname"},
+        {"name": "location", "type": "variable", "variable": "var_location"},
+        {"name": "md5", "type": "variable", "variable": "var_md5"},
+        {"name": "pagerisk", "type": "variable", "variable": "var_pagerisk"},
+        {"name": "protocol", "type": "variable", "variable": "var_protocol"},
+        {"name": "reason", "type": "variable", "variable": "var_reason"},
+        {"name": "refererURL", "type": "variable", "variable": "var_refererurl"},
+        {"name": "requestmethod", "type": "variable", "variable": "var_requestmethod"},
+        {"name": "requestsize", "type": "variable", "variable": "var_requestsize"},
+        {"name": "responsesize", "type": "variable", "variable": "var_responsesize"},
+        {"name": "serverip", "type": "variable", "variable": "var_serverip"},
+        {"name": "servertranstime", "type": "variable", "variable": "var_servertranstime"},
+        {"name": "status", "type": "variable", "variable": "var_status"},
+        {"name": "threatcategory", "type": "variable", "variable": "var_threatcategory"},
+        {"name": "threatclass", "type": "variable", "variable": "var_threatclass"},
+        {"name": "threatname", "type": "variable", "variable": "var_threatname"},
+        {"name": "transactionsize", "type": "variable", "variable": "var_transactionsize"},
+        {"name": "unscannabletype", "type": "variable", "variable": "var_unscannabletype"},
+        {"name": "url", "type": "variable", "variable": "var_url"},
+        {"name": "urlcategory", "type": "variable", "variable": "var_urlcategory"},
+        {"name": "urlclass", "type": "variable", "variable": "var_urlclass"},
+        {"name": "urlsupercategory", "type": "variable", "variable": "var_urlsupercategory"},
+        {"name": "user", "type": "variable", "variable": "var_user"},
+        {"name": "useragent", "type": "variable", "variable": "var_useragent"}
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "session_start", "type": "event:start:timer",
+      "_comment": "New browsing sessions begin every ~5 seconds on average",
+      "cardinality_distribution": {"type": "exponential", "mean": 5.0},
+      "next": "setup_session"
+    },
+    {
+      "name": "setup_session", "type": "activity",
+      "_comment": "Session-constant attributes: same user/device/location for every transaction in this session",
+      "variables": [
+        {
+          "name": "var_clientpublicip", "type": "enum",
+          "values": ["203.0.113.10", "203.0.113.11", "198.51.100.20", "198.51.100.21"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3},
+          "_comment": "Corporate egress breakout IPs (RFC 5737 documentation ranges)"
+        },
+        {
+          "name": "var_department", "type": "enum",
+          "values": [
+            "Engineering", "Sales", "Finance", "Marketing", "Human Resources",
+            "IT", "Legal", "Operations"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
+        },
+        {
+          "name": "var_devicehostname", "type": "enum",
+          "values": [
+            "WKS-0001", "WKS-0002", "WKS-0003", "WKS-0004", "WKS-0005",
+            "WKS-0006", "WKS-0007", "WKS-0008", "WKS-0009", "WKS-0010",
+            "WKS-0011", "WKS-0012", "WKS-0013", "WKS-0014", "WKS-0015",
+            "WKS-0016", "WKS-0017", "WKS-0018", "WKS-0019", "WKS-0020",
+            "WKS-0021", "WKS-0022", "WKS-0023", "WKS-0024", "WKS-0025",
+            "WKS-0026", "WKS-0027", "WKS-0028", "WKS-0029", "WKS-0030"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 29}
+        },
+        {
+          "name": "var_deviceowner", "type": "enum",
+          "values": [
+            "Amara Patel", "Ben Nguyen", "Carla Garcia", "Declan O'Connor",
+            "Ewa Kowalski", "Felix Martin", "Gabriela Silva", "Hugo Jansen",
+            "Isabella Rossi", "Jonas Mueller", "Kofi Dubois", "Line Hansen",
+            "Mikkel Andersen", "Naomi Suzuki", "Owen Kim", "Piotr Wojcik",
+            "Quinn Fischer", "Rosa Hoffman", "Sven Novak", "Tara Moreau",
+            "Ulla Becker", "Viktor Larsen", "Wiktor Petrov", "Xenia Ivanov",
+            "Yara Costa", "Zane Ferreira", "Alice Morgan", "Brendan Reilly",
+            "Chandra Singh", "Dara Khan"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 29}
+        },
+        {
+          "name": "var_location", "type": "enum",
+          "values": [
+            "New York HQ", "London Office", "Austin Office", "Singapore Office",
+            "Remote - US", "Remote - EMEA"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 5}
+        },
+        {
+          "name": "var_user", "type": "enum",
+          "values": [
+            "a.patel", "b.nguyen", "c.garcia", "d.oconnor", "e.kowalski",
+            "f.martin", "g.silva", "h.jansen", "i.rossi", "j.mueller",
+            "k.dubois", "l.hansen", "m.andersen", "n.suzuki", "o.kim",
+            "p.wojcik", "q.fischer", "r.hoffman", "s.novak", "t.moreau",
+            "u.becker", "v.larsen", "w.petrov", "x.ivanov", "y.costa",
+            "z.ferreira", "aa.morgan", "bb.reilly", "cc.singh", "dd.khan"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 8},
+          "_comment": "Skewed: a handful of heavy browsers account for a disproportionate share of sessions"
+        },
+        {
+          "name": "var_clientip", "type": "ipaddress",
+          "cardinality": 200,
+          "distribution": {
+            "type": "uniform",
+            "min": 172683264,
+            "max": 172749823
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 199},
+          "_comment": "Internal corporate range (10.72.0.0/16)"
+        }
+      ],
+      "next": "pause_before_request"
+    },
+    {
+      "name": "pause_before_request", "type": "event:intermediate:timer",
+      "_comment": "Dwell time reading/using the previous page before the next request",
+      "cardinality_distribution": {"type": "exponential", "mean": 20.0},
+      "next": "reset_transaction"
+    },
+    {
+      "name": "reset_transaction", "type": "activity",
+      "_comment": "Reset per-transaction fields to their default/benign values every loop iteration, so a threat or DLP flag from a previous transaction cannot leak into this one",
+      "variables": [
+        {"name": "var_action", "type": "string:static", "value": "Allowed"},
+        {"name": "var_bwthrottle", "type": "string:static", "value": "NO"},
+        {"name": "var_contenttype", "type": "string:static", "value": "text/html"},
+        {"name": "var_dlpdictionaries", "type": "string:static", "value": "None"},
+        {"name": "var_dlpengine", "type": "string:static", "value": "None"},
+        {"name": "var_fileclass", "type": "string:static", "value": "-"},
+        {"name": "var_filename", "type": "string:static", "value": "-"},
+        {"name": "var_filetype", "type": "string:static", "value": "-"},
+        {"name": "var_md5", "type": "string:static", "value": "-"},
+        {"name": "var_reason", "type": "string:static", "value": "Allowed"},
+        {"name": "var_requestmethod", "type": "string:static", "value": "GET"},
+        {"name": "var_threatcategory", "type": "string:static", "value": "None"},
+        {"name": "var_threatclass", "type": "string:static", "value": "None"},
+        {"name": "var_threatname", "type": "string:static", "value": "None"},
+        {"name": "var_unscannabletype", "type": "string:static", "value": "None"},
+        {"name": "var_status", "type": "int:static", "value": 200},
+        {
+          "name": "var_protocol", "type": "enum",
+          "values": ["HTTPS", "HTTP"],
+          "cardinality_distribution": {"type": "exponential", "mean": 0.15}
+        },
+        {
+          "name": "var_refererurl", "type": "enum",
+          "values": ["-", "-", "-", "https://www.google.com/", "https://www.bing.com/"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        },
+        {
+          "name": "var_useragent", "type": "enum",
+          "values": [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/128.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Edge/128.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17.5 Safari/605.1.15"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 1}
+        },
+        {
+          "name": "var_pagerisk", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 20
+          }
+        }
+      ],
+      "next": "route_destination"
+    },
+    {
+      "name": "route_destination", "type": "gateway:exclusive",
+      "_comment": "Corporate ZIA traffic mix by destination category",
+      "transitions": [
+        {"next": "emit_office365", "probability": 0.2},
+        {"next": "emit_salesforce", "probability": 0.07},
+        {"next": "emit_slack", "probability": 0.06},
+        {"next": "emit_search", "probability": 0.12},
+        {"next": "emit_news", "probability": 0.08},
+        {"next": "emit_social", "probability": 0.1},
+        {"next": "emit_streaming", "probability": 0.08},
+        {"next": "emit_storage_normal", "probability": 0.08},
+        {"next": "emit_storage_dlp", "probability": 0.02},
+        {"next": "emit_generic", "probability": 0.14},
+        {"next": "emit_malicious", "probability": 0.05}
+      ]
+    },
+    {
+      "name": "emit_office365", "type": "activity",
+      "_comment": "Microsoft 365 webmail/collaboration traffic",
+      "variables": [
+        {"name": "var_appclass", "type": "string:static", "value": "Enterprise Collaboration and Storage"},
+        {"name": "var_appname", "type": "string:static", "value": "Microsoft Office 365"},
+        {"name": "var_hostname", "type": "string:static", "value": "outlook.office365.com"},
+        {"name": "var_urlcategory", "type": "string:static", "value": "Information Technology"},
+        {"name": "var_urlclass", "type": "string:static", "value": "Productivity Tools"},
+        {"name": "var_urlsupercategory", "type": "string:static", "value": "Business Use"},
+        {
+          "name": "var_url", "type": "enum",
+          "values": [
+            "/owa/", "/owa/#path=/mail/inbox", "/owa/#path=/calendar",
+            "/owa/#path=/mail/sentitems", "/api/v2.0/me/messages"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        },
+        {
+          "name": "var_clienttranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 30,
+            "max": 500
+          }
+        },
+        {
+          "name": "var_requestsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 2500
+          }
+        },
+        {
+          "name": "var_responsesize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1500,
+            "max": 90000
+          }
+        },
+        {
+          "name": "var_servertranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 20,
+            "max": 350
+          }
+        },
+        {
+          "name": "var_transactionsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1800,
+            "max": 92500
+          }
+        },
+        {
+          "name": "var_serverip", "type": "ipaddress",
+          "cardinality": 3,
+          "distribution": {
+            "type": "uniform",
+            "min": 1113587712,
+            "max": 1113587714
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        }
+      ],
+      "emitter": "zscaler_web_log",
+      "next": "route_continue"
+    },
+    {
+      "name": "emit_salesforce", "type": "activity",
+      "_comment": "Salesforce CRM traffic",
+      "variables": [
+        {"name": "var_appclass", "type": "string:static", "value": "Enterprise Collaboration and Storage"},
+        {"name": "var_appname", "type": "string:static", "value": "Salesforce"},
+        {"name": "var_hostname", "type": "string:static", "value": "mycompany.my.salesforce.com"},
+        {"name": "var_urlcategory", "type": "string:static", "value": "Business and Economy"},
+        {"name": "var_urlclass", "type": "string:static", "value": "Productivity Tools"},
+        {"name": "var_urlsupercategory", "type": "string:static", "value": "Business Use"},
+        {
+          "name": "var_url", "type": "enum",
+          "values": [
+            "/home/home.jsp", "/lightning/o/Opportunity/list",
+            "/lightning/o/Account/list", "/services/data/v60.0/query"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_clienttranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 40,
+            "max": 600
+          }
+        },
+        {
+          "name": "var_requestsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 2000
+          }
+        },
+        {
+          "name": "var_responsesize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2000,
+            "max": 60000
+          }
+        },
+        {
+          "name": "var_servertranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 30,
+            "max": 400
+          }
+        },
+        {
+          "name": "var_transactionsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2300,
+            "max": 62000
+          }
+        },
+        {
+          "name": "var_serverip", "type": "ipaddress",
+          "cardinality": 2,
+          "distribution": {
+            "type": "uniform",
+            "min": 1113653248,
+            "max": 1113653249
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
+        }
+      ],
+      "emitter": "zscaler_web_log",
+      "next": "route_continue"
+    },
+    {
+      "name": "emit_slack", "type": "activity",
+      "_comment": "Slack messaging traffic",
+      "variables": [
+        {"name": "var_appclass", "type": "string:static", "value": "Enterprise Collaboration and Storage"},
+        {"name": "var_appname", "type": "string:static", "value": "Slack"},
+        {"name": "var_hostname", "type": "string:static", "value": "mycompany.slack.com"},
+        {"name": "var_urlcategory", "type": "string:static", "value": "Instant Messaging"},
+        {"name": "var_urlclass", "type": "string:static", "value": "Productivity Tools"},
+        {"name": "var_urlsupercategory", "type": "string:static", "value": "Business Use"},
+        {
+          "name": "var_url", "type": "enum",
+          "values": [
+            "/messages/general", "/messages/random",
+            "/api/conversations.history", "/api/chat.postMessage"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_clienttranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 20,
+            "max": 300
+          }
+        },
+        {
+          "name": "var_requestsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 1500
+          }
+        },
+        {
+          "name": "var_responsesize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 500,
+            "max": 20000
+          }
+        },
+        {
+          "name": "var_servertranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 15,
+            "max": 200
+          }
+        },
+        {
+          "name": "var_transactionsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 700,
+            "max": 21500
+          }
+        },
+        {
+          "name": "var_serverip", "type": "ipaddress",
+          "cardinality": 2,
+          "distribution": {
+            "type": "uniform",
+            "min": 1113718784,
+            "max": 1113718785
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
+        }
+      ],
+      "emitter": "zscaler_web_log",
+      "next": "route_continue"
+    },
+    {
+      "name": "emit_search", "type": "activity",
+      "_comment": "Search engine traffic",
+      "variables": [
+        {"name": "var_appclass", "type": "string:static", "value": "General Browsing"},
+        {"name": "var_appname", "type": "string:static", "value": "Google Search"},
+        {"name": "var_hostname", "type": "string:static", "value": "www.google.com"},
+        {"name": "var_urlcategory", "type": "string:static", "value": "Search Engines and Portals"},
+        {"name": "var_urlclass", "type": "string:static", "value": "Reference"},
+        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {
+          "name": "var_url", "type": "enum",
+          "values": [
+            "/search?q=quarterly+report+template",
+            "/search?q=how+to+configure+vpn",
+            "/search?q=conference+room+booking",
+            "/search?q=expense+report+policy"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_clienttranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 20,
+            "max": 200
+          }
+        },
+        {
+          "name": "var_requestsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 150,
+            "max": 800
+          }
+        },
+        {
+          "name": "var_responsesize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 3000,
+            "max": 40000
+          }
+        },
+        {
+          "name": "var_servertranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 15,
+            "max": 150
+          }
+        },
+        {
+          "name": "var_transactionsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 3200,
+            "max": 40800
+          }
+        },
+        {
+          "name": "var_serverip", "type": "ipaddress",
+          "cardinality": 3,
+          "distribution": {
+            "type": "uniform",
+            "min": 2398767204,
+            "max": 2398767206
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        }
+      ],
+      "emitter": "zscaler_web_log",
+      "next": "route_continue"
+    },
+    {
+      "name": "emit_news", "type": "activity",
+      "_comment": "News and reference sites",
+      "variables": [
+        {"name": "var_appclass", "type": "string:static", "value": "General Browsing"},
+        {"name": "var_appname", "type": "string:static", "value": "Web Browsing"},
+        {"name": "var_urlcategory", "type": "string:static", "value": "News and Media"},
+        {"name": "var_urlclass", "type": "string:static", "value": "Reference"},
+        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {
+          "name": "var_hostname", "type": "enum",
+          "values": ["www.reuters.com", "www.bbc.com", "en.wikipedia.org"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "var_url", "type": "enum",
+          "values": ["/business/", "/technology/", "/world/", "/wiki/Main_Page"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_clienttranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 30,
+            "max": 400
+          }
+        },
+        {
+          "name": "var_requestsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 1200
+          }
+        },
+        {
+          "name": "var_responsesize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5000,
+            "max": 200000
+          }
+        },
+        {
+          "name": "var_servertranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 25,
+            "max": 300
+          }
+        },
+        {
+          "name": "var_transactionsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5200,
+            "max": 201200
+          }
+        },
+        {
+          "name": "var_serverip", "type": "ipaddress",
+          "cardinality": 6,
+          "distribution": {
+            "type": "uniform",
+            "min": 1130102784,
+            "max": 1130102789
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 5}
+        }
+      ],
+      "emitter": "zscaler_web_log",
+      "next": "route_continue"
+    },
+    {
+      "name": "emit_social", "type": "activity",
+      "_comment": "Social networking traffic (allowed, monitored)",
+      "variables": [
+        {"name": "var_appclass", "type": "string:static", "value": "Social Networking"},
+        {"name": "var_appname", "type": "string:static", "value": "Social Networking"},
+        {"name": "var_urlcategory", "type": "string:static", "value": "Social Networking"},
+        {"name": "var_urlclass", "type": "string:static", "value": "Social"},
+        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {
+          "name": "var_hostname", "type": "enum",
+          "values": ["www.linkedin.com", "www.facebook.com", "www.instagram.com"],
+          "cardinality_distribution": {"type": "exponential", "mean": 0.5}
+        },
+        {
+          "name": "var_url", "type": "enum",
+          "values": ["/feed/", "/messaging/", "/in/profile", "/groups/"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_clienttranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 30,
+            "max": 400
+          }
+        },
+        {
+          "name": "var_requestsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 1500
+          }
+        },
+        {
+          "name": "var_responsesize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10000,
+            "max": 300000
+          }
+        },
+        {
+          "name": "var_servertranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 25,
+            "max": 300
+          }
+        },
+        {
+          "name": "var_transactionsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10200,
+            "max": 301500
+          }
+        },
+        {
+          "name": "var_serverip", "type": "ipaddress",
+          "cardinality": 6,
+          "distribution": {
+            "type": "uniform",
+            "min": 1136332032,
+            "max": 1136332037
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 5}
+        }
+      ],
+      "emitter": "zscaler_web_log",
+      "next": "route_continue"
+    },
+    {
+      "name": "emit_streaming", "type": "activity",
+      "_comment": "Streaming media traffic - occasionally bandwidth-throttled by policy",
+      "variables": [
+        {"name": "var_appclass", "type": "string:static", "value": "Streaming Media"},
+        {"name": "var_appname", "type": "string:static", "value": "YouTube"},
+        {"name": "var_hostname", "type": "string:static", "value": "www.youtube.com"},
+        {"name": "var_urlcategory", "type": "string:static", "value": "Streaming Media"},
+        {"name": "var_urlclass", "type": "string:static", "value": "Streaming Media"},
+        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {
+          "name": "var_bwthrottle", "type": "enum",
+          "values": ["NO", "NO", "NO", "YES"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_url", "type": "enum",
+          "values": [
+            "/watch?v=training-video", "/watch?v=all-hands-recording",
+            "/playlist?list=team-updates"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "var_clienttranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 800
+          }
+        },
+        {
+          "name": "var_requestsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 1000
+          }
+        },
+        {
+          "name": "var_responsesize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 500000,
+            "max": 20000000
+          }
+        },
+        {
+          "name": "var_servertranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 40,
+            "max": 600
+          }
+        },
+        {
+          "name": "var_transactionsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 500200,
+            "max": 20001000
+          }
+        },
+        {
+          "name": "var_serverip", "type": "ipaddress",
+          "cardinality": 4,
+          "distribution": {
+            "type": "uniform",
+            "min": 1142244096,
+            "max": 1142244099
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        }
+      ],
+      "emitter": "zscaler_web_log",
+      "next": "route_continue"
+    },
+    {
+      "name": "emit_storage_normal", "type": "activity",
+      "_comment": "Cloud file storage traffic - normal, no DLP hit",
+      "variables": [
+        {"name": "var_appclass", "type": "string:static", "value": "Enterprise Collaboration and Storage"},
+        {"name": "var_appname", "type": "string:static", "value": "Dropbox"},
+        {"name": "var_hostname", "type": "string:static", "value": "www.dropbox.com"},
+        {"name": "var_urlcategory", "type": "string:static", "value": "Online Storage and Backup"},
+        {"name": "var_urlclass", "type": "string:static", "value": "File Sharing"},
+        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {
+          "name": "var_url", "type": "enum",
+          "values": ["/home", "/shared", "/personal", "/preview/team-folder"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_clienttranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 40,
+            "max": 700
+          }
+        },
+        {
+          "name": "var_requestsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 2000
+          }
+        },
+        {
+          "name": "var_responsesize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 20000,
+            "max": 2000000
+          }
+        },
+        {
+          "name": "var_servertranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 30,
+            "max": 500
+          }
+        },
+        {
+          "name": "var_transactionsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 20300,
+            "max": 2002000
+          }
+        },
+        {
+          "name": "var_serverip", "type": "ipaddress",
+          "cardinality": 3,
+          "distribution": {
+            "type": "uniform",
+            "min": 1148129280,
+            "max": 1148129282
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        }
+      ],
+      "emitter": "zscaler_web_log",
+      "next": "route_continue"
+    },
+    {
+      "name": "emit_storage_dlp", "type": "activity",
+      "_comment": "Cloud file storage traffic - flagged and blocked by outbound DLP policy",
+      "variables": [
+        {"name": "var_action", "type": "string:static", "value": "Blocked"},
+        {"name": "var_appclass", "type": "string:static", "value": "Enterprise Collaboration and Storage"},
+        {"name": "var_appname", "type": "string:static", "value": "Dropbox"},
+        {"name": "var_dlpengine", "type": "string:static", "value": "Outbound Content Compliance"},
+        {"name": "var_hostname", "type": "string:static", "value": "www.dropbox.com"},
+        {"name": "var_reason", "type": "string:static", "value": "DLP Policy Violation"},
+        {"name": "var_url", "type": "string:static", "value": "/upload"},
+        {"name": "var_urlcategory", "type": "string:static", "value": "Online Storage and Backup"},
+        {"name": "var_urlclass", "type": "string:static", "value": "File Sharing"},
+        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {
+          "name": "var_dlpdictionaries", "type": "enum",
+          "values": ["PII", "Financial Data", "Source Code", "Confidential Data"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_filename", "type": "enum",
+          "values": [
+            "Q3_Financial_Report.xlsx", "Customer_List_Export.csv",
+            "Employee_Records.xlsx", "Source_Code_Archive.zip"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_clienttranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 40,
+            "max": 700
+          }
+        },
+        {
+          "name": "var_requestsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50000,
+            "max": 5000000
+          }
+        },
+        {
+          "name": "var_responsesize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 2000
+          }
+        },
+        {
+          "name": "var_servertranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 30,
+            "max": 500
+          }
+        },
+        {
+          "name": "var_transactionsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50300,
+            "max": 5002000
+          }
+        },
+        {
+          "name": "var_serverip", "type": "ipaddress",
+          "cardinality": 3,
+          "distribution": {
+            "type": "uniform",
+            "min": 1148129280,
+            "max": 1148129282
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "var_md5", "type": "string",
+          "chars": "0123456789abcdef",
+          "cardinality": 0,
+          "length_distribution": {"type": "constant", "value": 32}
+        }
+      ],
+      "emitter": "zscaler_web_log",
+      "next": "route_continue"
+    },
+    {
+      "name": "emit_generic", "type": "activity",
+      "_comment": "Long-tail uncategorized browsing - each transaction visits a mostly-unique site",
+      "variables": [
+        {"name": "var_appclass", "type": "string:static", "value": "General Browsing"},
+        {"name": "var_appname", "type": "string:static", "value": "Web Browsing"},
+        {"name": "var_urlcategory", "type": "string:static", "value": "Miscellaneous or Unknown"},
+        {"name": "var_urlclass", "type": "string:static", "value": "Uncategorized"},
+        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {
+          "name": "var_clienttranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 30,
+            "max": 500
+          }
+        },
+        {
+          "name": "var_requestsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 1500
+          }
+        },
+        {
+          "name": "var_responsesize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 500,
+            "max": 100000
+          }
+        },
+        {
+          "name": "var_servertranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 25,
+            "max": 400
+          }
+        },
+        {
+          "name": "var_transactionsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 700,
+            "max": 101500
+          }
+        },
+        {
+          "name": "var_serverip", "type": "ipaddress",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 134744064,
+            "max": 3758096383
+          },
+          "_comment": "Wide public range - a different edge server almost every time"
+        },
+        {
+          "name": "var_hostname", "type": "string",
+          "chars": "abcdefghijklmnopqrstuvwxyz",
+          "cardinality": 0,
+          "length_distribution": {"type": "uniform", "min": 8, "max": 20}
+        },
+        {
+          "name": "var_url", "type": "string",
+          "chars": "abcdefghijklmnopqrstuvwxyz0123456789/-_",
+          "cardinality": 0,
+          "length_distribution": {"type": "uniform", "min": 5, "max": 24}
+        }
+      ],
+      "emitter": "zscaler_web_log",
+      "next": "route_continue"
+    },
+    {
+      "name": "emit_malicious", "type": "activity",
+      "_comment": "Phishing/malware destination - blocked by ZIA policy",
+      "variables": [
+        {"name": "var_action", "type": "string:static", "value": "Blocked"},
+        {"name": "var_appclass", "type": "string:static", "value": "General Browsing"},
+        {"name": "var_appname", "type": "string:static", "value": "Web Browsing"},
+        {"name": "var_reason", "type": "string:static", "value": "Threat"},
+        {"name": "var_threatclass", "type": "string:static", "value": "Security Risk"},
+        {"name": "var_urlclass", "type": "string:static", "value": "Security Risk"},
+        {"name": "var_urlsupercategory", "type": "string:static", "value": "Security Risk"},
+        {
+          "name": "var_threatcategory", "type": "enum",
+          "values": ["Phishing", "Malware Sites", "Botnet Command and Control", "Spyware Callback"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_threatname", "type": "enum",
+          "values": [
+            "Gen:Variant.Phishing.1", "Win32.Trojan.Agent",
+            "JS.Redirector.Suspicious", "Botnet.C2.Generic"
+          ],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_urlcategory", "type": "enum",
+          "values": ["Phishing", "Malicious Content", "Newly Registered Domains"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "var_clienttranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 20,
+            "max": 300
+          }
+        },
+        {
+          "name": "var_pagerisk", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 70,
+            "max": 100
+          }
+        },
+        {
+          "name": "var_requestsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 1200
+          }
+        },
+        {
+          "name": "var_responsesize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 8000
+          }
+        },
+        {
+          "name": "var_servertranstime", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 15,
+            "max": 200
+          }
+        },
+        {
+          "name": "var_transactionsize", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 500,
+            "max": 9200
+          }
+        },
+        {
+          "name": "var_serverip", "type": "ipaddress",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 134744064,
+            "max": 3758096383
+          }
+        },
+        {
+          "name": "var_hostname", "type": "string",
+          "chars": "abcdefghijklmnopqrstuvwxyz0123456789-",
+          "cardinality": 0,
+          "length_distribution": {"type": "uniform", "min": 10, "max": 22}
+        },
+        {
+          "name": "var_url", "type": "string",
+          "chars": "abcdefghijklmnopqrstuvwxyz0123456789/",
+          "cardinality": 0,
+          "length_distribution": {"type": "uniform", "min": 5, "max": 18}
+        }
+      ],
+      "emitter": "zscaler_web_log",
+      "next": "route_continue"
+    },
+    {
+      "name": "route_continue", "type": "gateway:exclusive",
+      "_comment": "75% chance of another transaction (avg ~4 transactions/session), 25% chance the session ends",
+      "transitions": [
+        {"next": "pause_before_request", "probability": 0.75},
+        {"next": "session_end", "probability": 0.25}
+      ]
+    },
+    {"name": "session_end", "type": "event:end"}
+  ]
+}
