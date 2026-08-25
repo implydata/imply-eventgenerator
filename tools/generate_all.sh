@@ -22,17 +22,25 @@ CONFIG_DIR="$REPO_ROOT/presets/configs"
 SCHEDULE_DIR="$REPO_ROOT/presets/schedules"
 
 # profile | config file (relative to presets/configs) | -w ceiling | schedule file (or "-")
+# | -i interval override (or "-" for the config's own default)
+#
+# -w alone only raises throughput up to the natural ceiling for whatever interarrival
+# rate is in effect (Little's Law: L = lambda*W) — past that, only lowering -i (raising
+# lambda) raises the ceiling itself, and -w has to rise to match or it just re-throttles
+# at the new ceiling. Values below are the profile's own default; -i/-w pairs that
+# deliberately push volume higher are measured in docs/presets/<profile>.md's grid, not
+# guessed — see zscaler_web's -i 0.1/-w 250 (~15x its default volume) as the example.
 PROFILES=(
-  "ecommerce|ecommerce.json|2112|ecommerce.json"
-  "ecommerce_lighting|ecommerce_lighting.json|2112|ecommerce.json"
-  "ecommerce_furniture|ecommerce_furniture.json|528|ecommerce.json"
-  "vpc_flow_logs|vpc_flow_logs.json|66|-"
-  "vpc_flow_logs_derived|vpc_flow_logs_derived.json|1056|-"
-  "endpoint_network|endpoint_network.json|1|-"
-  "ssh_auth|ssh_auth.json|66|-"
-  "pbx_calls|pbx_calls.json|9|-"
-  "palo_alto|palo_alto.json|66|-"
-  "zscaler_web|zscaler_web.json|33|-"
+  "ecommerce|ecommerce.json|2112|ecommerce.json|-"
+  "ecommerce_lighting|ecommerce_lighting.json|2112|ecommerce.json|-"
+  "ecommerce_furniture|ecommerce_furniture.json|528|ecommerce.json|-"
+  "vpc_flow_logs|vpc_flow_logs.json|66|-|-"
+  "vpc_flow_logs_derived|vpc_flow_logs_derived.json|1056|-|-"
+  "endpoint_network|endpoint_network.json|1|-|-"
+  "ssh_auth|ssh_auth.json|66|-|-"
+  "pbx_calls|pbx_calls.json|9|-|-"
+  "palo_alto|palo_alto.json|66|-|-"
+  "zscaler_web|zscaler_web.json|250|-|0.1"
 )
 
 # template=extension, one block per profile — kept fully separate per profile, even
@@ -209,7 +217,7 @@ wanted() {
 
 run_count=0
 for entry in "${PROFILES[@]}"; do
-  IFS='|' read -r profile config_file w schedule <<< "$entry"
+  IFS='|' read -r profile config_file w schedule interval <<< "$entry"
   wanted "$profile" || continue
 
   # Built with += rather than assigning "${maybe_empty_array[@]}" into another array
@@ -219,6 +227,7 @@ for entry in "${PROFILES[@]}"; do
   if [[ "$schedule" != "-" && $no_schedule -eq 0 ]]; then
     base_cmd+=(--schedule "$SCHEDULE_DIR/$schedule")
   fi
+  [[ "$interval" != "-" ]] && base_cmd+=(-i "$interval")
   [[ -n "$seed" ]] && base_cmd+=(--seed "$seed")
 
   while IFS='=' read -r template ext; do
