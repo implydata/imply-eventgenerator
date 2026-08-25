@@ -3,7 +3,7 @@
 `tools/generate_lake.py` generates bulk historical data for every preset and template and
 writes it to S3 as a date-partitioned datalake:
 
-```
+```text
 s3://<bucket>/<prefix>/<profile>/<template>/<YYYY>/<MM>/<DD>/<profile>-<template>-<YYYYMMDD>.<ext>.gz
 ```
 
@@ -59,7 +59,7 @@ what a per-day file wants.
 `--split-hours` divides each day into several objects, adding an hour marker to the filename
 while keeping the same `y/m/d` folder:
 
-```
+```text
 vpc_flow_logs/aws_cloudwatchlogs_vpcflow/2026/06/20/vpc_flow_logs-...-20260620T00.log.gz
 vpc_flow_logs/aws_cloudwatchlogs_vpcflow/2026/06/20/vpc_flow_logs-...-20260620T06.log.gz
 ```
@@ -188,7 +188,7 @@ python tools/generate_lake.py --bucket my-lake --aws-profile my-sso-profile --ss
 Credentials are resolved **before** any data is generated, so an expired SSO token costs a
 second rather than hours of discarded CPU:
 
-```
+```text
 AWS credentials for profile 'my-sso-profile' are expired or missing (TokenRetrievalError).
 Log in with:
     aws sso login --profile my-sso-profile
