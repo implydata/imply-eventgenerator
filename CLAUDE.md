@@ -5,8 +5,8 @@
 Every config must have an agreed **Actor** before any JSON is written. An Actor is the entity that flows through the state machine — one worker thread, one journey. Propose the Actor(s) and their high-level workflow and wait for confirmation before writing any config.
 
 - A config can have multiple Actor *types* (e.g. Human, Hacker, Bot in the ecommerce preset), routed at session start via a routing state such as `global_init`.
-- All Actor types share the same `-m` worker pool, capped by Little's Law.
-- `-m` caps the number of simultaneously active sessions. When set below the natural concurrency (L = λW), it reduces throughput — in both real-time and simulated modes. When at or above L, it has no effect on throughput; the interarrival `mean` is the binding constraint.
+- All Actor types share the same `-w` worker pool, capped by Little's Law.
+- `-w` caps the number of simultaneously active sessions. When set below the natural concurrency (L = λW), it reduces throughput — in both real-time and simulated modes. When at or above L, it has no effect on throughput; the interarrival `mean` is the binding constraint.
 - In simulated mode, the Clock serialises threads for **time-ordering** (advancing simulated time in scheduled-event order). This is separate from the concurrency cap: the spawning thread still enforces `effective_max` and sleeps 5 simulated seconds when at capacity. Do not conflate time-ordering serialisation with bypassing the concurrency constraint.
 
 ## Preset structure
@@ -32,7 +32,11 @@ Every `docs/presets/<name>.md` must follow this structure:
 3. **Templates** — table of available `--template` values and their output
 4. **Output fields** — table of emitted fields and descriptions
 5. [Preset-specific sections] — e.g. product categories, session routing, per-Actor flow diagrams
-6. **Concurrency (`-m`)** — state the empirical `-m` ceiling plainly ("The `-m` ceiling is ~N"), followed by the empirical scaling table and Mermaid `xychart-beta`. Always required — users need to know there is an upper limit on volume. Run `tools/bench_config.py` to measure it (see Step 10 of `docs/how-to-build-a-config.md`).
+6. **Volume** — always required, in this exact order:
+   1. State the empirical worker ceiling using this standard preamble verbatim (it's `tools/bench_config_workers.py`'s own first line — paste it, don't paraphrase it), substituting only the numbers: "The default start interval for workers in this preset is I seconds, with each worker busy for S seconds on average. The maximum number of workers that can be busy at the same time is therefore S/I = N; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect." Grounded in Little's Law (L = λW) run in reverse: the empirically-found ceiling (L=N) and the known start interval (1/λ=I) together imply the average busy-time per worker (W=S), shown as an explicit division so the reader sees *why* N is the cap, not just that it is — no separate measurement needed. Optionally follow with "At this preset's low volume, treat this as approximate rather than exact." for a single-digit ceiling (omit entirely otherwise — don't rephrase it into a false caveat). Measured with `tools/bench_config_workers.py -c presets/configs/<name>.json` at the preset's own default `event:start:timer` interval (see Step 10 of `docs/how-to-build-a-config.md`).
+   2. The chart from that same `bench_config_workers.py` run (its default markdown output is chart-only, no table — paste the `xychart-beta` block as-is, no separate rows/wall-clock table).
+   3. An actionable lead sentence bridging into the grid: "Adjust `-i` and `-w` to model a busier/faster `<preset>`." (or the preset-appropriate verb), then the illustrative 2D grid from `tools/bench_grid.py -c presets/configs/<name>.json` (its default `-w`/`-i` grid, which already includes the preset's own interval as a `(default)`-marked row) — paste its markdown table as-is.
+   Keep the prose to plain, direct statements of fact about the preset (ceiling, how it scales, what lever controls volume) — do not narrate the measurement methodology, the benchmarking tools' internals, or the grid's own symbol legend beyond pasting it; those belong in the tools' docstrings or this file, not a preset doc.
 
 ## Keeping docs and code in sync
 
@@ -65,6 +69,16 @@ python generator.py -c presets/configs/<name>.json -r PT1H -s "2024-01-01T00:00:
 ```
 
 Config errors (bad field references, wrong distributions, missing variables) often only surface after a reasonable volume of data — run the PT1H test before declaring a preset done.
+
+### Testing `ocsf:*` templates
+
+Any template emitting OCSF output must be validated against the real OCSF JSON Schema, not just eyeballed — the JSON can look plausible while still violating the schema (wrong field type, invalid enum value, missing required nested field). Use `tools/ocsf/validate.py` rather than writing an ad hoc check:
+
+```bash
+python tools/ocsf/validate.py -c presets/configs/<name>.json --template ocsf:<class_name>
+```
+
+See `tools/ocsf/README.md` for the field-mapping conventions (`activity_id`/`severity_id` derivation, etc.) used across existing `ocsf:*` templates, and two Jinja/jsonschema pitfalls worth knowing before writing a new one.
 
 ## Config JSON authoring
 

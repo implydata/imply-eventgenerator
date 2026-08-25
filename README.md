@@ -9,17 +9,19 @@ The data generator requires Python 3.
 Create and activate a local virtual environment, then install dependencies:
 
 ```bash
-python3 -m venv venv
+python3 -w venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+Contributing to the `tools/` scripts (e.g. `tools/ocsf/validate.py`) requires a couple of additional dev-only dependencies: `pip install -r requirements-dev.txt`.
 
 ## Quickstart
 
 Run the following example to test the generator script:
 
 ```sh
-python generator.py -c presets/configs/ecommerce.json -t access_combined -m 1 -n 10
+python generator.py -c presets/configs/ecommerce.json -t access_combined -w 1 -n 10
 ```
 
 This command generates logs in the format of [Apache access combined logs](https://httpd.apache.org/docs/2.4/logs.html).
@@ -58,10 +60,11 @@ python generator.py \
         -t <template name> \
         -f <format file> \
         -s <start timestamp> \
-        -m <generator workers limit> \
+        -w <generator workers limit> \
         -n <record limit> \
         -r <duration limit in ISO8610 format> \
         --schedule <schedule file> \
+        -i <seconds> \
         --debug \
         --seed <integer>
 ```
@@ -71,7 +74,8 @@ python generator.py \
 | [`-c`](#generator-configuration) | Path to the generator configuration JSON file. See [generator configuration reference](docs/generator-config.md). |
 | [`-t` / `--template`](docs/templates.md) | A named output template embedded in the generator config. See [output templates](docs/templates.md). |
 | [`-s`](#simulated-time) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
-| [`-m`](#generator-configuration) | The maximum number of workers to create. Defaults to 100. |
+| [`-w`](#volume) | The maximum number of workers to create (1-10,000). Defaults to 100. `-m` alias will be removed in future versions. |
+| [`-i`](#volume) | Override the preset's [`event:start:timer`](docs/states.md#eventstarttimer) interarrival period (seconds), e.g. `0.1` = one worker dispatched every 1/10s, `5` = one worker every 5s. Lower values mean more data. Supported for `constant`/`exponential`/`normal`/`gmm_temporal` start-timer distributions; raises on others. Logs a warning showing the original and overridden value. |
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
 | [`-r`](#generation-limits) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
 | [`--schedule`](docs/schedules.md) | A JSON file that modulates the number of active workers over time, producing time-of-day traffic variation. See the [schedule documentation](docs/schedules.md) for available schedules and how to write your own. |
@@ -92,7 +96,25 @@ The [generator configuration](docs/generator-config.md) is a JSON document passe
 - A list of [`states`](docs/states.md) that each worker traverses. The first state controls interarrival pacing; subsequent states set variables, emit records, route between paths, and terminate.
 - A list of [`emitters`](docs/emitters.md) that define output record shape. Each dimension uses a [field generator](docs/field-generators.md) to produce values, controlled by [distributions](docs/distributions.md).
 
-Each concurrent worker (`-m`) runs one independent Actor — one lifecycle from the initial `event:start:timer` to `event:end`. For the full design process, see [how to build a config](docs/how-to-build-a-config.md).
+For the full design process, see [how to build a config](docs/how-to-build-a-config.md).
+
+## Volume
+
+The generator dispatches an independent Actor at defined intervals.
+
+- Control the number of available Actors using `-w`.
+- Control the dispatch interval using `-i`.
+
+Ever Actor is busy as it completes its own journey through [States](docs/states.md) from `event:start:timer` through to `event:end`.
+
+- When the traversal is very long, Actors could be too busy to do anything else.
+- When the traversal is very short, Actors could be free with nothing to do.
+
+This is known as Little's Law, and together these three levers impact the amount of work done and thus the amount of data generated.
+
+The documentation for each preset contains benchmarks showing the volume of data generated when `-w` and `-i` are varied.
+
+`-w` is capped at 10,000 for a separate reason: spawning that many concurrent workers can exhaust the operating system's thread limit and crash the process outright, independent of the throughput limits above. The generator warns once `-w` passes 5,000, and warns more urgently past 8,000. If a run fails with `can't start new thread`, lower `-w`.
 
 ### Output format
 
