@@ -166,6 +166,7 @@ class Result:
     gz_bytes: int = 0
     wall_s: float = 0.0
     detail: str = ""
+    fatal: bool = False      # credentials problem — abort the run, don't retry
 
 
 # ---------------------------------------------------------------------------
@@ -209,16 +210,63 @@ def build_key(prefix: str, task_profile: str, template_slug: str, day: date,
 
 
 # ---------------------------------------------------------------------------
+# Credentials
+# ---------------------------------------------------------------------------
+
+# Errors that mean "your credentials are wrong or gone", not "this object failed".
+# A run must abort on these: once an SSO token expires mid-run, every remaining
+# partition would burn CPU generating data that can never be uploaded.
+AUTH_ERROR_CODES = {
+    "ExpiredToken", "ExpiredTokenException", "InvalidAccessKeyId", "InvalidClientTokenId",
+    "RequestExpired", "SignatureDoesNotMatch", "InvalidToken", "AccessDenied",
+    "AccessDeniedException", "UnrecognizedClientException",
+}
+
+
+def is_auth_error(exc) -> bool:
+    """True if this exception means the credentials, not the object, are the problem."""
+    from botocore.exceptions import (
+        ClientError, NoCredentialsError, ProfileNotFound, SSOError, TokenRetrievalError,
+    )
+    if isinstance(exc, (NoCredentialsError, ProfileNotFound, SSOError, TokenRetrievalError)):
+        return True
+    if isinstance(exc, ClientError):
+        return exc.response.get("Error", {}).get("Code") in AUTH_ERROR_CODES
+    # UnauthorizedSSOTokenError subclasses SSOError in current botocore, but has moved
+    # around between releases — fall back to the class name.
+    return type(exc).__name__ in ("UnauthorizedSSOTokenError", "SSOTokenLoadError")
+
+
+def sso_login(profile) -> bool:
+    """Run `aws sso login`, which opens a browser. Returns True on success."""
+    cmd = ["aws", "sso", "login"] + (["--profile", profile] if profile else [])
+    err.print(f"[cyan]running {' '.join(cmd)} — complete the login in your browser[/cyan]")
+    try:
+        return subprocess.call(cmd) == 0
+    except FileNotFoundError:
+        err.print("[red]the AWS CLI is not installed, so --sso-login cannot run[/red]")
+        return False
+
+
+def login_hint(profile) -> str:
+    suffix = f" --profile {profile}" if profile else ""
+    return (f"Log in with:\n    aws sso login{suffix}\n"
+            f"or let the tool do it by adding --sso-login.")
+
+
+# ---------------------------------------------------------------------------
 # Sinks
 # ---------------------------------------------------------------------------
 
 class S3Sink:
     """Uploads each partition as a single S3 object."""
 
-    def __init__(self, bucket, storage_class=None, sse=None, kms_key=None, acl=None):
+    def __init__(self, bucket, storage_class=None, sse=None, kms_key=None, acl=None,
+                 profile=None, region=None):
         try:
             import boto3
             from botocore.config import Config
+            from botocore.exceptions import ProfileNotFound
         except ImportError as e:  # pragma: no cover - dependency guard
             raise SystemExit(
                 "boto3 is required for S3 output. Install it with:\n"
@@ -226,8 +274,17 @@ class S3Sink:
                 "Or write locally instead with --local-dir."
             ) from e
         self.bucket = bucket
+        self.profile = profile
+        try:
+            self._session = boto3.Session(profile_name=profile, region_name=region)
+        except ProfileNotFound:
+            available = ", ".join(boto3.Session().available_profiles) or "none"
+            raise SystemExit(
+                f"AWS profile '{profile}' not found in ~/.aws/config.\n"
+                f"Available profiles: {available}"
+            )
         # max_pool_connections must cover --jobs so parallel uploads don't queue.
-        self._client = boto3.client(
+        self._client = self._session.client(
             "s3",
             config=Config(retries={"max_attempts": 10, "mode": "adaptive"}, max_pool_connections=64),
         )
@@ -243,6 +300,31 @@ class S3Sink:
 
     def describe(self):
         return f"s3://{self.bucket}"
+
+    def check_credentials(self, allow_login=False):
+        """Resolve credentials before generating anything, so an expired SSO token
+        costs a second rather than hours of discarded CPU."""
+        for attempt in (1, 2):
+            try:
+                ident = self._session.client("sts").get_caller_identity()
+                return ident.get("Arn", ident.get("Account", "unknown"))
+            except Exception as e:
+                if not is_auth_error(e):
+                    err.print(f"[yellow]could not verify identity ({type(e).__name__}) — "
+                              f"continuing[/yellow]")
+                    return None
+                if attempt == 1 and allow_login and sso_login(self.profile):
+                    # Rebuild clients so they pick up the freshly cached SSO token.
+                    self._session = self._session.__class__(
+                        profile_name=self.profile, region_name=self._session.region_name)
+                    from botocore.config import Config
+                    self._client = self._session.client(
+                        "s3", config=Config(retries={"max_attempts": 10, "mode": "adaptive"},
+                                            max_pool_connections=64))
+                    continue
+                raise SystemExit(
+                    f"AWS credentials for profile '{self.profile or 'default'}' are expired "
+                    f"or missing ({type(e).__name__}).\n" + login_hint(self.profile))
 
     def preflight(self):
         # A write-only role can't HeadBucket (it maps to s3:ListBucket), so a failure
@@ -504,7 +586,8 @@ def run_task(task: Task, sink, compresslevel, timeout, stop: threading.Event) ->
             sink.put(task.key, spool, CONTENT_TYPES.get(task.ext, "text/plain"))
         except Exception as e:
             return Result(task, "upload_failed", rows, raw_bytes, gz_bytes,
-                          time.time() - started, f"{type(e).__name__}: {e}")
+                          time.time() - started, f"{type(e).__name__}: {e}",
+                          fatal=is_auth_error(e))
 
     return Result(task, "ok", rows, raw_bytes, gz_bytes, time.time() - started)
 
@@ -575,6 +658,13 @@ def main(argv=None):
 
     p.add_argument("--compresslevel", type=int, default=DEFAULT_COMPRESSLEVEL,
                    help=f"gzip level 1-9 (default: {DEFAULT_COMPRESSLEVEL})")
+    p.add_argument("--aws-profile", default=os.environ.get("AWS_PROFILE"),
+                   help="AWS profile to authenticate with, including SSO profiles from "
+                        "~/.aws/config. Defaults to $AWS_PROFILE, then the default profile. "
+                        "Not to be confused with --profile, which selects a generator config.")
+    p.add_argument("--region", default=None, help="AWS region (default: the profile's region)")
+    p.add_argument("--sso-login", action="store_true",
+                   help="Run `aws sso login` automatically if credentials are expired or missing")
     p.add_argument("--storage-class", default=None, help="S3 storage class (e.g. STANDARD_IA)")
     p.add_argument("--sse", default=None, help="Server-side encryption (e.g. AES256, aws:kms)")
     p.add_argument("--kms-key-id", default=None, help="KMS key id when --sse aws:kms")
@@ -613,7 +703,8 @@ def main(argv=None):
         return 1
 
     sink = LocalSink(args.local_dir) if args.local_dir else S3Sink(
-        args.bucket, args.storage_class, args.sse, args.kms_key_id, args.acl)
+        args.bucket, args.storage_class, args.sse, args.kms_key_id, args.acl,
+        profile=args.aws_profile, region=args.region)
 
     summarise_plan(tasks, sink, len(days), args.split_hours)
     err.print(f"[dim]example key: {tasks[0].key}[/dim]")
@@ -622,6 +713,11 @@ def main(argv=None):
         err.print("[cyan]--dry-run: nothing generated[/cyan]")
         return 0
 
+    if isinstance(sink, S3Sink):
+        identity = sink.check_credentials(allow_login=args.sso_login)
+        if identity:
+            err.print(f"[green]authenticated[/green] as {identity}"
+                      + (f" (profile {args.aws_profile})" if args.aws_profile else ""))
     sink.preflight()
 
     skipped = 0
@@ -705,6 +801,15 @@ def main(argv=None):
                         elif result.status != "cancelled":
                             failures.append(result)
                             err.print(f"[red]{result.status}[/red] {result.task.key}: {result.detail}")
+                            if result.fatal and not stop.is_set():
+                                # Credentials died mid-run. Every remaining partition would
+                                # generate fine and then fail to upload, so stop now.
+                                stop.set()
+                                err.print("[red]credentials failed — aborting the run so it "
+                                          "doesn't generate data it cannot upload.[/red]")
+                                err.print(login_hint(args.aws_profile))
+                                err.print("[cyan]re-run the same command afterwards; the "
+                                          "manifest resumes from here[/cyan]")
                         progress.update(
                             bar, advance=1,
                             status=f"{human_bytes(totals['gz'])} gz | {totals['rows']:,} rows"

@@ -96,6 +96,9 @@ default for maximum realism; reach for `--split-hours 6` or `4` on the heavy pro
 | `--no-schedule` | Ignore per-profile schedules. Raises ecommerce volume by ~1.5×. |
 | `--seed-base` | Derive each day's `--seed` as `seed-base + day ordinal`. See the caveat below. |
 | `--compresslevel` | gzip level 1–9. Default: 6. |
+| `--aws-profile` | AWS profile to authenticate with, including SSO profiles. Defaults to `$AWS_PROFILE`, then the default profile. |
+| `--region` | AWS region. Default: the profile's own region. |
+| `--sso-login` | Run `aws sso login` automatically if credentials are expired or missing. |
 | `--storage-class` | S3 storage class, e.g. `STANDARD_IA`. |
 | `--sse` / `--kms-key-id` | Server-side encryption, e.g. `AES256` or `aws:kms` with a key id. |
 | `--acl` | Object ACL, e.g. `bucket-owner-full-control`. |
@@ -167,6 +170,42 @@ time python tools/generate_lake.py --bucket my-lake --start 2026-05-27 --end 202
 
 Set `--jobs` at or slightly above vCPU count; beyond that, per-partition latency grows without
 raising throughput.
+
+## Authentication
+
+`--aws-profile` selects any profile from `~/.aws/config`, SSO profiles included. Don't confuse
+it with `--profile`, which selects a generator config.
+
+```bash
+aws sso login --profile my-sso-profile
+python tools/generate_lake.py --bucket my-lake --aws-profile my-sso-profile \
+  --start 2026-05-27 --end 2026-08-24
+
+# Or let the tool handle the login when the token has expired
+python tools/generate_lake.py --bucket my-lake --aws-profile my-sso-profile --sso-login ...
+```
+
+Credentials are resolved **before** any data is generated, so an expired SSO token costs a
+second rather than hours of discarded CPU:
+
+```
+AWS credentials for profile 'my-sso-profile' are expired or missing (TokenRetrievalError).
+Log in with:
+    aws sso login --profile my-sso-profile
+or let the tool do it by adding --sso-login.
+```
+
+A bad profile name lists the ones you do have. Omit `--aws-profile` entirely on EC2 to pick up
+the instance role.
+
+### If the token expires mid-run
+
+An SSO session shorter than the run is the one failure mode worth designing for: every
+remaining partition would generate perfectly and then fail to upload. The tool treats a
+credentials error as fatal — it aborts on the first one rather than working through the queue,
+tells you how to log in again, and the manifest lets the same command resume from where it
+stopped. Object-level failures (a transient 500, a throttle) are retried by boto3 and don't
+abort anything.
 
 ## Running on EC2
 
