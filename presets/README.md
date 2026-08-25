@@ -14,6 +14,7 @@ Ready-to-use generator configs and schedules. Each config embeds named output te
 | [`pbx_calls.json`](../docs/presets/pbx_calls.md) | PBX call detail records | ~5 |
 | [`endpoint_network.json`](../docs/presets/endpoint_network.md) | Internet-facing Windows endpoint network traffic | ~1 |
 | [`zscaler_web.json`](../docs/presets/zscaler_web.md) | Zscaler ZIA web/proxy logs | ~33 |
+| [`palo_alto.json`](../docs/presets/palo_alto.md) | Palo Alto Networks (PAN-OS) firewall sessions | ~66 |
 
 See [the guide](../docs/how-to-build-a-config.md) on how to create your own config, and be sure to look at the [best practices](../docs/best-practices.md).
 
