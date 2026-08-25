@@ -12,6 +12,9 @@ python generator.py -c presets/configs/endpoint_network.json --template WindowsF
 
 # One day of data
 python generator.py -c presets/configs/endpoint_network.json --template WindowsFirewallLog -r P1D -s "2025-01-01T00:00"
+
+# OCSF Network Activity (security data lake / SIEM ingestion)
+python generator.py -c presets/configs/endpoint_network.json --template ocsf:network_activity -r P1D -s "2025-01-01T00:00"
 ```
 
 ## Templates
@@ -19,6 +22,9 @@ python generator.py -c presets/configs/endpoint_network.json --template WindowsF
 | Template | Output |
 | --- | --- |
 | `WindowsFirewallLog` | Windows Firewall Log (`pfirewall.log` format) |
+| `ocsf:network_activity` | [OCSF](https://schema.ocsf.io/) 1.4.0 Network Activity (`class_uid` 4001) JSON — one event per packet decision, for security data lake / SIEM ingestion |
+
+The `ocsf:network_activity` template maps each ALLOW/DROP decision to `activity_id` 1 ("Open") or 5 ("Refuse") respectively, unlike the `vpc_flow_logs` OCSF template which uses a constant `activity_id` 6 ("Traffic") — this config's Actor represents a single per-packet firewall decision rather than an aggregated flow, so a discrete open/refuse activity is the better fit. `direction_id` comes directly from the `direction` field (`RECEIVE`→Inbound, `SEND`→Outbound); `boundary_id` is a constant `3` (External), since every flow in this config is between the local host and the internet. Verified against the real OCSF 1.4.0 `network_activity` JSON Schema across 24K generated records (0 violations).
 
 ## Output fields
 
@@ -71,23 +77,28 @@ flowchart TD
     D & E & F & G & H & I & J & K --> Z(["<b>connection_end</b><br/>event:end"])
 ```
 
-## Concurrency (`-m`)
+## Volume
 
-There is no meaningful `-m` ceiling. Each worker completes a single packet decision with zero delay and immediately exits, so the worker pool is never the bottleneck. `-m 1` is always sufficient; raising it has no effect on throughput.
+There is no meaningful `-w` ceiling. Each worker completes a single packet decision with zero delay and immediately exits, so the worker pool is never the bottleneck. `-w 1` is always sufficient; raising it has no effect on throughput.
 
-The table below shows expected output volume (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/endpoint_network.json`.
-
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 71,928 | 5.4 |
-| 2 | 71,928 | 5.3 |
-| 3 | 71,928 | 5.3 |
-| 4 | 71,928 | 5.2 |
+The start interval is the only lever that controls volume here. The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window) — flat, as expected. To regenerate: `python tools/bench_config_workers.py -c presets/configs/endpoint_network.json`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "endpoint_network — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 2, 3, 4]
+    title "endpoint_network — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 2, 3, 4]
     y-axis "Rows" 0 --> 83000
     line [71928, 71928, 71928, 71928]
 ```
+
+Adjust `-i` to model heavier network traffic — `-w` won't help. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/endpoint_network.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0.01 | 🟥 2,159,389 | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.1 | 🟨 215,501 | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.3 (default) | 🟨 71,928 | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 1 | 🟩 21,551 | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.
