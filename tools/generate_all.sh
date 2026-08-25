@@ -148,7 +148,9 @@ Options:
   --out <dir>              Output root. Each pair is written to
                            <dir>/<profile>/<template>/YYYY/MM/DD/. Required.
   --start <YYYY-MM-DD>     First day to generate, inclusive. Required.
-  --end <YYYY-MM-DD>       Last day to generate, inclusive. Required.
+  --end <YYYY-MM-DD>       Boundary day, exclusive — data covers [start, end),
+                           like SQL. E.g. --start 2026-07-01 --end 2026-08-01
+                           generates exactly July. Required.
   --profile <name>         Only this profile; repeatable. Default: all of them.
                            Valid names:$profile_names
   --partition <duration>   ISO 8601 partition size, passed to -p. Default: P1D.
@@ -166,7 +168,7 @@ first (see docs/how-to-build-a-config.md), same as generate_lake.py's
 PROFILE_SETTINGS. Adding a new preset means adding a line here too.
 
 Example:
-  $0 --out out/lake --start 2026-05-27 --end 2026-05-29 --profile vpc_flow_logs
+  $0 --out out/lake --start 2026-05-27 --end 2026-05-30 --profile vpc_flow_logs
 EOF
   exit 0
 }
@@ -198,8 +200,10 @@ done
 [[ -n "$out_dir" && -n "$start_date" && -n "$end_date" ]] || usage
 
 to_epoch() { date -d "$1" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$1" +%s; }
-days=$(( ( $(to_epoch "$end_date") - $(to_epoch "$start_date") ) / 86400 + 1 ))
-[[ $days -ge 1 ]] || { echo "error: --end is before --start" >&2; exit 1; }
+# --end is exclusive (like SQL's [start, end) convention): --start 2026-07-01
+# --end 2026-08-01 generates exactly July, with no need to know July has 31 days.
+days=$(( ( $(to_epoch "$end_date") - $(to_epoch "$start_date") ) / 86400 ))
+[[ $days -ge 1 ]] || { echo "error: --end must be at least one day after --start (it's exclusive)" >&2; exit 1; }
 runtime="P${days}D"
 start_iso="${start_date}T00:00:00"
 
