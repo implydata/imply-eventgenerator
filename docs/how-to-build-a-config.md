@@ -300,6 +300,12 @@ Document the result in the preset's `docs/presets/<name>.md` Volume section usin
 
 ---
 
+## Step 11 — Register it for bulk export
+
+Add an entry for this config to `tools/generate_all.sh` — the profile, its `-w` ceiling from Step 10, and its schedule file if it has one, to the `PROFILES` table near the top of the script, plus a `template=extension` line for each of its templates in `templates_for()`. This table is deliberately hardcoded rather than discovered at runtime, so a new preset only appears in a bulk export once someone has actually benchmarked its ceiling — see [generate-all.md](./generate-all.md) for the exact format.
+
+---
+
 ## Common mistakes
 
 | Mistake | What happens | Fix |
@@ -320,4 +326,5 @@ Document the result in the preset's `docs/presets/<name>.md` Volume section usin
 - [distributions.md](./distributions.md) — distribution reference
 - [patterns.md](./patterns.md) — common patterns (variable persistence, flow duration, multi-record sessions)
 - [best-practices.md](./best-practices.md) — naming conventions and development workflow
+- [generate-all.md](./generate-all.md) — running this config (and every other preset) as part of a bulk export
 - `presets/configs/` — real configs to read alongside this guide
