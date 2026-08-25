@@ -450,6 +450,13 @@ class DataDriver:
                     # time, not the truncated boundary before it, which data never covers.
                     marker_time = self.start_time if is_first else _bucket_start(bucket, self.partition_interval)
                     lines.append(f'{PARTITION_MARKER_PREFIX}{marker_time.isoformat()}')
+                    # A run piped through tools/split_stream.sh writes nothing to its
+                    # destination until the whole thing finishes (ieg/core.py doesn't
+                    # know or care that it's piped) — this is the only sign of life
+                    # visible on stderr in the meantime, at the one cadence the engine
+                    # already has a natural reason to pause at.
+                    logger.info("Partition boundary: %s (%d records so far)",
+                                marker_time.isoformat(), self.sim_control.get_record_count())
                     if self.header:
                         lines.append(self.header)
             elif not self.header_printed:
