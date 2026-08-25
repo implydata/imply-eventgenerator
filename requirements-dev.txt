@@ -1,0 +1,3 @@
+# Dev-only deps for tools/ (not required to run generator.py itself).
+jsonschema
+ocsf-json-schema

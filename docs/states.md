@@ -6,7 +6,7 @@
 
 The state machine design is grounded in [BPMN (Business Process Model and Notation)](https://en.wikipedia.org/wiki/Business_Process_Model_and_Notation) — a standard for modelling business processes as flows of events, activities, and gateways. The five state types map directly onto BPMN concepts: start/intermediate/end events, activities, and exclusive gateways. Each worker is a BPMN pool — one lane, one participant, one lifecycle.
 
-Every state machine models the behaviour of a single **Actor** — the real-world entity whose lifecycle the state machine represents. Each concurrent worker (`-m`) runs one independent instance of the machine, simulating one Actor at a time.
+Every state machine models the behaviour of a single **Actor** — the real-world entity whose lifecycle the state machine represents. Each concurrent worker (`-w`) runs one independent instance of the machine, simulating one Actor at a time.
 
 Identifying the Actor upfront is the most important design decision for a new config. It determines what counts as one lifecycle, what variables are set once at entry and carried through, and which state is the `event:end`.
 
@@ -50,6 +50,8 @@ List all states in the `states` array of the configuration file. The first entry
 ## event:start:timer
 
 The first state in every config. Its sole job is to control how fast new workers are spawned (the interarrival interval). It does not emit a record and cannot set variables.
+
+Its `cardinality_distribution` can be overridden at runtime without editing the config, via `-i <seconds>` — supported for `constant` (overrides `value`), `exponential` and `normal` (overrides `mean`), and `gmm_temporal` (overrides the base `mean`, leaving its time-of-day shape untouched). Unsupported types (e.g. `uniform`) raise an error rather than silently no-op. See the [command-line reference](../README.md#command-line-reference).
 
 | Field | Description | Required? |
 | --- | --- | --- |

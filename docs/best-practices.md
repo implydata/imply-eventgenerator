@@ -142,7 +142,7 @@ Each preset has a companion doc at `docs/presets/<name>.md`. Every preset doc mu
 3. **Templates** — table of available `--template` values and their output
 4. **Output fields** — table of emitted fields and descriptions
 5. Preset-specific sections (product categories, session routing, per-Actor flow diagrams, etc.)
-6. **Concurrency (`-m`)** — empirical `-m` ceiling, scaling table, and Mermaid chart (run `tools/bench_config.py` to generate)
+6. **Volume** — empirical `-w` ceiling, scaling chart, and cross-`-w`/`-i` grid (see [CLAUDE.md](../CLAUDE.md) for the exact structure; run `tools/bench_config_workers.py` and `tools/bench_grid.py` to generate)
 
 Config JSON files live in `presets/configs/`.
 
@@ -399,17 +399,9 @@ jq -r '.request_id' sample.json | sort | uniq | wc -l
 
 ## Performance Considerations
 
-### Workers
+### Volume (`-w` and `-i`)
 
-Use multiple workers for better throughput:
-
-```json
-{
-  "workers": 4
-}
-```
-
-**Rule of thumb**: Number of CPU cores for CPU-bound workloads.
+`-w` and `-i` together determine throughput via Little's Law — see the [README's Volume section](../README.md#volume) for the concept. The best-practice question for config authoring: **what are you modeling, and does the resulting concurrency ceiling — `(average session duration) / (start interval)` — seem right for that?** A PBX with a ceiling of ~9 concurrent calls, or an e-commerce site with a ceiling of ~2,000 concurrent shoppers, should each feel plausible for the real system being described. If a config's ceiling comes out oddly tiny or huge, that's usually a sign the durations or interval you picked don't actually reflect the real system yet — not something to shrug off. And `-i` is the primary lever for *volume*: reaching for `-w` first when you want more data is a common wrong instinct, since raising it past the ceiling has no effect. See Step 10 of [how-to-build-a-config.md](how-to-build-a-config.md) for measuring a preset's own ceiling once it's built.
 
 ### Cardinality Impact
 

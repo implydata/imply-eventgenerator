@@ -14,12 +14,15 @@ python generator.py -c presets/configs/ecommerce.json --template apache:access:j
 # CSV
 python generator.py -c presets/configs/ecommerce.json --template csv -n 1000 -s "2025-01-01T00:00"
 
-# With time-of-day variation (schedule modulates the -m cap)
+# With time-of-day variation (schedule modulates the -w cap)
 python generator.py -c presets/configs/ecommerce.json --template access_combined \
-  -m 300 -s "2025-01-01T00:00" --schedule presets/schedules/ecommerce.json
+  -w 300 -s "2025-01-01T00:00" --schedule presets/schedules/ecommerce.json
 
 # IIS W3C log (Splunk ms:iis:auto sourcetype — recommended)
 python generator.py -c presets/configs/ecommerce.json --template ms:iis:auto -r PT1H -s "2025-01-01T00:00"
+
+# OCSF HTTP Activity (security data lake / SIEM ingestion)
+python generator.py -c presets/configs/ecommerce.json --template ocsf:http_activity -r PT1H -s "2025-01-01T00:00"
 ```
 
 ## Templates
@@ -37,8 +40,11 @@ python generator.py -c presets/configs/ecommerce.json --template ms:iis:auto -r 
 | `ms:iis:default:85` | IIS W3C log (`ms:iis:default:85` sourcetype — identical output to `ms:iis:auto`, included for completeness) |
 | `ms:iis:default` | IIS W3C log (`ms:iis:default` sourcetype, IIS 7.0 field ordering) |
 | `ms:iis:splunk` | IIS W3C log (`ms:iis:splunk` sourcetype, adds `Content-Type` and `https` fields) |
+| `ocsf:http_activity` | [OCSF](https://schema.ocsf.io/) 1.4.0 HTTP Activity (`class_uid` 4002) JSON — one event per request, for security data lake / SIEM ingestion |
 
 When generating IIS data for Splunk, use `--template ms:iis:auto` — the other IIS templates are included for completeness but have been marked as deprecated by Splunk.
+
+The `ocsf:http_activity` template maps every session's requests — human, bot, and the `Hacker` actor's probe traffic — onto the OCSF Network Activity category. `activity_id`/`type_uid` are derived from `http_method`; `severity_id`/`status_id` are derived from `status` (2xx/3xx → informational/success, 4xx → medium/failure, 5xx → high/failure). Verified against the real OCSF 1.4.0 `http_activity` JSON Schema (via the [`ocsf-json-schema`](https://github.com/nsmithuk/ocsf-json-schema) package) across all three actor types.
 
 ## Output fields
 
@@ -178,29 +184,27 @@ The loop continues with 98% probability, averaging ~50 crawl requests per sessio
 
 ---
 
-## Concurrency (`-m`)
+## Volume
 
-The `-m` ceiling is ~2,112. Setting `-m` above this has no effect — the worker pool is never fully used.
+The default start interval for workers in this preset is 1 second, with each worker busy for 2112 seconds on average. The maximum number of workers that can be busy at the same time is therefore 2112/1 = 2,112; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect.
 
-The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce.json`.
-
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 198 | 0.3 |
-| 3 | 628 | 0.3 |
-| 6 | 1,235 | 0.3 |
-| 16 | 3,265 | 0.4 |
-| 41 | 8,492 | 0.8 |
-| 103 | 21,558 | 1.8 |
-| 261 | 54,232 | 4.2 |
-| 661 | 135,637 | 11.4 |
-| 1,671 | 265,407 | 25.6 |
-| 4,224 | 265,029 | 25.6 |
+The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/ecommerce.json`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "ecommerce — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 3, 6, 16, 41, 103, 261, 661, 1671, 4224]
-    y-axis "Rows" 0 --> 310000
-    line [198, 628, 1235, 3265, 8492, 21558, 54232, 135637, 265407, 265029]
+    title "ecommerce — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 3, 6, 16, 41, 103, 261, 661, 1671, 4224]
+    y-axis "Rows" 0 --> 300000
+    line [198, 610, 1263, 3277, 8782, 21749, 54235, 136514, 262321, 266378]
 ```
+
+Adjust `-i` and `-w` to model heavier traffic. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/ecommerce.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0.01 | ↕️ | 🟩 1,038 | 🟨 5,455 | 🟧 20,957 | 🟧 52,521 | 🟥 209,694 | 🟥 523,871 | 🟥 1,049,061 |
+| 0.1 | ↕️ | 🟩 1,060 | 🟨 5,137 | 🟧 20,900 | 🟧 52,481 | 🟥 211,458 | 🟥 523,299 | 🟥 1,034,884 |
+| 1 (default) | 🟩 199 | 🟩 1,284 | 🟨 5,500 | 🟧 21,142 | 🟧 51,531 | 🟥 203,754 | 🟥 267,202 | 🟥 265,298 |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.

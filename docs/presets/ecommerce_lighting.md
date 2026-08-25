@@ -16,10 +16,13 @@ python generator.py -c presets/configs/ecommerce_lighting.json --template csv -n
 
 # With time-of-day variation
 python generator.py -c presets/configs/ecommerce_lighting.json --template access_combined \
-  -m 500 --schedule presets/schedules/ecommerce.json
+  -w 500 --schedule presets/schedules/ecommerce.json
 
 # IIS W3C log (Splunk ms:iis:auto sourcetype — recommended)
 python generator.py -c presets/configs/ecommerce_lighting.json --template ms:iis:auto -r PT1H -s "2025-01-01T00:00"
+
+# OCSF HTTP Activity (security data lake / SIEM ingestion)
+python generator.py -c presets/configs/ecommerce_lighting.json --template ocsf:http_activity -r PT1H -s "2025-01-01T00:00"
 ```
 
 ## Templates
@@ -37,8 +40,11 @@ python generator.py -c presets/configs/ecommerce_lighting.json --template ms:iis
 | `ms:iis:default:85` | IIS W3C log (`ms:iis:default:85` sourcetype — identical output to `ms:iis:auto`, included for completeness) |
 | `ms:iis:default` | IIS W3C log (`ms:iis:default` sourcetype, IIS 7.0 field ordering) |
 | `ms:iis:splunk` | IIS W3C log (`ms:iis:splunk` sourcetype, adds `Content-Type` and `https` fields) |
+| `ocsf:http_activity` | [OCSF](https://schema.ocsf.io/) 1.4.0 HTTP Activity (`class_uid` 4002) JSON — one event per request, for security data lake / SIEM ingestion |
 
 When generating IIS data for Splunk, use `--template ms:iis:auto` — the other IIS templates are included for completeness but have been marked as deprecated by Splunk.
+
+The `ocsf:http_activity` template maps every session's requests — human, bot, and the `Hacker` actor's probe traffic — onto the OCSF Network Activity category. `activity_id`/`type_uid` are derived from `http_method`; `severity_id`/`status_id` are derived from `status` (2xx/3xx → informational/success, 4xx → medium/failure, 5xx → high/failure). Verified against the real OCSF 1.4.0 `http_activity` JSON Schema (via the [`ocsf-json-schema`](https://github.com/nsmithuk/ocsf-json-schema) package) across all three actor types.
 
 ## Output fields
 
@@ -177,29 +183,28 @@ The loop continues with 98% probability, averaging ~50 crawl requests per sessio
 
 ---
 
-## Concurrency (`-m`)
+## Volume
 
-The `-m` ceiling is ~2,112. Setting `-m` above this has no effect — the worker pool is never fully used.
+The default start interval for workers in this preset is 0.6 seconds, with each worker busy for 1267.2 seconds on average. The maximum number of workers that can be busy at the same time is therefore 1267.2/0.6 = 2,112; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect.
 
-The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce_lighting.json`.
-
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 256 | 0.3 |
-| 3 | 703 | 0.3 |
-| 6 | 1,429 | 0.4 |
-| 16 | 3,670 | 0.5 |
-| 41 | 9,771 | 0.8 |
-| 103 | 24,374 | 1.6 |
-| 261 | 62,009 | 4.0 |
-| 661 | 155,900 | 10.6 |
-| 1,671 | 309,593 | 24.5 |
-| 4,224 | 309,297 | 24.5 |
+The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/ecommerce_lighting.json`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "ecommerce_lighting — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 3, 6, 16, 41, 103, 261, 661, 1671, 4224]
+    title "ecommerce_lighting — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 3, 6, 16, 41, 103, 261, 661, 1671, 4224]
     y-axis "Rows" 0 --> 360000
-    line [256, 703, 1429, 3670, 9771, 24374, 62009, 155900, 309593, 309297]
+    line [256, 703, 1429, 3748, 9841, 24967, 62247, 155077, 313204, 315356]
 ```
+
+Adjust `-i` and `-w` to model heavier traffic. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/ecommerce_lighting.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0.01 | ↕️ | 🟩 1,163 | ↕️ | ↕️ | ↕️ | 🟥 239,867 | 🟥 597,228 | 🟥 1,192,726 |
+| 0.1 | ↕️ | 🟩 1,132 | 🟨 5,996 | 🟧 24,441 | 🟧 59,537 | 🟥 238,310 | 🟥 596,158 | 🟥 1,174,961 |
+| 0.6 (default) | ↕️ | 🟩 1,135 | 🟨 6,232 | 🟧 24,195 | 🟧 59,284 | 🟥 235,633 | 🟥 314,181 | 🟥 313,735 |
+| 1 | 🟩 256 | 🟩 1,265 | 🟨 6,031 | 🟧 23,764 | 🟧 59,984 | 🟥 189,418 | 🟥 187,295 | 🟥 187,971 |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.
