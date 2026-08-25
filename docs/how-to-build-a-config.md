@@ -284,19 +284,19 @@ Config errors (bad field references, wrong distributions, missing variables) oft
 
 ---
 
-## Step 10 — Find the `-m` ceiling and document it
+## Step 10 — Find the `-w` ceiling and document it
 
-`-m` caps the number of simultaneously active sessions. Beyond a certain point, raising it has no effect — the worker pool is never fully used. Users need to know this ceiling so they don't set `-m` arbitrarily high and wonder why throughput doesn't increase.
+`-w` caps the number of simultaneously active sessions. Beyond a certain point, raising it has no effect — the worker pool is never fully used. Users need to know this ceiling so they don't set `-w` arbitrarily high and wonder why throughput doesn't increase.
 
-**Measure it empirically** using `tools/bench_config.py`:
+**Measure it empirically** using `tools/bench_config_workers.py`:
 
 ```bash
-python tools/bench_config.py -c presets/configs/<name>.json
+python tools/bench_config_workers.py -c presets/configs/<name>.json
 ```
 
-The script runs two phases — a geometric-doubling discovery pass followed by a binary-search refinement — and prints the empirical ceiling to stderr, plus a CSV table of rows vs `-m` to stdout. If the config has an ambiguous clock field, pass `--clock-field <field>`.
+The script runs two phases — a geometric-doubling discovery pass followed by a binary-search refinement — and prints the empirical ceiling to stderr, plus a CSV table of rows vs `-w` to stdout. If the config has an ambiguous clock field, pass `--clock-field <field>`.
 
-Document the result in the preset's `docs/presets/<name>.md` Concurrency section using direct language and include the empirical table and a Mermaid `xychart-beta`. See `docs/presets/vpc_flow_logs.md` for the canonical format.
+Document the result in the preset's `docs/presets/<name>.md` Volume section using direct language and include the empirical table and a Mermaid `xychart-beta`. See `docs/presets/vpc_flow_logs.md` for the canonical format.
 
 ---
 
@@ -309,7 +309,7 @@ Document the result in the preset's `docs/presets/<name>.md` Concurrency section
 | Setting variables in `event:end` | `event:end` cannot have variables — validation error | Move variable setting to the preceding `activity` |
 | No `event:start:timer` | Engine raises RuntimeError at startup | Make sure the first state has `"type": "event:start:timer"` |
 | Running without `-s` | Generator runs in real time — a 1-hour simulated session takes 1 real hour | Always use `-s "2024-01-01T00:00:00"` for testing |
-| `-m` too high | No visible effect on throughput, confusing results | Run `tools/bench_config.py` to find the empirical ceiling and document it in the preset doc |
+| `-w` too high | No visible effect on throughput, confusing results | Run `tools/bench_config_workers.py` to find the empirical ceiling and document it in the preset doc |
 
 ---
 
