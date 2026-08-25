@@ -1,0 +1,51 @@
+# Generating the full preset catalog
+
+`tools/generate_all.sh` runs [`tools/split_stream.sh`](./split-stream.md) in series for every (profile, template) pair in its own table — one continuous `generator.py` run per pair, covering the whole date range in a single pass, split straight into a local directory tree.
+
+It's the middle ground between running `split_stream.sh` by hand for one config at a time, and the fuller [`tools/generate_lake.py`](./datalake-export.md) (per-day subprocesses, parallel jobs, direct S3 upload, a resume manifest). Reach for `generate_all.sh` for a straightforward, sequential local build across some or all of the catalog; reach for `generate_lake.py` when you need parallelism or S3 upload with resume built in. See [datalake-export.md](./datalake-export.md) for that tool, and [split-stream.md](./split-stream.md#copying-to-s3) for uploading what `generate_all.sh` produces with `aws s3 sync`.
+
+## Requirements
+
+GNU `csplit`, same as `split_stream.sh` — see [its requirements section](./split-stream.md#requirements).
+
+## Usage
+
+```text
+tools/generate_all.sh --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
+```
+
+| Option | Description |
+| --- | --- |
+| `--out <dir>` | Output root. Each pair is written to `<dir>/<profile>/<template>/YYYY/MM/DD/`. Required. |
+| `--start <instant>` | Passed straight through to every `generator.py` run's `-s`, e.g. `2026-07-01T00:00:00`. Required. |
+| `--duration <duration>` | Passed straight through to every `generator.py` run's `-r`, e.g. `P31D` or `P1M`. Required. |
+| `--profile <name>` | Only this profile; repeatable. Default: all of them. Run `--help` for the current list. |
+| `--partition <duration>` | ISO 8601 partition size, passed to `-p`. Default: `P1D`. |
+| `--seed <n>` | Passed to every `generator.py` run as `--seed`. |
+| `--no-schedule` | Skip each profile's schedule file, if it has one. |
+| `--dry-run` | Print the plan — every (profile, template) pair, its output path, and the exact `generator.py` command — without running anything. |
+
+`--start` and `--duration` are a deliberate pass-through of `generator.py`'s own `-s`/`-r` rather than a second date-range convention layered on top — whatever either flag accepts, this script accepts too, with no date arithmetic in between.
+
+```bash
+# See the plan first — no generation, just the resolved commands
+tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --profile vpc_flow_logs --dry-run
+
+# Run it
+tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --profile vpc_flow_logs
+```
+
+## The profile table
+
+The (profile, template, `-w` ceiling, schedule, extension) table this script runs is hardcoded in the script itself, not discovered from `presets/configs/*.json` at runtime. A `-w` ceiling needs a human to have actually run `tools/bench_config_workers.py` first — see [how-to-build-a-config.md](./how-to-build-a-config.md#step-10--find-the--w-ceiling-and-document-it) — so a newly-added preset shouldn't silently appear in a bulk export with a guessed concurrency value.
+
+Adding a new preset config means adding a line to both tables near the top of the script: one entry in `PROFILES` (profile name, config file, `-w` ceiling, schedule file or `-`), and a `template=extension` block in `templates_for()` for each of its templates. This is also called out as the last step of the config-authoring guide — see [how-to-build-a-config.md, Step 11](./how-to-build-a-config.md#step-11--register-it-for-bulk-export).
+
+The ecommerce presets (`ecommerce`, `ecommerce_lighting`, `ecommerce_furniture`) each get their own separate template block in the script, even though the three currently list identical templates — they're independent configs (see the project's own guidance on this), so keeping their entries independent here too means editing one's templates never silently affects another's.
+
+## See also
+
+- [split-stream.md](./split-stream.md) — the splitting mechanism this script wraps, including how to sync the result to S3
+- [generator-config.md](./generator-config.md) — `-p`/`--partition`
+- [how-to-build-a-config.md](./how-to-build-a-config.md) — registering a new preset here as part of building it
+- [datalake-export.md](./datalake-export.md) — `tools/generate_lake.py`, for parallel/resumable/S3-uploading bulk export instead

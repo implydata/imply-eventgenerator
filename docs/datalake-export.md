@@ -9,6 +9,9 @@ s3://<bucket>/<prefix>/<profile>/<template>/<YYYY>/<MM>/<DD>/<profile>-<template
 
 One object per profile, per template, per day.
 
+> For a sequential, local-first alternative without the parallel-jobs/manifest/S3-upload
+> machinery, see [generate-all.md](./generate-all.md) and [split-stream.md](./split-stream.md).
+
 ## Quick start
 
 ```bash
