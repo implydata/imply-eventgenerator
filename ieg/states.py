@@ -227,7 +227,15 @@ class Controller:
             self.t = None
         else:
             try:
-                self.t = isodate.parse_duration(runtime).total_seconds()
+                parsed_runtime = isodate.parse_duration(runtime)
+                # Duration.total_seconds() would silently return 0 for calendar-based
+                # units (P1M, P1Y) — it only reflects the exact (day/hour/etc.) part,
+                # since a month has no fixed length in seconds on its own. Resolving
+                # against the actual start time instead gives the true elapsed time
+                # (e.g. Feb correctly comes out shorter than Jan), and is a no-op for
+                # plain timedeltas, so this works for every duration uniformly.
+                start = global_clock.get_start_time()
+                self.t = ((start + parsed_runtime) - start).total_seconds()
             except Exception as e:
                 raise ValueError(f"Error parsing runtime '{runtime}': {e}")
 
