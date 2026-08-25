@@ -75,4 +75,3 @@ A few things worth knowing before relying on it:
 
 - [generator-config.md](./generator-config.md) — `-p`/`--partition`
 - [generate-all.md](./generate-all.md) — running this across every preset and template in one pass
-- [datalake-export.md](./datalake-export.md) — the per-day-subprocess alternative (`tools/generate_lake.py`), with direct S3 upload and a resume manifest built in
