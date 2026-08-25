@@ -13,13 +13,6 @@
 # same as tools/generate_lake.py's PROFILE_SETTINGS. Adding a new preset means adding
 # a line here too — see the "Add config and templates to tools/generate_all.sh" step in
 # docs/how-to-build-a-config.md.
-#
-# Usage:
-#   tools/generate_all.sh --out <dir> --start <YYYY-MM-DD> --end <YYYY-MM-DD> \
-#     [--profile <name>]... [--partition <ISO8601 duration>] [--seed <n>] [--no-schedule] [--dry-run]
-#
-# Example:
-#   tools/generate_all.sh --out out/lake --start 2026-05-27 --end 2026-05-29 --profile vpc_flow_logs
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -133,7 +126,49 @@ EOF
 
 usage() {
   echo "Usage: $0 --out <dir> --start <YYYY-MM-DD> --end <YYYY-MM-DD> [--profile <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]" >&2
+  echo "Try '$0 --help' for more information." >&2
   exit 1
+}
+
+show_help() {
+  profile_names=""
+  for entry in "${PROFILES[@]}"; do
+    profile_names="$profile_names ${entry%%|*}"
+  done
+  cat <<EOF
+Usage: $0 --out <dir> --start <YYYY-MM-DD> --end <YYYY-MM-DD> [--profile <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
+
+Run generator.py + tools/split_stream.sh in series for every (profile,
+template) pair below, one continuous run per pair covering the whole
+--start/--end range — the middle ground between a single split_stream.sh
+call and the fuller tools/generate_lake.py (parallel jobs, S3 upload,
+resume manifest).
+
+Options:
+  --out <dir>              Output root. Each pair is written to
+                           <dir>/<profile>/<template>/YYYY/MM/DD/. Required.
+  --start <YYYY-MM-DD>     First day to generate, inclusive. Required.
+  --end <YYYY-MM-DD>       Last day to generate, inclusive. Required.
+  --profile <name>         Only this profile; repeatable. Default: all of them.
+                           Valid names:$profile_names
+  --partition <duration>   ISO 8601 partition size, passed to -p. Default: P1D.
+  --seed <n>               Passed to every generator.py run as --seed.
+  --no-schedule            Skip each profile's schedule file, if it has one.
+  --dry-run                Print the plan — every (profile, template) pair,
+                           its output path, and the exact generator.py
+                           command — without running anything.
+  -h, --help               Show this help and exit.
+
+The (profile, template, -w ceiling, schedule, extension) table this script
+runs is hardcoded above, not discovered from presets/configs/*.json at
+runtime — ceilings need a human to have run tools/bench_config_workers.py
+first (see docs/how-to-build-a-config.md), same as generate_lake.py's
+PROFILE_SETTINGS. Adding a new preset means adding a line here too.
+
+Example:
+  $0 --out out/lake --start 2026-05-27 --end 2026-05-29 --profile vpc_flow_logs
+EOF
+  exit 0
 }
 
 out_dir=""
@@ -155,7 +190,7 @@ while [[ $# -gt 0 ]]; do
     --seed) seed="$2"; shift 2 ;;
     --no-schedule) no_schedule=1; shift ;;
     --dry-run) dry_run=1; shift ;;
-    -h|--help) usage ;;
+    -h|--help) show_help ;;
     *) usage ;;
   esac
 done

@@ -1,37 +1,52 @@
 #!/usr/bin/env bash
 #
-# Run a generator.py command and split its stdout into calendar-partitioned, gzipped
-# files, using generator.py's own --partition marker (ieg/core.py's
-# PARTITION_MARKER_PREFIX, "\x1ePARTITION <ISO timestamp>") as the split point.
-#
-# No timestamp parsing of the rendered records themselves happens here — the split
-# point and each partition's boundary timestamp both come straight from the marker
-# generator.py already emits, since presets render 11 different output shapes with
-# no common timestamp field or format to parse generically. See docs/how-to-build-a-config.md
-# and generator.py's own --help for --partition.
-#
-# Usage:
-#   tools/split_stream.sh --out <dir> [--prefix <name>] [--ext <ext>] -- <generator.py command...>
-#
-# Example:
-#   tools/split_stream.sh --out out/vpc_flow_logs --prefix vpc_flow_logs-aws_cloudwatchlogs_vpcflow --ext log -- \
-#     python generator.py -c presets/configs/vpc_flow_logs.json -t aws:cloudwatchlogs:vpcflow \
-#       -w 66 -r P7D -s 2026-05-27T00:00:00 -p P1D --seed 42
-#
-# The generator command must itself include -p/--partition — without it, stdout has
-# no marker to split on and this script fails with a clear error rather than silently
-# writing the whole run as one file.
-#
-# Requires GNU csplit. The BSD csplit that ships by default on macOS lacks features
-# this script needs; install GNU coreutils (brew install coreutils on macOS) and it
-# is picked up automatically as 'gcsplit'.
+# Split a generator.py run into calendar-partitioned, gzipped files, using
+# generator.py's own --partition marker as the split point — no timestamp parsing
+# of the rendered records themselves, since presets render 11 different output
+# shapes with no common field or format to parse generically. See
+# docs/how-to-build-a-config.md and generator.py's own --help for -p/--partition.
 set -euo pipefail
 
 MARKER_PREFIX=$'\x1ePARTITION '
 
 usage() {
   echo "Usage: $0 --out <dir> [--prefix <name>] [--ext <ext>] -- <generator.py command...>" >&2
+  echo "Try '$0 --help' for more information." >&2
   exit 1
+}
+
+show_help() {
+  cat <<EOF
+Usage: $0 --out <dir> [--prefix <name>] [--ext <ext>] -- <generator.py command...>
+
+Run a generator.py command and split its stdout into calendar-partitioned,
+gzipped files, using the "\x1ePARTITION <ISO timestamp>" marker generator.py
+emits when run with -p/--partition. Each split segment's first line is the
+marker itself, so its own boundary timestamp names the file — no reformatting.
+
+Options:
+  --out <dir>        Output root. Files are written to
+                     <dir>/YYYY/MM/DD/<prefix->stamp.ext.gz. Required.
+  --prefix <name>    Prefix for each output filename, e.g. profile-template.
+                     Optional; omit for just <stamp>.ext.gz.
+  --ext <ext>        File extension before .gz, e.g. json, csv, log. Default: log.
+  -h, --help         Show this help and exit.
+
+Everything after -- is the generator.py command to run. It must itself
+include -p/--partition — without it, stdout has no marker to split on, and
+this script fails with a clear error rather than silently writing the whole
+run as one file.
+
+Requires GNU csplit. The BSD csplit that ships by default on macOS lacks
+features this script needs; install GNU coreutils (brew install coreutils
+on macOS) and it's picked up automatically as 'gcsplit'.
+
+Example:
+  $0 --out out/vpc_flow_logs --prefix vpc_flow_logs-aws_cloudwatchlogs_vpcflow --ext log -- \\
+    python generator.py -c presets/configs/vpc_flow_logs.json -t aws:cloudwatchlogs:vpcflow \\
+      -w 66 -r P7D -s 2026-05-27T00:00:00 -p P1D --seed 42
+EOF
+  exit 0
 }
 
 out_dir=""
@@ -43,6 +58,7 @@ while [[ $# -gt 0 ]]; do
     --out) out_dir="$2"; shift 2 ;;
     --prefix) prefix="$2"; shift 2 ;;
     --ext) ext="$2"; shift 2 ;;
+    -h|--help) show_help ;;
     --) shift; break ;;
     *) usage ;;
   esac
