@@ -262,9 +262,20 @@ class DataDriver:
             self.partition_interval = None
         else:
             try:
-                parsed_partition_interval = isodate.parse_duration(partition_interval).total_seconds()
+                parsed_partition_interval = isodate.parse_duration(partition_interval)
             except Exception as e:
                 raise ValueError(f"Error parsing --partition duration '{partition_interval}': {e}")
+            if isinstance(parsed_partition_interval, isodate.Duration):
+                # Unlike -r (a one-time span, resolved against the actual start time),
+                # --partition is a repeating bucket size used as a fixed number of
+                # seconds (_partition_bucket). A calendar month resolved once would
+                # only be correct for the first bucket — every later one would drift
+                # out of true calendar alignment (Feb is shorter than Jan, etc.).
+                raise ValueError(
+                    f"--partition duration '{partition_interval}' uses a calendar-based "
+                    f"unit (Y or M), which isn't a fixed size — use P1D, PT1H, P7D, etc."
+                )
+            parsed_partition_interval = parsed_partition_interval.total_seconds()
             if parsed_partition_interval <= 0:
                 raise ValueError(f"--partition duration '{partition_interval}' must be positive.")
             self.partition_interval = parsed_partition_interval
