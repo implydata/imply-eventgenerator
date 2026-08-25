@@ -211,7 +211,7 @@ python tools/generate_lake.py --bucket my-lake --prefix eventgen \
   --start 2026-05-27 --end 2026-08-24 --jobs 16
 ```
 
-```
+```text
 s3://my-lake/eventgen/ecommerce/csv/2026/05/27/ecommerce-csv-20260527.csv.gz
 ```
 
