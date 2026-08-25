@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 #
 # Run generator.py + tools/split_stream.sh in series for every (profile, template)
-# pair below, one continuous run per pair covering the whole --start/--end range.
-# This is the middle ground between a single tools/split_stream.sh call and the
+# pair below, one continuous run per pair. --start/--duration pass straight through
+# to generator.py's own -s/-r with no transformation, so this stays a thin wrapper
+# rather than a second date-range convention to learn. This is the middle ground
+# between a single tools/split_stream.sh call and the
 # fuller tools/generate_lake.py (per-day subprocesses, parallel jobs, direct S3
 # upload, resume manifest) — use this for a straightforward, sequential local lake
 # build; use generate_lake.py when you need parallelism or S3 upload with resume.
@@ -125,7 +127,7 @@ EOF
 }
 
 usage() {
-  echo "Usage: $0 --out <dir> --start <YYYY-MM-DD> --end <YYYY-MM-DD> [--profile <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]" >&2
+  echo "Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]" >&2
   echo "Try '$0 --help' for more information." >&2
   exit 1
 }
@@ -136,21 +138,21 @@ show_help() {
     profile_names="$profile_names ${entry%%|*}"
   done
   cat <<EOF
-Usage: $0 --out <dir> --start <YYYY-MM-DD> --end <YYYY-MM-DD> [--profile <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
+Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
 
 Run generator.py + tools/split_stream.sh in series for every (profile,
-template) pair below, one continuous run per pair covering the whole
---start/--end range — the middle ground between a single split_stream.sh
-call and the fuller tools/generate_lake.py (parallel jobs, S3 upload,
-resume manifest).
+template) pair below, one continuous run per pair — the middle ground
+between a single split_stream.sh call and the fuller tools/generate_lake.py
+(parallel jobs, S3 upload, resume manifest).
 
 Options:
   --out <dir>              Output root. Each pair is written to
                            <dir>/<profile>/<template>/YYYY/MM/DD/. Required.
-  --start <YYYY-MM-DD>     First day to generate, inclusive. Required.
-  --end <YYYY-MM-DD>       Boundary day, exclusive — data covers [start, end),
-                           like SQL. E.g. --start 2026-07-01 --end 2026-08-01
-                           generates exactly July. Required.
+  --start <instant>        Passed straight through to every generator.py
+                           run's -s, e.g. 2026-07-01T00:00:00. Required.
+  --duration <duration>    Passed straight through to every generator.py
+                           run's -r, e.g. P31D or P1M (see generator.py
+                           --help for what -r accepts). Required.
   --profile <name>         Only this profile; repeatable. Default: all of them.
                            Valid names:$profile_names
   --partition <duration>   ISO 8601 partition size, passed to -p. Default: P1D.
@@ -168,14 +170,14 @@ first (see docs/how-to-build-a-config.md), same as generate_lake.py's
 PROFILE_SETTINGS. Adding a new preset means adding a line here too.
 
 Example:
-  $0 --out out/lake --start 2026-05-27 --end 2026-05-30 --profile vpc_flow_logs
+  $0 --out out/lake --start 2026-05-27T00:00:00 --duration P3D --profile vpc_flow_logs
 EOF
   exit 0
 }
 
 out_dir=""
-start_date=""
-end_date=""
+start=""
+duration=""
 partition="P1D"
 seed=""
 no_schedule=0
@@ -185,8 +187,8 @@ want_profiles=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --out) out_dir="$2"; shift 2 ;;
-    --start) start_date="$2"; shift 2 ;;
-    --end) end_date="$2"; shift 2 ;;
+    --start) start="$2"; shift 2 ;;
+    --duration) duration="$2"; shift 2 ;;
     --profile) want_profiles+=("$2"); shift 2 ;;
     --partition) partition="$2"; shift 2 ;;
     --seed) seed="$2"; shift 2 ;;
@@ -197,15 +199,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n "$out_dir" && -n "$start_date" && -n "$end_date" ]] || usage
-
-to_epoch() { date -d "$1" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$1" +%s; }
-# --end is exclusive (like SQL's [start, end) convention): --start 2026-07-01
-# --end 2026-08-01 generates exactly July, with no need to know July has 31 days.
-days=$(( ( $(to_epoch "$end_date") - $(to_epoch "$start_date") ) / 86400 ))
-[[ $days -ge 1 ]] || { echo "error: --end must be at least one day after --start (it's exclusive)" >&2; exit 1; }
-runtime="P${days}D"
-start_iso="${start_date}T00:00:00"
+[[ -n "$out_dir" && -n "$start" && -n "$duration" ]] || usage
 
 wanted() {
   [[ ${#want_profiles[@]} -eq 0 ]] && return 0
@@ -221,7 +215,7 @@ for entry in "${PROFILES[@]}"; do
   # Built with += rather than assigning "${maybe_empty_array[@]}" into another array
   # literal — bash 3.2 (the macOS system default) errors on expanding an empty array
   # under `set -u`, a bug fixed in bash 4.4+ that this script can't assume is present.
-  base_cmd=(python generator.py -c "$CONFIG_DIR/$config_file" -w "$w" -r "$runtime" -s "$start_iso" -p "$partition")
+  base_cmd=(python generator.py -c "$CONFIG_DIR/$config_file" -w "$w" -r "$duration" -s "$start" -p "$partition")
   if [[ "$schedule" != "-" && $no_schedule -eq 0 ]]; then
     base_cmd+=(--schedule "$SCHEDULE_DIR/$schedule")
   fi
