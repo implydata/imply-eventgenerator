@@ -2,7 +2,7 @@
 
 `tools/generate_all.sh` runs [`tools/split_stream.sh`](./split-stream.md) in series for every (profile, template) pair in its own table — one continuous `generator.py` run per pair, covering the whole date range in a single pass, split straight into a local directory tree.
 
-It's the middle ground between running `split_stream.sh` by hand for one config at a time, and the fuller [`tools/generate_lake.py`](./datalake-export.md) (per-day subprocesses, parallel jobs, direct S3 upload, a resume manifest). Reach for `generate_all.sh` for a straightforward, sequential local build across some or all of the catalog; reach for `generate_lake.py` when you need parallelism or S3 upload with resume built in. See [datalake-export.md](./datalake-export.md) for that tool, and [split-stream.md](./split-stream.md#copying-to-s3) for uploading what `generate_all.sh` produces with `aws s3 sync`.
+Reach for it when you want a straightforward, sequential build across some or all of the preset catalog into a local directory — one command instead of running `split_stream.sh` by hand for each config. See [split-stream.md](./split-stream.md#copying-to-s3) for uploading what it produces to S3 with `aws s3 sync`.
 
 ## Requirements
 
@@ -48,4 +48,3 @@ The ecommerce presets (`ecommerce`, `ecommerce_lighting`, `ecommerce_furniture`)
 - [split-stream.md](./split-stream.md) — the splitting mechanism this script wraps, including how to sync the result to S3
 - [generator-config.md](./generator-config.md) — `-p`/`--partition`
 - [how-to-build-a-config.md](./how-to-build-a-config.md) — registering a new preset here as part of building it
-- [datalake-export.md](./datalake-export.md) — `tools/generate_lake.py`, for parallel/resumable/S3-uploading bulk export instead
