@@ -118,7 +118,7 @@ Measured rates, with the ecommerce schedule applied to the three ecommerce profi
 | `ecommerce` | 2112 | `ecommerce.json` | ~533k | ~135 GB (11 templates) |
 | `ecommerce_lighting` | 2112 | `ecommerce.json` | ~700k | ~177 GB (11 templates) |
 | `ecommerce_furniture` | 528 | `ecommerce.json` | ~156k | ~40 GB (11 templates) |
-| `vpc_flow_logs_derived` | 1056 | — | ~6.9M | ~64 GB |
+| `vpc_flow_logs_derived` | 1056 | — | ~7.04M | ~66 GB |
 | `vpc_flow_logs` | 66 | — | ~795k | ~7 GB |
 | `endpoint_network` | 1 | — | ~289k | ~2 GB |
 | `ssh_auth` | 66 | — | ~21k | ~165 MB |
@@ -136,13 +136,20 @@ Measured per-partition cost for one simulated day, one generator, no contention:
 
 | Profile | Solo wall per day | Rows/day | gzip/day | Ratio |
 | --- | --- | --- | --- | --- |
+| `vpc_flow_logs_derived` | 8m 25s | 7.04M | 85.3 MB | 8.6:1 |
 | `ecommerce` (`apache:access:json`) | 43s | 563k | 20.3 MB | 13.1:1 |
 | `vpc_flow_logs` | 44s | 795k | 10.3 MB | 8.5:1 |
 | `ssh_auth` | 1.8s | 21k | 0.3 MB | — |
 | `pbx_calls` | 0.6s | 2.9k | 0.1 MB | — |
 
-Summed over a 3-month run of every profile and template that is roughly **40 CPU-hours**, of
-which the three ecommerce profiles are ~75% (11 templates each, every one a separate pass).
+Summed over a 3-month run of every profile and template that is roughly **44 CPU-hours**: the
+three ecommerce profiles are ~68% of it (11 templates each, every one a separate pass) and
+`vpc_flow_logs_derived` a further 29% on its own.
+
+`vpc_flow_logs_derived` is worth calling out. At its `-m 1056` ceiling one day is 7.04M rows
+and takes 8m 25s — a work unit long enough to leave a core busy while others idle at the tail
+of a run, and an 85 MB gzip object no reader can split. `--split-hours 4` turns each of its
+days into six ~2-minute units and ~14 MB objects.
 
 Parallel efficiency is around 50% rather than linear: eight `vpc_flow_logs` partitions at
 `--jobs 8` finished in 87s against 44s for one alone — 8× the work in 2× the time, with each
@@ -150,7 +157,7 @@ partition's own wall time doubling to ~86s. Each generator is internally multi-t
 sets the pool size) and the simulated clock serialises those threads through a shared lock, so
 processes oversubscribe rather than each pinning one core cleanly.
 
-That puts a full run at roughly 8 hours on a 12-core laptop, or 2–3 hours on a 32-vCPU
+That puts a full run at roughly 9 hours on a 12-core laptop, or under 3 hours on a 32-vCPU
 instance. Sizing is guesswork until measured on the instance itself, so time one day first:
 
 ```bash
