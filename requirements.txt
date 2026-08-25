@@ -4,3 +4,4 @@ sortedcontainers
 isodate
 jinja2
 rich
+boto3

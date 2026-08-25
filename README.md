@@ -46,6 +46,7 @@ The `presets/` folder contains ready-to-use configs with [embedded output templa
 - [Templates](docs/templates.md) — Jinja2 output templates
 - [Schedules](docs/schedules.md) — time-of-day traffic variation
 - [Deterministic output](docs/deterministic.md) — reproducible generation with `--seed`
+- [Datalake export](docs/datalake-export.md) — bulk historical data to S3, partitioned by profile/template/date
 
 ## Command-line reference
 
@@ -176,3 +177,21 @@ python generator.py -c presets/configs/ecommerce.json -t access_combined \
 ```
 
 For full control over metadata, use a pipeline tool that wraps each event in a HEC envelope — an [OTel Collector](https://opentelemetry.io/docs/collector/) with a Splunk HEC exporter, or Cribl or Vector.
+
+### S3 datalake
+
+For bulk historical data — every preset and template over a date range — use
+[`tools/generate_lake.py`](docs/datalake-export.md). It runs one generator per profile,
+template and day, gzips each day in flight, and uploads it as a single partitioned object:
+
+```bash
+python tools/generate_lake.py --bucket my-lake --prefix eventgen \
+  --start 2026-05-27 --end 2026-08-24 --jobs 16
+```
+
+```
+s3://my-lake/eventgen/ecommerce/csv/2026/05/27/ecommerce-csv-20260527.csv.gz
+```
+
+Add `--dry-run` to see the partition count and estimated volume first, or `--local-dir` to
+write the same tree to local disk. Interrupted runs resume from the manifest.
