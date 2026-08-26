@@ -11,7 +11,7 @@ GNU `csplit`, same as `split_stream.sh` — see [its requirements section](./spl
 ## Usage
 
 ```text
-tools/generate_all.sh --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
+tools/generate_all.sh --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
 ```
 
 | Option | Description |
@@ -20,6 +20,7 @@ tools/generate_all.sh --out <dir> --start <ISO8601 instant> --duration <ISO8601 
 | `--start <instant>` | Passed straight through to every `generator.py` run's `-s`, e.g. `2026-07-01T00:00:00`. Required. |
 | `--duration <duration>` | Passed straight through to every `generator.py` run's `-r`, e.g. `P31D` or `P1M`. Required. |
 | `--profile <name>` | Only this profile; repeatable. Default: all of them. Run `--help` for the current list. |
+| `--template <name>` | Only this template, within whichever profiles are selected; repeatable. Default: every template a selected profile has. |
 | `--partition <duration>` | ISO 8601 partition size, passed to `-p`. Default: `P1D`. |
 | `--seed <n>` | Passed to every `generator.py` run as `--seed`. |
 | `--no-schedule` | Skip each profile's schedule file, if it has one. |
@@ -33,6 +34,10 @@ tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D
 
 # Run it
 tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --profile vpc_flow_logs
+
+# Re-run just one template within a profile — e.g. to regenerate a single
+# template's output without redoing every other template for that profile too
+tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --profile vpc_flow_logs --template ocsf:network_activity
 ```
 
 ## The profile table

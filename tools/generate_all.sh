@@ -3,18 +3,13 @@
 # Run generator.py + tools/split_stream.sh in series for every (profile, template)
 # pair below, one continuous run per pair. --start/--duration pass straight through
 # to generator.py's own -s/-r with no transformation, so this stays a thin wrapper
-# rather than a second date-range convention to learn. This is the middle ground
-# between a single tools/split_stream.sh call and the
-# fuller tools/generate_lake.py (per-day subprocesses, parallel jobs, direct S3
-# upload, resume manifest) — use this for a straightforward, sequential local lake
-# build; use generate_lake.py when you need parallelism or S3 upload with resume.
+# rather than a second date-range convention to learn.
 #
 # The (profile, template, -w ceiling, schedule, extension) table below is hardcoded
 # on purpose, not discovered from presets/configs/*.json at runtime — ceilings need
-# a human to have run tools/bench_config_workers.py first (see docs/how-to-build-a-config.md),
-# same as tools/generate_lake.py's PROFILE_SETTINGS. Adding a new preset means adding
-# a line here too — see the "Add config and templates to tools/generate_all.sh" step in
-# docs/how-to-build-a-config.md.
+# a human to have run tools/bench_config_workers.py first (see docs/how-to-build-a-config.md).
+# Adding a new preset means adding a line here too — see the "Add config and
+# templates to tools/generate_all.sh" step in docs/how-to-build-a-config.md.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -135,7 +130,7 @@ EOF
 }
 
 usage() {
-  echo "Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]" >&2
+  echo "Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]" >&2
   echo "Try '$0 --help' for more information." >&2
   exit 1
 }
@@ -146,12 +141,10 @@ show_help() {
     profile_names="$profile_names ${entry%%|*}"
   done
   cat <<EOF
-Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
+Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
 
 Run generator.py + tools/split_stream.sh in series for every (profile,
-template) pair below, one continuous run per pair — the middle ground
-between a single split_stream.sh call and the fuller tools/generate_lake.py
-(parallel jobs, S3 upload, resume manifest).
+template) pair below, one continuous run per pair.
 
 Options:
   --out <dir>              Output root. Each pair is written to
@@ -163,6 +156,9 @@ Options:
                            --help for what -r accepts). Required.
   --profile <name>         Only this profile; repeatable. Default: all of them.
                            Valid names:$profile_names
+  --template <name>        Only this template, within whichever profiles are
+                           selected; repeatable. Default: every template a
+                           selected profile has.
   --partition <duration>   ISO 8601 partition size, passed to -p. Default: P1D.
   --seed <n>               Passed to every generator.py run as --seed.
   --no-schedule            Skip each profile's schedule file, if it has one.
@@ -174,8 +170,8 @@ Options:
 The (profile, template, -w ceiling, schedule, extension) table this script
 runs is hardcoded above, not discovered from presets/configs/*.json at
 runtime — ceilings need a human to have run tools/bench_config_workers.py
-first (see docs/how-to-build-a-config.md), same as generate_lake.py's
-PROFILE_SETTINGS. Adding a new preset means adding a line here too.
+first (see docs/how-to-build-a-config.md). Adding a new preset means adding
+a line here too.
 
 Example:
   $0 --out out/lake --start 2026-05-27T00:00:00 --duration P3D --profile vpc_flow_logs
@@ -191,6 +187,7 @@ seed=""
 no_schedule=0
 dry_run=0
 want_profiles=()
+want_templates=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -198,6 +195,7 @@ while [[ $# -gt 0 ]]; do
     --start) start="$2"; shift 2 ;;
     --duration) duration="$2"; shift 2 ;;
     --profile) want_profiles+=("$2"); shift 2 ;;
+    --template) want_templates+=("$2"); shift 2 ;;
     --partition) partition="$2"; shift 2 ;;
     --seed) seed="$2"; shift 2 ;;
     --no-schedule) no_schedule=1; shift ;;
@@ -209,16 +207,19 @@ done
 
 [[ -n "$out_dir" && -n "$start" && -n "$duration" ]] || usage
 
-wanted() {
-  [[ ${#want_profiles[@]} -eq 0 ]] && return 0
-  for p in "${want_profiles[@]}"; do [[ "$p" == "$1" ]] && return 0; done
+# $1: the value to check. $2..: the wanted-list array, expanded by the caller
+# (bash 3.2 can't pass arrays by name) — empty means "everything matches".
+in_list_or_empty() {
+  local needle="$1"; shift
+  [[ $# -eq 0 ]] && return 0
+  for v in "$@"; do [[ "$v" == "$needle" ]] && return 0; done
   return 1
 }
 
 run_count=0
 for entry in "${PROFILES[@]}"; do
   IFS='|' read -r profile config_file w schedule interval <<< "$entry"
-  wanted "$profile" || continue
+  in_list_or_empty "$profile" "${want_profiles[@]+"${want_profiles[@]}"}" || continue
 
   # Built with += rather than assigning "${maybe_empty_array[@]}" into another array
   # literal — bash 3.2 (the macOS system default) errors on expanding an empty array
@@ -232,6 +233,7 @@ for entry in "${PROFILES[@]}"; do
 
   while IFS='=' read -r template ext; do
     [[ -n "$template" ]] || continue
+    in_list_or_empty "$template" "${want_templates[@]+"${want_templates[@]}"}" || continue
     slug="$(printf '%s' "$template" | tr -c 'A-Za-z0-9' '_')"
     dest="$out_dir/$profile/$slug"
     run_count=$((run_count + 1))
