@@ -16,6 +16,20 @@
 # partition's raw size, not the entire run's.
 set -euo pipefail
 
+# Re-exec under caffeinate (macOS) so idle sleep can't interrupt a long run —
+# a real, observed cause of hangs: the engine's threads block on an untimed
+# threading.Event, and a disrupted sleep/wake cycle can lose the wakeup for
+# good, with no recovery even once the machine is fully awake again. Guarded
+# by an env var so this only wraps once, not on every re-exec.
+if [[ -z "${SPLIT_STREAM_CAFFEINATED:-}" ]]; then
+  export SPLIT_STREAM_CAFFEINATED=1
+  if command -v caffeinate >/dev/null 2>&1; then
+    exec caffeinate -i "$0" "$@"
+  else
+    echo "warning: caffeinate not found — this run has no protection against idle sleep interrupting it mid-way, which has caused real hangs on long runs. caffeinate ships with macOS by default; on other platforms, make sure your own power/sleep settings won't interrupt a multi-hour run." >&2
+  fi
+fi
+
 MARKER_PREFIX=$'\x1ePARTITION '
 
 usage() {
@@ -52,6 +66,11 @@ run as one file.
 Requires GNU csplit. The BSD csplit that ships by default on macOS lacks
 features this script needs; install GNU coreutils (brew install coreutils
 on macOS) and it's picked up automatically as 'gcsplit'.
+
+On macOS, this script re-execs itself under caffeinate -i automatically, so
+idle sleep can't interrupt a long run — a real, observed cause of hangs the
+engine has no recovery from. If caffeinate isn't found (e.g. non-macOS),
+a warning is printed and the run proceeds unprotected.
 
 Example:
   $0 --out out/vpc_flow_logs --prefix vpc_flow_logs-aws_cloudwatchlogs_vpcflow --ext log -- \\
