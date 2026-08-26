@@ -50,7 +50,9 @@ out/vpc_flow_logs/2026/05/28/vpc_flow_logs-aws_cloudwatchlogs_vpcflow-20260528T0
 
 ## How it works
 
-The marker line is kept in `csplit`'s output, not discarded — it's the first line of each split segment, so that segment's own boundary timestamp names the file with no reformatting needed. For each segment: read the first line, extract the timestamp, strip that line from the body, gzip what's left, and write it to `<out>/YYYY/MM/DD/`.
+`generator.py` and `csplit` run as two independent background processes connected by a named pipe, not a plain shell pipe — `generator.py` writes to the pipe, `csplit` reads from it and splits on the marker as usual. A third loop watches for each segment `csplit` finishes (signalled by the next-numbered segment file appearing, since `csplit` writes them strictly in order) and processes it immediately: read the first line, extract the timestamp, strip that line from the body, gzip what's left, write it to `<out>/YYYY/MM/DD/`, and delete the raw segment.
+
+That matters for long runs: `csplit` itself still needs to see the whole stream to know where every split point is, but this script doesn't wait for it to finish before starting to compress and clean up what's already complete. Peak local disk usage stays bounded to roughly the last couple of partitions' raw size, not the entire run's — a multi-month run no longer needs headroom for its full uncompressed size all at once, just for the day or two currently in flight. The very last segment is the one exception — it only becomes complete once `csplit` itself exits (there's no "next" segment to signal it), so it's processed right after that, not by the incremental loop.
 
 Each marker is followed immediately by the active template's header (if it has one), emitted by `generator.py` itself at that same boundary — so every split file is complete and valid on its own, without `split_stream.sh` needing any per-template knowledge of what a header looks like.
 
