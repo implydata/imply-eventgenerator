@@ -8,6 +8,14 @@ Reach for it when you want a straightforward, sequential build across some or al
 
 GNU `csplit`, same as `split_stream.sh` — see [its requirements section](./split-stream.md#requirements).
 
+## Sleep protection
+
+This script re-execs itself under `caffeinate -i` automatically on macOS, so idle sleep can't interrupt what's often a multi-hour run. This isn't just tidiness — it's a real, observed failure mode: the engine's threads coordinate via an untimed `threading.Event.wait()`, and a sleep/wake cycle mid-run can lose that wakeup permanently. The process doesn't crash or recover once the machine wakes back up — it just sits there indefinitely, with no further progress and no error, even if the machine then stays awake for hours afterward.
+
+`caffeinate -i` only prevents *idle* sleep — closing the lid sleeps the machine regardless of any assertion, so leave it open (or run plugged in with the lid open) for the duration of a long generation run. An INFO line is printed at startup confirming this is active. If `caffeinate` isn't found (non-macOS), a warning is printed and the run proceeds without this protection — on those platforms, make sure your own power/sleep settings won't interrupt a long run.
+
+Running [`split_stream.sh`](./split-stream.md) directly, rather than through this script, doesn't get this protection — it's worth keeping the machine awake yourself for the duration if you're driving a long run that way.
+
 ## Usage
 
 ```text

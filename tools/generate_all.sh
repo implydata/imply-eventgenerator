@@ -12,6 +12,20 @@
 # templates to tools/generate_all.sh" step in docs/how-to-build-a-config.md.
 set -euo pipefail
 
+# Re-exec under caffeinate (macOS) so idle sleep can't interrupt what's often a
+# multi-hour run — a real, observed cause of hangs the engine has no recovery
+# from (see docs/generate-all.md#sleep-protection). Guarded by an env var so
+# this only wraps once, not on every re-exec.
+if [[ -z "${GENERATE_ALL_CAFFEINATED:-}" ]]; then
+  export GENERATE_ALL_CAFFEINATED=1
+  if command -v caffeinate >/dev/null 2>&1; then
+    echo "info: running under caffeinate -i, so idle sleep won't interrupt this run — a sleep/wake cycle mid-run has caused real, unrecoverable hangs before. This only covers idle sleep: closing the lid still sleeps the machine regardless, so leave it open (or plugged in with lid open) for the duration." >&2
+    exec caffeinate -i "$0" "$@"
+  else
+    echo "warning: caffeinate not found — this run has no protection against idle sleep interrupting it mid-way, which has caused real hangs on long runs. caffeinate ships with macOS by default; on other platforms, make sure your own power/sleep settings won't interrupt a multi-hour run." >&2
+  fi
+fi
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIG_DIR="$REPO_ROOT/presets/configs"
 SCHEDULE_DIR="$REPO_ROOT/presets/schedules"

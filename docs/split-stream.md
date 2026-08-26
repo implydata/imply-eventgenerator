@@ -20,11 +20,7 @@ brew install coreutils
 
 This installs GNU `csplit` as `gcsplit`, picked up automatically alongside the system `csplit` — no `$PATH` changes needed. On Linux, GNU coreutils is normally already the system default.
 
-## Sleep protection
-
-On macOS, this script re-execs itself under `caffeinate -i` automatically, so idle sleep can't interrupt a long run. This isn't just tidiness — it's a real, observed failure mode: the engine's threads coordinate via an untimed `threading.Event.wait()`, and a sleep/wake cycle mid-run can lose that wakeup permanently. The process doesn't crash or recover once the machine wakes back up — it just sits there, indefinitely, with no further progress and no error. A multi-hour run generating a large date range is exactly the situation this is most likely to hit.
-
-If `caffeinate` isn't found (non-macOS), a warning is printed and the run proceeds without this protection — on those platforms, make sure your own power/sleep settings won't interrupt a long run.
+Running a long, unattended stretch through this script directly (rather than via [`generate_all.sh`](./generate-all.md), which handles this for you) — keep the machine from sleeping for its duration; see [generate-all.md's sleep protection section](./generate-all.md#sleep-protection) for why that matters and what can go wrong if it does.
 
 ## Usage
 
