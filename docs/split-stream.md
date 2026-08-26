@@ -61,7 +61,7 @@ Because a partition marker is only ever emitted right before the record that tri
 `split_stream.sh` only writes to a local directory. Getting that directory into S3 is a separate step, and `aws s3 sync` handles it well:
 
 ```bash
-aws s3 sync out/vpc_flow_logs s3://my-lake/eventgen/vpc_flow_logs
+aws s3 sync out/vpc_flow_logs s3://my-lake/eventgen/vpc_flow_logs --exclude "*" --include "*.gz"
 ```
 
 A few things worth knowing before relying on it:
@@ -70,6 +70,7 @@ A few things worth knowing before relying on it:
 - **It's additive by default, not a mirror.** Objects that exist at the destination but not in the local source are left alone; `sync` never deletes anything unless you pass `--delete`. If you do need mirror behavior, run with `--dryrun` first to see exactly what would be deleted before it happens.
 - **It's direction-agnostic.** The same command works local-to-S3, S3-to-local (`aws s3 sync s3://my-lake/eventgen/vpc_flow_logs out/vpc_flow_logs`), or bucket-to-bucket — source and destination are just positional arguments, either can be local or `s3://`.
 - **It matches by exact key, not by day.** If you're adding to a bucket that already has data for the same date range from a different tool or an older filename convention, check the key format matches before assuming a re-run will replace what's there — `sync` treats a differently-named file as a new object to add alongside the old one, not a replacement for it, even if both cover the same day.
+- **`--exclude "*" --include "*.gz"` keeps out anything that isn't real output** — a `.DS_Store` from Finder browsing the local directory, a leftover `.partial` from an interrupted write, an editor swap file. Order matters: later filters override earlier ones for files they both match, so `--exclude "*"` has to come *before* `--include "*.gz"` — reversed, the trailing `--exclude "*"` would win and nothing would upload. `--include` alone does nothing, since every file is included by default until something excludes it first.
 
 ## See also
 
