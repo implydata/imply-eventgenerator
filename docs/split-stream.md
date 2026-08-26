@@ -37,7 +37,7 @@ Everything after `--` is the `generator.py` command to run. It must itself inclu
 ```bash
 tools/split_stream.sh --out out/vpc_flow_logs --prefix vpc_flow_logs-aws_cloudwatchlogs_vpcflow --ext log -- \
   python generator.py -c presets/configs/vpc_flow_logs.json -t aws:cloudwatchlogs:vpcflow \
-    -w 66 -r P7D -s 2026-05-27T00:00:00 -p P1D --seed 42
+    -w 66 -r P7D -s 2026-05-27T00:00:00 -p P1D
 ```
 
 produces:
