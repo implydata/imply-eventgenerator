@@ -29,6 +29,7 @@ fi
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIG_DIR="$REPO_ROOT/presets/configs"
 SCHEDULE_DIR="$REPO_ROOT/presets/schedules"
+VOLUMES_FILE="$REPO_ROOT/tools/volumes.json"
 
 # profile | config file (relative to presets/configs) | -w ceiling | schedule file (or "-")
 # | -i interval override (or "-" for the config's own default)
@@ -144,7 +145,7 @@ EOF
 }
 
 usage() {
-  echo "Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]" >&2
+  echo "Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--template <name>]... [--volume <name>] [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]" >&2
   echo "Try '$0 --help' for more information." >&2
   exit 1
 }
@@ -154,15 +155,22 @@ show_help() {
   for entry in "${PROFILES[@]}"; do
     profile_names="$profile_names ${entry%%|*}"
   done
+  volume_names="$(python3 -c "
+import json
+data = json.load(open('$VOLUMES_FILE'))
+print(' '.join(data.get('volumes', {}).keys()))
+")"
   cat <<EOF
-Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
+Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--template <name>]... [--volume <name>] [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
 
 Run generator.py + tools/split_stream.sh in series for every (profile,
 template) pair below, one continuous run per pair.
 
 Options:
   --out <dir>              Output root. Each pair is written to
-                           <dir>/<profile>/<template>/YYYY/MM/DD/. Required.
+                           <dir>/<profile>/<template>/YYYY/MM/DD/, or
+                           <dir>/<profile>/<template>/<volume>/YYYY/MM/DD/
+                           when --volume is given. Required.
   --start <instant>        Passed straight through to every generator.py
                            run's -s, e.g. 2026-07-01T00:00:00. Required.
   --duration <duration>    Passed straight through to every generator.py
@@ -173,6 +181,12 @@ Options:
   --template <name>        Only this template, within whichever profiles are
                            selected; repeatable. Default: every template a
                            selected profile has.
+  --volume <name>          Target output volume, overriding each profile's
+                           -i/-w with the settings recorded for it in
+                           tools/volumes.json. A profile with no entry for
+                           this volume is skipped, not an error. Default:
+                           each profile's own -i/-w from the table above.
+                           Valid names: $volume_names
   --partition <duration>   ISO 8601 partition size, passed to -p. Default: P1D.
   --seed <n>               Passed to every generator.py run as --seed.
   --no-schedule            Skip each profile's schedule file, if it has one.
@@ -189,6 +203,7 @@ a line here too.
 
 Example:
   $0 --out out/lake --start 2026-05-27T00:00:00 --duration P3D --profile vpc_flow_logs
+  $0 --out out/lake --start 2026-05-27T00:00:00 --duration P3D --profile zscaler_web --volume medium
 EOF
   exit 0
 }
@@ -200,6 +215,7 @@ partition="P1D"
 seed=""
 no_schedule=0
 dry_run=0
+volume=""
 want_profiles=()
 want_templates=()
 
@@ -210,6 +226,7 @@ while [[ $# -gt 0 ]]; do
     --duration) duration="$2"; shift 2 ;;
     --profile) want_profiles+=("$2"); shift 2 ;;
     --template) want_templates+=("$2"); shift 2 ;;
+    --volume) volume="$2"; shift 2 ;;
     --partition) partition="$2"; shift 2 ;;
     --seed) seed="$2"; shift 2 ;;
     --no-schedule) no_schedule=1; shift ;;
@@ -230,10 +247,32 @@ in_list_or_empty() {
   return 1
 }
 
+# Prints "<i> <w>" for a profile/volume pair from tools/volumes.json, or fails
+# (no output, non-zero exit) if that profile has no entry for this volume — a
+# profile that can't reach a given volume is simply skipped, not an error, per
+# "if the generator cannot support a particular output size, don't offer it."
+volume_settings() {
+  python3 -c "
+import json, sys
+data = json.load(open('$VOLUMES_FILE'))
+entry = data.get('profiles', {}).get('$1', {}).get('volumes', {}).get('$2')
+if entry is None:
+    sys.exit(1)
+print(entry['i'], entry['w'])
+"
+}
+
 run_count=0
 for entry in "${PROFILES[@]}"; do
   IFS='|' read -r profile config_file w schedule interval <<< "$entry"
   in_list_or_empty "$profile" "${want_profiles[@]+"${want_profiles[@]}"}" || continue
+
+  if [[ -n "$volume" ]]; then
+    if ! read -r interval w < <(volume_settings "$profile" "$volume"); then
+      echo "skipping $profile: no '$volume' volume defined for it in $VOLUMES_FILE" >&2
+      continue
+    fi
+  fi
 
   # Built with += rather than assigning "${maybe_empty_array[@]}" into another array
   # literal — bash 3.2 (the macOS system default) errors on expanding an empty array
@@ -250,6 +289,7 @@ for entry in "${PROFILES[@]}"; do
     in_list_or_empty "$template" "${want_templates[@]+"${want_templates[@]}"}" || continue
     slug="$(printf '%s' "$template" | tr -c 'A-Za-z0-9' '_')"
     dest="$out_dir/$profile/$slug"
+    [[ -n "$volume" ]] && dest="$dest/$volume"
     run_count=$((run_count + 1))
 
     cmd=("${base_cmd[@]}" -t "$template")
