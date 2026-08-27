@@ -220,7 +220,7 @@ class Clock:
             logger.debug("%s active threads %d", threading.current_thread().name, self.active_threads)
             if self.active_threads == 1:
                 next_event = self.remove_event()
-                if str(this_event) != str(next_event):
+                if this_event is not next_event:
                     self.resume(next_event)
                     logger.debug("%s start pause if", threading.current_thread().name)
                     self.pause(this_event)
