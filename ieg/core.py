@@ -231,6 +231,7 @@ class DataDriver:
         self.status_msg = 'Creating...'
         self.header = None
         self.jinja_template = None
+        self.fatal_error = None
 
         if template_name is not None:
             templates = config.get('templates', {})
@@ -395,7 +396,22 @@ class DataDriver:
                 thread_name = 'W'+str(self.sim_control.get_entity_count())
                 self.sim_control.add_entity()
                 t = threading.Thread(target=self.worker_thread, name=thread_name, daemon=True)
-                t.start()
+                try:
+                    t.start()
+                except RuntimeError as e:
+                    # Hit an OS thread-creation limit (e.g. macOS kern.num_taskthreads,
+                    # Linux RLIMIT_NPROC) — an operating-system ceiling, not a data-volume
+                    # one. spawning_thread runs off the main thread, so this must be handed
+                    # back via self.fatal_error rather than raised here, or it would just
+                    # print a traceback and the run would silently report success.
+                    self.sim_control.remove_entity()
+                    self.fatal_error = RuntimeError(
+                        f"Hit the operating system's thread-creation limit at "
+                        f"{self.sim_control.get_entity_count()} active workers (-w {self.max_entities}). "
+                        f"Lower -w and retry — this is an OS limit, not a data-volume limit. ({e})"
+                    )
+                    self.global_clock.end_thread()
+                    return
                 # add a sleep event before spawning the next
                 self.global_clock.sleep(float(self.rate_delay.get_sample()))
             else:
@@ -417,6 +433,11 @@ class DataDriver:
         thrd = threading.Thread(target=self.spawning_thread, args=(), name=thread_name, daemon=True)
         thrd.start()
         thrd.join()
+        # spawning_thread runs off the main thread — an exception raised there would
+        # otherwise just print a traceback and let this method return normally, making
+        # a crashed run look like it completed. Re-raise here so it actually fails.
+        if self.fatal_error is not None:
+            raise self.fatal_error
 
     def terminate(self):
         """Terminate the simulation."""

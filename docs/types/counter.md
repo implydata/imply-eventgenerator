@@ -98,7 +98,7 @@ The second emitter, `example_event_2`, mirrors the same configuration, using dif
 Save the above configuration as `example.json` and use the following command to create 10 records with one worker using a simulated clock:
 
 ```bash
-python generator.py -c example.json -n 10 -m 1 -s "2024-01-01T00:00:00"
+python generator.py -c example.json -n 10 -w 1 -s "2024-01-01T00:00:00"
 ```
 
 This is an example of the output using one worker.

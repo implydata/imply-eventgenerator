@@ -43,6 +43,17 @@ The `uniform` distribution generates values uniformly between `min` and `max`, i
 | `min` | Smallest possible value, inclusive. | Integer | Yes | |
 | `max` | Largest possible value, inclusive. | Integer | Yes | |
 
+Shape for `min: 0, max: 10`:
+
+```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
+xychart-beta
+    title "uniform distribution — min=0, max=10"
+    x-axis "x" [-2, 0, 2, 4, 6, 8, 10, 12]
+    y-axis "Relative density" 0 --> 1.2
+    line [0, 1, 1, 1, 1, 1, 1, 0]
+```
+
 ### `exponential`
 
 To generate values following an exponential distribution around the mean, use `exponential`.
@@ -53,6 +64,17 @@ To generate values following an exponential distribution around the mean, use `e
 | `mean` | The resulting average value of the distribution. | Integer | Yes | |
 
 The data generator rounds down values that exceed the length of any list. Exercise special caution when using `exponential` in a `cardinality_distribution` as this may produce a distorted distribution.
+
+Shape for `mean: 5`:
+
+```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
+xychart-beta
+    title "exponential distribution — mean=5"
+    x-axis "x" [0, 2, 4, 6, 8, 10, 15, 20]
+    y-axis "Relative density" 0 --> 1.2
+    line [1.0, 0.67, 0.45, 0.3, 0.2, 0.14, 0.05, 0.02]
+```
 
 ### `normal`
 
@@ -65,6 +87,17 @@ When used in `cardinality_distribution` on a timer state, negative values genera
 | `type` | The data type for the dimension. | `normal` | Yes | |
 | `mean` | The resulting average value of the distribution. | Integer | Yes | |
 | `stddev` | The standard deviation of the distribution. | Integer | Yes | |
+
+Shape for `mean: 50, stddev: 10`:
+
+```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
+xychart-beta
+    title "normal distribution — mean=50, stddev=10"
+    x-axis "x" [20, 30, 40, 50, 60, 70, 80]
+    y-axis "Relative density" 0 --> 1.2
+    line [0.01, 0.14, 0.61, 1.0, 0.61, 0.14, 0.01]
+```
 
 ### `gmm_temporal`
 
@@ -122,6 +155,17 @@ For the same pattern every day, define a single day key:
 ```
 
 > **Note**: `gmm_temporal` is only supported in `cardinality_distribution` on `event:start:timer` and `event:intermediate:timer` states. It is not supported for dimension value or cardinality distributions.
+
+The rate multiplier (the factor the base `mean` interarrival time is divided by) for the weekday profile shown above — a midday peak at `utc_hour: 12` and a smaller evening bump at `utc_hour: 20.5`:
+
+```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
+xychart-beta
+    title "gmm_temporal rate multiplier — weekday profile"
+    x-axis "UTC hour" [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
+    y-axis "Rate multiplier" 0 --> 2
+    line [0, 0.01, 0.05, 0.24, 0.74, 1.44, 1.8, 1.44, 0.75, 0.42, 0.71, 0.43]
+```
 
 ## Cardinality
 

@@ -1,0 +1,1938 @@
+{
+  "templates": {
+    "pan:syslog": {
+      "body": "{% if log_type == \"THREAT\" %}{{ future_use1 }},{{ receive_time.strftime('%Y/%m/%d %H:%M:%S') }},{{ serial_number }},{{ log_type }},{{ log_subtype }},{{ version }},{{ generated_time.strftime('%Y/%m/%d %H:%M:%S') }},{{ src_ip }},{{ dest_ip }},{{ src_translated_ip }},{{ dest_translated_ip }},{{ rule }},{{ src_user }},{{ dest_user }},{{ app }},{{ vsys }},{{ src_zone }},{{ dest_zone }},{{ src_interface }},{{ dest_interface }},{{ log_forwarding_profile }},{{ future_use3 }},{{ session_id }},{{ repeat_count }},{{ src_port }},{{ dest_port }},{{ src_translated_port }},{{ dest_translated_port }},{{ session_flags }},{{ transport }},{{ action }},{{ misc }},{{ threat }},{{ raw_category }},{{ severity }},{{ direction }},{{ sequence_number }},{{ action_flags }},{{ src_location }},{{ dest_location }},{{ future_use4 }},{{ content_type }},{{ pcap_id }},{{ file_hash }},{{ cloud_address }},{{ url_index }},{{ user_agent }},{{ file_type }},{{ xff }},{{ referrer }},{{ sender }},{{ subject }},{{ recipient }},{{ report_id }},{{ devicegroup_level1 }},{{ devicegroup_level2 }},{{ devicegroup_level3 }},{{ devicegroup_level4 }},{{ vsys_name }},{{ dvc_name }},{{ future_use5 }},{{ src_vm }},{{ dest_vm }},{{ http_method }},{{ tunnel_id }},{{ tunnel_monitor_tag }},{{ tunnel_session_id }},{{ tunnel_start_time }},{{ tunnel_type }},{{ threat_category }},{{ content_version }},{{ future_use6 }},{{ assoc_id }},{{ ppid }},{{ http_headers }},{{ url_category_list }},{{ rule_uuid }},{{ http2_connection }},{{ dynusergroup_name }},{{ xff_ip }},{{ src_category }},{{ src_profile }},{{ src_model }},{{ src_vendor }},{{ src_osfamily }},{{ src_osversion }},{{ src_host }},{{ src_mac }},{{ dst_category }},{{ dst_profile }},{{ dst_model }},{{ dst_vendor }},{{ dst_osfamily }},{{ dst_osversion }},{{ dst_host }},{{ dst_mac }},{{ container_id }},{{ pod_namespace }},{{ pod_name }},{{ src_edl }},{{ dst_edl }},{{ hostid }},{{ serialnumber }},{{ domain_edl }},{{ src_dag }},{{ dst_dag }},{{ partial_hash }},{{ high_res_timestamp }},{{ reason }},{{ justification }},{{ nssai_sst }},{{ subcategory_of_app }},{{ category_of_app }},{{ technology_of_app }},{{ risk_of_app }},{{ characteristic_of_app }},{{ container_of_app }},{{ tunneled_app }},{{ is_saas_of_app }},{{ sanctioned_state_of_app }},{{ cloud_reportid }},{{ cluster_name }},{{ flow_type }}{% else %}{{ future_use1 }},{{ receive_time.strftime('%Y/%m/%d %H:%M:%S') }},{{ serial_number }},{{ log_type }},{{ log_subtype }},{{ version }},{{ generated_time.strftime('%Y/%m/%d %H:%M:%S') }},{{ src_ip }},{{ dest_ip }},{{ src_translated_ip }},{{ dest_translated_ip }},{{ rule }},{{ src_user }},{{ dest_user }},{{ app }},{{ vsys }},{{ src_zone }},{{ dest_zone }},{{ src_interface }},{{ dest_interface }},{{ log_forwarding_profile }},{{ future_use3 }},{{ session_id }},{{ repeat_count }},{{ src_port }},{{ dest_port }},{{ src_translated_port }},{{ dest_translated_port }},{{ session_flags }},{{ transport }},{{ action }},{{ bytes }},{{ bytes_out }},{{ bytes_in }},{{ packets }},{{ start_time.strftime('%Y/%m/%d %H:%M:%S') }},{{ duration }},{{ http_category }},{{ future_use4 }},{{ sequence_number }},{{ action_flags }},{{ src_location }},{{ dest_location }},{{ future_use5 }},{{ packets_out }},{{ packets_in }},{{ session_end_reason }},{{ devicegroup_level1 }},{{ devicegroup_level2 }},{{ devicegroup_level3 }},{{ devicegroup_level4 }},{{ vsys_name }},{{ dvc_name }},{{ action_source }},{{ src_vm }},{{ dest_vm }},{{ tunnel_id }},{{ tunnel_monitor_tag }},{{ tunnel_session_id }},{{ tunnel_start_time }},{{ tunnel_type }},{{ assoc_id }},{{ chunks }},{{ chunks_sent }},{{ chunks_received }},{{ rule_uuid }},{{ http2_connection }},{{ link_change_count }},{{ policy_id }},{{ link_switches }},{{ sdwan_cluster }},{{ sdwan_device_type }},{{ sdwan_cluster_type }},{{ sdwan_site }},{{ dynusergroup_name }},{{ xff_ip }},{{ src_category }},{{ src_profile }},{{ src_model }},{{ src_vendor }},{{ src_osfamily }},{{ src_osversion }},{{ src_host }},{{ src_mac }},{{ dst_category }},{{ dst_profile }},{{ dst_model }},{{ dst_vendor }},{{ dst_osfamily }},{{ dst_osversion }},{{ dst_host }},{{ dst_mac }},{{ container_id }},{{ pod_namespace }},{{ pod_name }},{{ src_edl }},{{ dst_edl }},{{ hostid }},{{ serialnumber }},{{ src_dag }},{{ dst_dag }},{{ session_owner }},{{ high_res_timestamp }},{{ nssai_sst }},{{ nssai_sd }},{{ subcategory_of_app }},{{ category_of_app }},{{ technology_of_app }},{{ risk_of_app }},{{ characteristic_of_app }},{{ container_of_app }},{{ tunneled_app }},{{ is_saas_of_app }},{{ sanctioned_state_of_app }},{{ offloaded }},{{ flow_type }},{{ cluster_name }}{% endif %}",
+      "_comment": "Authentic PAN-OS syslog stream: branches per-record on log_type, rendering the exact 117-column TRAFFIC or 123-column THREAT CSV layout from Splunk_TA_paloalto_networks' extract_traffic/extract_threat"
+    },
+    "compact": {
+      "body": "{\"log_type\": \"{{ log_type }}\", \"time\": \"{{ generated_time.strftime('%Y-%m-%dT%H:%M:%S') }}\", \"src_ip\": \"{{ src_ip }}\", \"dest_ip\": \"{{ dest_ip }}\", \"user\": \"{{ src_user }}\", \"app\": \"{{ app }}\", \"rule\": \"{{ rule }}\", \"action\": \"{{ action }}\", \"session_end_reason\": \"{{ session_end_reason | default('') }}\", \"bytes\": {{ bytes | default(0) }}, \"packets\": {{ packets | default(0) }}, \"duration\": {{ duration | default(0) }}, \"dest_port\": {{ dest_port }}, \"transport\": \"{{ transport }}\", \"risk_of_app\": \"{{ risk_of_app }}\", \"dest_location\": \"{{ dest_location }}\", \"threat\": \"{{ threat | default('') }}\", \"threat_category\": \"{{ threat_category | default('') }}\", \"severity\": \"{{ severity | default('') }}\"}",
+      "_comment": "Trimmed JSON view with only the fields that vary meaningfully - same underlying record as pan:traffic/pan:threat, fewer fields rendered"
+    }
+  },
+  "_comment": "Palo Alto Networks (PAN-OS) firewall session generator",
+  "_description": "Models one firewall session observed by a PAN-OS perimeter firewall: identified by App-ID, evaluated against policy, and either allowed through to completion, denied by policy before an app could be identified, or allowed initially but terminated mid-session by a threat detection. Every session emits one Traffic log at teardown; sessions terminated by a threat additionally emit one Threat log. Field names, real field order, and value vocabulary (App-ID names/categories, vendor action terms, threat names/categories/severities) come from the Splunk_TA_paloalto_networks add-on's extract_traffic/extract_threat field lists and lookups/app_list.csv, lookups/threat_list.csv, lookups/pan_vendor_actions_300.csv, lookups/pan_severity.csv.",
+  "emitters": [
+    {
+      "name": "pan_traffic_log",
+      "dimensions": [
+        {"name": "action_flags", "type": "string:static", "value": "0x0"},
+        {"name": "action_source", "type": "string:static", "value": "from-policy"},
+        {"name": "characteristic_of_app", "type": "string:static", "value": ""},
+        {"name": "cluster_name", "type": "string:static", "value": ""},
+        {"name": "container_id", "type": "string:static", "value": ""},
+        {"name": "container_of_app", "type": "string:static", "value": ""},
+        {"name": "dest_interface", "type": "string:static", "value": "ethernet1/2"},
+        {"name": "dest_translated_ip", "type": "string:static", "value": ""},
+        {"name": "dest_translated_port", "type": "string:static", "value": ""},
+        {"name": "dest_user", "type": "string:static", "value": ""},
+        {"name": "dest_vm", "type": "string:static", "value": ""},
+        {"name": "dest_zone", "type": "string:static", "value": "untrust"},
+        {"name": "devicegroup_level1", "type": "string:static", "value": ""},
+        {"name": "devicegroup_level2", "type": "string:static", "value": ""},
+        {"name": "devicegroup_level3", "type": "string:static", "value": ""},
+        {"name": "devicegroup_level4", "type": "string:static", "value": ""},
+        {"name": "dst_category", "type": "string:static", "value": ""},
+        {"name": "dst_dag", "type": "string:static", "value": ""},
+        {"name": "dst_edl", "type": "string:static", "value": ""},
+        {"name": "dst_host", "type": "string:static", "value": ""},
+        {"name": "dst_mac", "type": "string:static", "value": ""},
+        {"name": "dst_model", "type": "string:static", "value": ""},
+        {"name": "dst_osfamily", "type": "string:static", "value": ""},
+        {"name": "dst_osversion", "type": "string:static", "value": ""},
+        {"name": "dst_profile", "type": "string:static", "value": ""},
+        {"name": "dst_vendor", "type": "string:static", "value": ""},
+        {"name": "dvc_name", "type": "string:static", "value": "fw-hq-01"},
+        {"name": "dynusergroup_name", "type": "string:static", "value": ""},
+        {"name": "flow_type", "type": "string:static", "value": ""},
+        {"name": "future_use1", "type": "string:static", "value": ""},
+        {"name": "future_use3", "type": "string:static", "value": ""},
+        {"name": "future_use4", "type": "string:static", "value": ""},
+        {"name": "future_use5", "type": "string:static", "value": ""},
+        {"name": "high_res_timestamp", "type": "string:static", "value": ""},
+        {"name": "hostid", "type": "string:static", "value": ""},
+        {"name": "is_saas_of_app", "type": "string:static", "value": ""},
+        {"name": "log_forwarding_profile", "type": "string:static", "value": ""},
+        {"name": "log_type", "type": "string:static", "value": "TRAFFIC"},
+        {"name": "nssai_sd", "type": "string:static", "value": ""},
+        {"name": "nssai_sst", "type": "string:static", "value": ""},
+        {"name": "offloaded", "type": "string:static", "value": "no"},
+        {"name": "pod_name", "type": "string:static", "value": ""},
+        {"name": "pod_namespace", "type": "string:static", "value": ""},
+        {"name": "rule_uuid", "type": "string:static", "value": ""},
+        {"name": "sanctioned_state_of_app", "type": "string:static", "value": ""},
+        {"name": "sdwan_cluster", "type": "string:static", "value": ""},
+        {"name": "sdwan_cluster_type", "type": "string:static", "value": ""},
+        {"name": "sdwan_device_type", "type": "string:static", "value": ""},
+        {"name": "sdwan_site", "type": "string:static", "value": ""},
+        {"name": "serial_number", "type": "string:static", "value": "007051000123456"},
+        {"name": "serialnumber", "type": "string:static", "value": "007051000123456"},
+        {"name": "session_flags", "type": "string:static", "value": "0x0"},
+        {"name": "session_owner", "type": "string:static", "value": ""},
+        {"name": "src_category", "type": "string:static", "value": ""},
+        {"name": "src_dag", "type": "string:static", "value": ""},
+        {"name": "src_edl", "type": "string:static", "value": ""},
+        {"name": "src_host", "type": "string:static", "value": ""},
+        {"name": "src_interface", "type": "string:static", "value": "ethernet1/1"},
+        {"name": "src_location", "type": "string:static", "value": ""},
+        {"name": "src_mac", "type": "string:static", "value": ""},
+        {"name": "src_model", "type": "string:static", "value": ""},
+        {"name": "src_osfamily", "type": "string:static", "value": ""},
+        {"name": "src_osversion", "type": "string:static", "value": ""},
+        {"name": "src_profile", "type": "string:static", "value": ""},
+        {"name": "src_translated_ip", "type": "string:static", "value": ""},
+        {"name": "src_translated_port", "type": "string:static", "value": ""},
+        {"name": "src_vendor", "type": "string:static", "value": ""},
+        {"name": "src_vm", "type": "string:static", "value": ""},
+        {"name": "src_zone", "type": "string:static", "value": "trust"},
+        {"name": "tunnel_id", "type": "string:static", "value": ""},
+        {"name": "tunnel_monitor_tag", "type": "string:static", "value": ""},
+        {"name": "tunnel_session_id", "type": "string:static", "value": ""},
+        {"name": "tunnel_start_time", "type": "string:static", "value": ""},
+        {"name": "tunnel_type", "type": "string:static", "value": "N/A"},
+        {"name": "tunneled_app", "type": "string:static", "value": ""},
+        {"name": "version", "type": "string:static", "value": "11"},
+        {"name": "vsys", "type": "string:static", "value": "vsys1"},
+        {"name": "vsys_name", "type": "string:static", "value": "vsys1"},
+        {"name": "xff_ip", "type": "string:static", "value": ""},
+        {"name": "assoc_id", "type": "int:static", "value": 0},
+        {"name": "chunks", "type": "int:static", "value": 0},
+        {"name": "chunks_received", "type": "int:static", "value": 0},
+        {"name": "chunks_sent", "type": "int:static", "value": 0},
+        {"name": "http2_connection", "type": "int:static", "value": -1},
+        {"name": "link_change_count", "type": "int:static", "value": 0},
+        {"name": "link_switches", "type": "int:static", "value": 0},
+        {"name": "policy_id", "type": "int:static", "value": 0},
+        {"name": "repeat_count", "type": "int:static", "value": 1},
+        {"name": "action", "type": "variable", "variable": "var_action"},
+        {"name": "app", "type": "variable", "variable": "var_app"},
+        {"name": "bytes", "type": "variable", "variable": "var_bytes"},
+        {"name": "bytes_in", "type": "variable", "variable": "var_bytes_in"},
+        {"name": "bytes_out", "type": "variable", "variable": "var_bytes_out"},
+        {"name": "category_of_app", "type": "variable", "variable": "var_category_of_app"},
+        {"name": "dest_ip", "type": "variable", "variable": "var_dest_ip"},
+        {"name": "dest_location", "type": "variable", "variable": "var_dest_location"},
+        {"name": "dest_port", "type": "variable", "variable": "var_dest_port"},
+        {"name": "duration", "type": "variable", "variable": "var_duration"},
+        {"name": "generated_time", "type": "variable", "variable": "var_end"},
+        {"name": "http_category", "type": "variable", "variable": "var_http_category"},
+        {"name": "log_subtype", "type": "variable", "variable": "var_log_subtype"},
+        {"name": "packets", "type": "variable", "variable": "var_packets"},
+        {"name": "packets_in", "type": "variable", "variable": "var_packets_in"},
+        {"name": "packets_out", "type": "variable", "variable": "var_packets_out"},
+        {"name": "receive_time", "type": "variable", "variable": "var_end"},
+        {"name": "risk_of_app", "type": "variable", "variable": "var_risk_of_app"},
+        {"name": "rule", "type": "variable", "variable": "var_rule"},
+        {"name": "sequence_number", "type": "variable", "variable": "var_sequence_number"},
+        {"name": "session_end_reason", "type": "variable", "variable": "var_session_end_reason"},
+        {"name": "session_id", "type": "variable", "variable": "var_session_id"},
+        {"name": "src_ip", "type": "variable", "variable": "var_src_ip"},
+        {"name": "src_port", "type": "variable", "variable": "var_src_port"},
+        {"name": "src_user", "type": "variable", "variable": "var_src_user"},
+        {"name": "start_time", "type": "variable", "variable": "var_start"},
+        {"name": "subcategory_of_app", "type": "variable", "variable": "var_subcategory_of_app"},
+        {"name": "technology_of_app", "type": "variable", "variable": "var_technology_of_app"},
+        {"name": "transport", "type": "variable", "variable": "var_transport"}
+      ]
+    },
+    {
+      "name": "pan_threat_log",
+      "dimensions": [
+        {"name": "action_flags", "type": "string:static", "value": "0x0"},
+        {"name": "characteristic_of_app", "type": "string:static", "value": ""},
+        {"name": "cloud_address", "type": "string:static", "value": ""},
+        {"name": "cloud_reportid", "type": "string:static", "value": ""},
+        {"name": "cluster_name", "type": "string:static", "value": ""},
+        {"name": "container_id", "type": "string:static", "value": ""},
+        {"name": "container_of_app", "type": "string:static", "value": ""},
+        {"name": "content_type", "type": "string:static", "value": ""},
+        {"name": "content_version", "type": "string:static", "value": ""},
+        {"name": "dest_interface", "type": "string:static", "value": "ethernet1/2"},
+        {"name": "dest_translated_ip", "type": "string:static", "value": ""},
+        {"name": "dest_translated_port", "type": "string:static", "value": ""},
+        {"name": "dest_user", "type": "string:static", "value": ""},
+        {"name": "dest_vm", "type": "string:static", "value": ""},
+        {"name": "dest_zone", "type": "string:static", "value": "untrust"},
+        {"name": "devicegroup_level1", "type": "string:static", "value": ""},
+        {"name": "devicegroup_level2", "type": "string:static", "value": ""},
+        {"name": "devicegroup_level3", "type": "string:static", "value": ""},
+        {"name": "devicegroup_level4", "type": "string:static", "value": ""},
+        {"name": "direction", "type": "string:static", "value": "client-to-server"},
+        {"name": "domain_edl", "type": "string:static", "value": ""},
+        {"name": "dst_category", "type": "string:static", "value": ""},
+        {"name": "dst_dag", "type": "string:static", "value": ""},
+        {"name": "dst_edl", "type": "string:static", "value": ""},
+        {"name": "dst_host", "type": "string:static", "value": ""},
+        {"name": "dst_mac", "type": "string:static", "value": ""},
+        {"name": "dst_model", "type": "string:static", "value": ""},
+        {"name": "dst_osfamily", "type": "string:static", "value": ""},
+        {"name": "dst_osversion", "type": "string:static", "value": ""},
+        {"name": "dst_profile", "type": "string:static", "value": ""},
+        {"name": "dst_vendor", "type": "string:static", "value": ""},
+        {"name": "dvc_name", "type": "string:static", "value": "fw-hq-01"},
+        {"name": "dynusergroup_name", "type": "string:static", "value": ""},
+        {"name": "file_hash", "type": "string:static", "value": ""},
+        {"name": "file_type", "type": "string:static", "value": ""},
+        {"name": "flow_type", "type": "string:static", "value": ""},
+        {"name": "future_use1", "type": "string:static", "value": ""},
+        {"name": "future_use3", "type": "string:static", "value": ""},
+        {"name": "future_use4", "type": "string:static", "value": ""},
+        {"name": "future_use5", "type": "string:static", "value": ""},
+        {"name": "future_use6", "type": "string:static", "value": ""},
+        {"name": "high_res_timestamp", "type": "string:static", "value": ""},
+        {"name": "hostid", "type": "string:static", "value": ""},
+        {"name": "http_headers", "type": "string:static", "value": ""},
+        {"name": "http_method", "type": "string:static", "value": ""},
+        {"name": "is_saas_of_app", "type": "string:static", "value": ""},
+        {"name": "justification", "type": "string:static", "value": ""},
+        {"name": "log_forwarding_profile", "type": "string:static", "value": ""},
+        {"name": "log_type", "type": "string:static", "value": "THREAT"},
+        {"name": "misc", "type": "string:static", "value": ""},
+        {"name": "nssai_sst", "type": "string:static", "value": ""},
+        {"name": "partial_hash", "type": "string:static", "value": ""},
+        {"name": "pod_name", "type": "string:static", "value": ""},
+        {"name": "pod_namespace", "type": "string:static", "value": ""},
+        {"name": "reason", "type": "string:static", "value": ""},
+        {"name": "recipient", "type": "string:static", "value": ""},
+        {"name": "referrer", "type": "string:static", "value": ""},
+        {"name": "report_id", "type": "string:static", "value": ""},
+        {"name": "rule_uuid", "type": "string:static", "value": ""},
+        {"name": "sanctioned_state_of_app", "type": "string:static", "value": ""},
+        {"name": "sender", "type": "string:static", "value": ""},
+        {"name": "serial_number", "type": "string:static", "value": "007051000123456"},
+        {"name": "serialnumber", "type": "string:static", "value": "007051000123456"},
+        {"name": "session_flags", "type": "string:static", "value": "0x0"},
+        {"name": "src_category", "type": "string:static", "value": ""},
+        {"name": "src_dag", "type": "string:static", "value": ""},
+        {"name": "src_edl", "type": "string:static", "value": ""},
+        {"name": "src_host", "type": "string:static", "value": ""},
+        {"name": "src_interface", "type": "string:static", "value": "ethernet1/1"},
+        {"name": "src_location", "type": "string:static", "value": ""},
+        {"name": "src_mac", "type": "string:static", "value": ""},
+        {"name": "src_model", "type": "string:static", "value": ""},
+        {"name": "src_osfamily", "type": "string:static", "value": ""},
+        {"name": "src_osversion", "type": "string:static", "value": ""},
+        {"name": "src_profile", "type": "string:static", "value": ""},
+        {"name": "src_translated_ip", "type": "string:static", "value": ""},
+        {"name": "src_translated_port", "type": "string:static", "value": ""},
+        {"name": "src_vendor", "type": "string:static", "value": ""},
+        {"name": "src_vm", "type": "string:static", "value": ""},
+        {"name": "src_zone", "type": "string:static", "value": "trust"},
+        {"name": "subject", "type": "string:static", "value": ""},
+        {"name": "tunnel_id", "type": "string:static", "value": ""},
+        {"name": "tunnel_monitor_tag", "type": "string:static", "value": ""},
+        {"name": "tunnel_session_id", "type": "string:static", "value": ""},
+        {"name": "tunnel_start_time", "type": "string:static", "value": ""},
+        {"name": "tunnel_type", "type": "string:static", "value": "N/A"},
+        {"name": "tunneled_app", "type": "string:static", "value": ""},
+        {"name": "url_index", "type": "string:static", "value": ""},
+        {"name": "user_agent", "type": "string:static", "value": ""},
+        {"name": "version", "type": "string:static", "value": "11"},
+        {"name": "vsys", "type": "string:static", "value": "vsys1"},
+        {"name": "vsys_name", "type": "string:static", "value": "vsys1"},
+        {"name": "xff", "type": "string:static", "value": ""},
+        {"name": "xff_ip", "type": "string:static", "value": ""},
+        {"name": "assoc_id", "type": "int:static", "value": 0},
+        {"name": "http2_connection", "type": "int:static", "value": -1},
+        {"name": "pcap_id", "type": "int:static", "value": 0},
+        {"name": "ppid", "type": "int:static", "value": 0},
+        {"name": "repeat_count", "type": "int:static", "value": 1},
+        {"name": "action", "type": "variable", "variable": "var_action"},
+        {"name": "app", "type": "variable", "variable": "var_app"},
+        {"name": "category_of_app", "type": "variable", "variable": "var_category_of_app"},
+        {"name": "dest_ip", "type": "variable", "variable": "var_dest_ip"},
+        {"name": "dest_location", "type": "variable", "variable": "var_dest_location"},
+        {"name": "dest_port", "type": "variable", "variable": "var_dest_port"},
+        {"name": "generated_time", "type": "variable", "variable": "var_threat_time"},
+        {"name": "log_subtype", "type": "variable", "variable": "var_threat_subtype"},
+        {"name": "raw_category", "type": "variable", "variable": "var_raw_category"},
+        {"name": "receive_time", "type": "variable", "variable": "var_threat_time"},
+        {"name": "risk_of_app", "type": "variable", "variable": "var_risk_of_app"},
+        {"name": "rule", "type": "variable", "variable": "var_rule"},
+        {"name": "sequence_number", "type": "variable", "variable": "var_sequence_number"},
+        {"name": "session_id", "type": "variable", "variable": "var_session_id"},
+        {"name": "severity", "type": "variable", "variable": "var_severity"},
+        {"name": "src_ip", "type": "variable", "variable": "var_src_ip"},
+        {"name": "src_port", "type": "variable", "variable": "var_src_port"},
+        {"name": "src_user", "type": "variable", "variable": "var_src_user"},
+        {"name": "subcategory_of_app", "type": "variable", "variable": "var_subcategory_of_app"},
+        {"name": "technology_of_app", "type": "variable", "variable": "var_technology_of_app"},
+        {"name": "threat", "type": "variable", "variable": "var_threat"},
+        {"name": "threat_category", "type": "variable", "variable": "var_threat_category"},
+        {"name": "transport", "type": "variable", "variable": "var_transport"},
+        {"name": "url_category_list", "type": "variable", "variable": "var_url_category_list"}
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "session_start", "type": "event:start:timer",
+      "_comment": "New sessions arrive every ~5 seconds on average",
+      "cardinality_distribution": {"type": "exponential", "mean": 5.0},
+      "next": "setup_session"
+    },
+    {
+      "name": "setup_session", "type": "activity",
+      "_comment": "Session-constant attributes shared by every branch",
+      "variables": [
+        {
+          "name": "var_src_user", "type": "enum",
+          "values": [
+            "apatel@corp.local", "bnguyen@corp.local", "cgarcia@corp.local",
+            "doconnor@corp.local", "ekowalski@corp.local", "fmartin@corp.local",
+            "gsilva@corp.local", "hjansen@corp.local", "irossi@corp.local",
+            "jmueller@corp.local", "kdubois@corp.local", "lhansen@corp.local",
+            "mandersen@corp.local", "nsuzuki@corp.local", "okim@corp.local",
+            "pwojcik@corp.local", "qfischer@corp.local", "rhoffman@corp.local",
+            "snovak@corp.local", "tmoreau@corp.local"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean": 6}
+        },
+        {
+          "name": "var_sequence_number", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1000000,
+            "max": 9999999
+          }
+        },
+        {
+          "name": "var_session_id", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 100000,
+            "max": 999999
+          }
+        },
+        {
+          "name": "var_src_port", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1024,
+            "max": 65535
+          }
+        },
+        {
+          "name": "var_src_ip", "type": "ipaddress",
+          "cardinality": 200,
+          "distribution": {
+            "type": "uniform",
+            "min": 172683264,
+            "max": 172749823
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 199},
+          "_comment": "Internal client range (10.72.0.0/16)"
+        }
+      ],
+      "next": "route_app"
+    },
+    {
+      "name": "route_app", "type": "gateway:exclusive",
+      "_comment": "App-ID mix for a typical corporate perimeter firewall",
+      "transitions": [
+        {"next": "setup_office365", "probability": 0.18},
+        {"next": "setup_salesforce", "probability": 0.07},
+        {"next": "setup_slack", "probability": 0.06},
+        {"next": "setup_web_browsing", "probability": 0.14},
+        {"next": "setup_youtube", "probability": 0.08},
+        {"next": "setup_linkedin", "probability": 0.09},
+        {"next": "setup_dropbox", "probability": 0.07},
+        {"next": "setup_dns", "probability": 0.1},
+        {"next": "setup_ssl", "probability": 0.11},
+        {"next": "setup_threat_c2", "probability": 0.02},
+        {"next": "setup_threat_phishing", "probability": 0.02},
+        {"next": "setup_threat_overflow", "probability": 0.01},
+        {"next": "setup_threat_flood", "probability": 0.01},
+        {"next": "setup_policy_denied", "probability": 0.04}
+      ]
+    },
+    {
+      "name": "setup_office365", "type": "activity",
+      "_comment": "App-ID: ms-office365-base (real app_list.csv entry)",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "allow"},
+        {"name": "var_app", "type": "string:static", "value": "ms-office365-base"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "business-systems"},
+        {"name": "var_dest_location", "type": "string:static", "value": "US"},
+        {"name": "var_http_category", "type": "string:static", "value": ""},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Office365"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "office-programs"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "browser-based"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_dest_port", "type": "int:static", "value": 443},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 2},
+        {
+          "name": "var_session_end_reason", "type": "enum",
+          "values": ["tcp-fin", "tcp-fin", "tcp-fin", "aged-out"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 3,
+          "distribution": {
+            "type": "uniform",
+            "min": 1113587712,
+            "max": 1113587714
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        }
+      ],
+      "next": "pause_office365"
+    },
+    {
+      "name": "pause_office365", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 30.0, "max": 600.0},
+      "next": "emit_office365"
+    },
+    {
+      "name": "emit_office365", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1800,
+            "max": 92500
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 2500
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1500,
+            "max": 90000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 30,
+            "max": 600
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10,
+            "max": 300
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 150
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 150
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_salesforce", "type": "activity",
+      "_comment": "App-ID: salesforce-base (real app_list.csv entry)",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "allow"},
+        {"name": "var_app", "type": "string:static", "value": "salesforce-base"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "business-systems"},
+        {"name": "var_dest_location", "type": "string:static", "value": "US"},
+        {"name": "var_http_category", "type": "string:static", "value": ""},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Salesforce"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "erp-crm"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "browser-based"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_dest_port", "type": "int:static", "value": 443},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 2},
+        {
+          "name": "var_session_end_reason", "type": "enum",
+          "values": ["tcp-fin", "tcp-fin", "tcp-fin", "aged-out"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 2,
+          "distribution": {
+            "type": "uniform",
+            "min": 1113653248,
+            "max": 1113653249
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
+        }
+      ],
+      "next": "pause_salesforce"
+    },
+    {
+      "name": "pause_salesforce", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 20.0, "max": 500.0},
+      "next": "emit_salesforce"
+    },
+    {
+      "name": "emit_salesforce", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2300,
+            "max": 62000
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 2000
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2000,
+            "max": 60000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 20,
+            "max": 500
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10,
+            "max": 200
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 100
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 100
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_slack", "type": "activity",
+      "_comment": "App-ID: slack-base (real app_list.csv entry)",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "allow"},
+        {"name": "var_app", "type": "string:static", "value": "slack-base"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "collaboration"},
+        {"name": "var_dest_location", "type": "string:static", "value": "US"},
+        {"name": "var_http_category", "type": "string:static", "value": ""},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Slack"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "social-business"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "browser-based"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_dest_port", "type": "int:static", "value": 443},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 2},
+        {
+          "name": "var_session_end_reason", "type": "enum",
+          "values": ["tcp-fin", "tcp-fin", "tcp-fin", "aged-out"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 2,
+          "distribution": {
+            "type": "uniform",
+            "min": 1113718784,
+            "max": 1113718785
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
+        }
+      ],
+      "next": "pause_slack"
+    },
+    {
+      "name": "pause_slack", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 10.0, "max": 300.0},
+      "next": "emit_slack"
+    },
+    {
+      "name": "emit_slack", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 700,
+            "max": 21500
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 1500
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 500,
+            "max": 20000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10,
+            "max": 300
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10,
+            "max": 120
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 60
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 60
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_web_browsing", "type": "activity",
+      "_comment": "App-ID: web-browsing (real app_list.csv entry)",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "allow"},
+        {"name": "var_app", "type": "string:static", "value": "web-browsing"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "general-internet"},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Outbound-Web"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "internet-utility"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "browser-based"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_dest_port", "type": "int:static", "value": 80},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 4},
+        {
+          "name": "var_dest_location", "type": "enum",
+          "values": ["US", "GB", "DE", "FR", "JP"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
+        },
+        {
+          "name": "var_http_category", "type": "enum",
+          "values": ["search-engines", "business-and-economy", "news", "reference-and-research"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_session_end_reason", "type": "enum",
+          "values": ["tcp-fin", "tcp-fin", "tcp-fin", "aged-out"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 134744064,
+            "max": 3758096383
+          }
+        }
+      ],
+      "next": "pause_web_browsing"
+    },
+    {
+      "name": "pause_web_browsing", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 5.0, "max": 120.0},
+      "next": "emit_web_browsing"
+    },
+    {
+      "name": "emit_web_browsing", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5200,
+            "max": 2001500
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 1500
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5000,
+            "max": 2000000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 120
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 15,
+            "max": 1600
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 100
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10,
+            "max": 1500
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_youtube", "type": "activity",
+      "_comment": "App-ID: youtube-base (real app_list.csv entry)",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "allow"},
+        {"name": "var_app", "type": "string:static", "value": "youtube-base"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "media"},
+        {"name": "var_dest_location", "type": "string:static", "value": "US"},
+        {"name": "var_http_category", "type": "string:static", "value": "streaming-media"},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Streaming"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "photo-video"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "browser-based"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_dest_port", "type": "int:static", "value": 443},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 4},
+        {
+          "name": "var_session_end_reason", "type": "enum",
+          "values": ["tcp-fin", "tcp-fin", "aged-out"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 4,
+          "distribution": {
+            "type": "uniform",
+            "min": 1142244096,
+            "max": 1142244099
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        }
+      ],
+      "next": "pause_youtube"
+    },
+    {
+      "name": "pause_youtube", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 60.0, "max": 1800.0},
+      "next": "emit_youtube"
+    },
+    {
+      "name": "emit_youtube", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1005000,
+            "max": 500100000
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5000,
+            "max": 100000
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1000000,
+            "max": 500000000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 60,
+            "max": 1800
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2050,
+            "max": 402000
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 2000
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2000,
+            "max": 400000
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_linkedin", "type": "activity",
+      "_comment": "App-ID: linkedin-base (real app_list.csv entry)",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "allow"},
+        {"name": "var_app", "type": "string:static", "value": "linkedin-base"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "collaboration"},
+        {"name": "var_dest_location", "type": "string:static", "value": "US"},
+        {"name": "var_http_category", "type": "string:static", "value": "social-networking"},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Outbound-Web"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "social-networking"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "browser-based"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_dest_port", "type": "int:static", "value": 443},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 3},
+        {
+          "name": "var_session_end_reason", "type": "enum",
+          "values": ["tcp-fin", "tcp-fin", "tcp-fin", "aged-out"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 3,
+          "distribution": {
+            "type": "uniform",
+            "min": 1136332032,
+            "max": 1136332034
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        }
+      ],
+      "next": "pause_linkedin"
+    },
+    {
+      "name": "pause_linkedin", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 10.0, "max": 180.0},
+      "next": "emit_linkedin"
+    },
+    {
+      "name": "emit_linkedin", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10200,
+            "max": 301500
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 1500
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10000,
+            "max": 300000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10,
+            "max": 180
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 15,
+            "max": 330
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 80
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10,
+            "max": 250
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_dropbox", "type": "activity",
+      "_comment": "App-ID: dropbox-base (real app_list.csv entry)",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "allow"},
+        {"name": "var_app", "type": "string:static", "value": "dropbox-base"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "general-internet"},
+        {"name": "var_dest_location", "type": "string:static", "value": "US"},
+        {"name": "var_http_category", "type": "string:static", "value": "online-storage-and-backup"},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Dropbox"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "file-sharing"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "client-server"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_dest_port", "type": "int:static", "value": 443},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 4},
+        {
+          "name": "var_session_end_reason", "type": "enum",
+          "values": ["tcp-fin", "tcp-fin", "tcp-fin", "aged-out"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 3,
+          "distribution": {
+            "type": "uniform",
+            "min": 1148129280,
+            "max": 1148129282
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
+        }
+      ],
+      "next": "pause_dropbox"
+    },
+    {
+      "name": "pause_dropbox", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 10.0, "max": 600.0},
+      "next": "emit_dropbox"
+    },
+    {
+      "name": "emit_dropbox", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 20300,
+            "max": 2002000
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 2000
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 20000,
+            "max": 2000000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10,
+            "max": 600
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 25,
+            "max": 1600
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 100
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 20,
+            "max": 1500
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_dns", "type": "activity",
+      "_comment": "App-ID: dns (real app_list.csv entry) - internal resolver, UDP, near-instant",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "allow"},
+        {"name": "var_app", "type": "string:static", "value": "dns"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "networking"},
+        {"name": "var_dest_location", "type": "string:static", "value": ""},
+        {"name": "var_http_category", "type": "string:static", "value": ""},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-DNS"},
+        {"name": "var_session_end_reason", "type": "string:static", "value": "aged-out"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "infrastructure"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "network-protocol"},
+        {"name": "var_transport", "type": "string:static", "value": "udp"},
+        {"name": "var_dest_port", "type": "int:static", "value": 53},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 4},
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 2,
+          "distribution": {
+            "type": "uniform",
+            "min": 172749824,
+            "max": 172749825
+          },
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1},
+          "_comment": "Internal DNS resolvers"
+        }
+      ],
+      "next": "pause_dns"
+    },
+    {
+      "name": "pause_dns", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 0.02, "max": 0.3},
+      "next": "emit_dns"
+    },
+    {
+      "name": "emit_dns", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {"name": "var_duration", "type": "int:static", "value": 0},
+        {"name": "var_packets", "type": "int:static", "value": 2},
+        {"name": "var_packets_in", "type": "int:static", "value": 1},
+        {"name": "var_packets_out", "type": "int:static", "value": 1},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 100,
+            "max": 490
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 60,
+            "max": 400
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 40,
+            "max": 90
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_ssl", "type": "activity",
+      "_comment": "App-ID: ssl (real app_list.csv entry) - generic identified-but-not-further-decoded encrypted traffic",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "allow"},
+        {"name": "var_app", "type": "string:static", "value": "ssl"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "networking"},
+        {"name": "var_http_category", "type": "string:static", "value": ""},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Outbound-Web"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "encrypted-tunnel"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "browser-based"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_dest_port", "type": "int:static", "value": 443},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 4},
+        {
+          "name": "var_dest_location", "type": "enum",
+          "values": ["US", "GB", "DE", "FR", "NL", "SG"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 5}
+        },
+        {
+          "name": "var_session_end_reason", "type": "enum",
+          "values": ["tcp-fin", "tcp-fin", "tcp-fin", "aged-out"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 134744064,
+            "max": 3758096383
+          }
+        }
+      ],
+      "next": "pause_ssl"
+    },
+    {
+      "name": "pause_ssl", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 5.0, "max": 300.0},
+      "next": "emit_ssl"
+    },
+    {
+      "name": "emit_ssl", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5500,
+            "max": 5005000
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 500,
+            "max": 5000
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5000,
+            "max": 5000000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 300
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 15,
+            "max": 3600
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 5,
+            "max": 100
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 10,
+            "max": 3500
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_threat_c2", "type": "activity",
+      "_comment": "Threat: Bot: Mariposa Command and Control (12652) - real threat_list.csv entry, spyware profile",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "reset-both"},
+        {"name": "var_app", "type": "string:static", "value": "ssl"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "networking"},
+        {"name": "var_http_category", "type": "string:static", "value": ""},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_raw_category", "type": "string:static", "value": ""},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Outbound-Web"},
+        {"name": "var_session_end_reason", "type": "string:static", "value": "threat"},
+        {"name": "var_severity", "type": "string:static", "value": "critical"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "encrypted-tunnel"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "browser-based"},
+        {"name": "var_threat", "type": "string:static", "value": "Bot: Mariposa Command and Control(12652)"},
+        {"name": "var_threat_category", "type": "string:static", "value": "botnet"},
+        {"name": "var_threat_subtype", "type": "string:static", "value": "spyware"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_url_category_list", "type": "string:static", "value": ""},
+        {"name": "var_dest_port", "type": "int:static", "value": 443},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 4},
+        {
+          "name": "var_dest_location", "type": "enum",
+          "values": ["RU", "CN", "KP", "RO"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 134744064,
+            "max": 3758096383
+          }
+        }
+      ],
+      "next": "pause_threat_c2"
+    },
+    {
+      "name": "pause_threat_c2", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 8.0},
+      "next": "emit_threat_c2"
+    },
+    {
+      "name": "emit_threat_c2", "type": "activity",
+      "_comment": "Threat log fires first, mid-session, then the session is torn down",
+      "variables": [
+        {"name": "var_threat_time", "type": "clock"}
+      ],
+      "emitter": "pan_threat_log",
+      "next": "pause_threat_c2_teardown"
+    },
+    {
+      "name": "pause_threat_c2_teardown", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 0.1, "max": 1.0},
+      "next": "emit_traffic_threat_c2"
+    },
+    {
+      "name": "emit_traffic_threat_c2", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 4500
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 100,
+            "max": 1500
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 3000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1,
+            "max": 9
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 4,
+            "max": 30
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2,
+            "max": 15
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2,
+            "max": 15
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_threat_phishing", "type": "activity",
+      "_comment": "Threat: Phishing Webpage Detection (36421) - real threat_list.csv entry, url profile",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "reset-both"},
+        {"name": "var_app", "type": "string:static", "value": "web-browsing"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "general-internet"},
+        {"name": "var_http_category", "type": "string:static", "value": "phishing"},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_raw_category", "type": "string:static", "value": "phishing"},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Outbound-Web"},
+        {"name": "var_session_end_reason", "type": "string:static", "value": "threat"},
+        {"name": "var_severity", "type": "string:static", "value": "high"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "internet-utility"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "browser-based"},
+        {"name": "var_threat", "type": "string:static", "value": "Phishing Webpage Detection(36421)"},
+        {"name": "var_threat_category", "type": "string:static", "value": "phishing"},
+        {"name": "var_threat_subtype", "type": "string:static", "value": "url"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_url_category_list", "type": "string:static", "value": "phishing"},
+        {"name": "var_dest_port", "type": "int:static", "value": 80},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 4},
+        {
+          "name": "var_dest_location", "type": "enum",
+          "values": ["RU", "CN", "KP", "RO"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 134744064,
+            "max": 3758096383
+          }
+        }
+      ],
+      "next": "pause_threat_phishing"
+    },
+    {
+      "name": "pause_threat_phishing", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 8.0},
+      "next": "emit_threat_phishing"
+    },
+    {
+      "name": "emit_threat_phishing", "type": "activity",
+      "variables": [
+        {"name": "var_threat_time", "type": "clock"}
+      ],
+      "emitter": "pan_threat_log",
+      "next": "pause_threat_phishing_teardown"
+    },
+    {
+      "name": "pause_threat_phishing_teardown", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 0.1, "max": 1.0},
+      "next": "emit_traffic_threat_phishing"
+    },
+    {
+      "name": "emit_traffic_threat_phishing", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 4500
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 100,
+            "max": 1500
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 3000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1,
+            "max": 9
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 4,
+            "max": 30
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2,
+            "max": 15
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2,
+            "max": 15
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_threat_overflow", "type": "activity",
+      "_comment": "Threat: SunRPC XDR xdrmem_getbytes Overflow (31951) - real threat_list.csv entry, vulnerability profile",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "reset-both"},
+        {"name": "var_app", "type": "string:static", "value": "web-browsing"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "general-internet"},
+        {"name": "var_http_category", "type": "string:static", "value": ""},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_raw_category", "type": "string:static", "value": ""},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Outbound-Web"},
+        {"name": "var_session_end_reason", "type": "string:static", "value": "threat"},
+        {"name": "var_severity", "type": "string:static", "value": "high"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "internet-utility"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "browser-based"},
+        {"name": "var_threat", "type": "string:static", "value": "SunRPC XDR xdrmem_getbytes Overflow(31951)"},
+        {"name": "var_threat_category", "type": "string:static", "value": "overflow"},
+        {"name": "var_threat_subtype", "type": "string:static", "value": "vulnerability"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_url_category_list", "type": "string:static", "value": ""},
+        {"name": "var_dest_port", "type": "int:static", "value": 80},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 4},
+        {
+          "name": "var_dest_location", "type": "enum",
+          "values": ["RU", "CN", "KP", "RO"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 134744064,
+            "max": 3758096383
+          }
+        }
+      ],
+      "next": "pause_threat_overflow"
+    },
+    {
+      "name": "pause_threat_overflow", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 8.0},
+      "next": "emit_threat_overflow"
+    },
+    {
+      "name": "emit_threat_overflow", "type": "activity",
+      "variables": [
+        {"name": "var_threat_time", "type": "clock"}
+      ],
+      "emitter": "pan_threat_log",
+      "next": "pause_threat_overflow_teardown"
+    },
+    {
+      "name": "pause_threat_overflow_teardown", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 0.1, "max": 1.0},
+      "next": "emit_traffic_threat_overflow"
+    },
+    {
+      "name": "emit_traffic_threat_overflow", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 4500
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 100,
+            "max": 1500
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 3000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1,
+            "max": 9
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 4,
+            "max": 30
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2,
+            "max": 15
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2,
+            "max": 15
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_threat_flood", "type": "activity",
+      "_comment": "Threat: Loic DDoS Attack (33708) - real threat_list.csv entry, flood profile",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "reset-both"},
+        {"name": "var_app", "type": "string:static", "value": "web-browsing"},
+        {"name": "var_category_of_app", "type": "string:static", "value": "general-internet"},
+        {"name": "var_http_category", "type": "string:static", "value": ""},
+        {"name": "var_log_subtype", "type": "string:static", "value": "end"},
+        {"name": "var_raw_category", "type": "string:static", "value": ""},
+        {"name": "var_rule", "type": "string:static", "value": "Allow-Outbound-Web"},
+        {"name": "var_session_end_reason", "type": "string:static", "value": "threat"},
+        {"name": "var_severity", "type": "string:static", "value": "high"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": "internet-utility"},
+        {"name": "var_technology_of_app", "type": "string:static", "value": "browser-based"},
+        {"name": "var_threat", "type": "string:static", "value": "Loic DDoS Attack(33708)"},
+        {"name": "var_threat_category", "type": "string:static", "value": "dos"},
+        {"name": "var_threat_subtype", "type": "string:static", "value": "flood"},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {"name": "var_url_category_list", "type": "string:static", "value": ""},
+        {"name": "var_dest_port", "type": "int:static", "value": 80},
+        {"name": "var_risk_of_app", "type": "int:static", "value": 4},
+        {
+          "name": "var_dest_location", "type": "enum",
+          "values": ["RU", "CN", "KP", "RO"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 134744064,
+            "max": 3758096383
+          }
+        }
+      ],
+      "next": "pause_threat_flood"
+    },
+    {
+      "name": "pause_threat_flood", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 1.0, "max": 8.0},
+      "next": "emit_threat_flood"
+    },
+    {
+      "name": "emit_threat_flood", "type": "activity",
+      "variables": [
+        {"name": "var_threat_time", "type": "clock"}
+      ],
+      "emitter": "pan_threat_log",
+      "next": "pause_threat_flood_teardown"
+    },
+    {
+      "name": "pause_threat_flood_teardown", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 0.1, "max": 1.0},
+      "next": "emit_traffic_threat_flood"
+    },
+    {
+      "name": "emit_traffic_threat_flood", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 300,
+            "max": 4500
+          }
+        },
+        {
+          "name": "var_bytes_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 100,
+            "max": 1500
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 200,
+            "max": 3000
+          }
+        },
+        {
+          "name": "var_duration", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1,
+            "max": 9
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 4,
+            "max": 30
+          }
+        },
+        {
+          "name": "var_packets_in", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2,
+            "max": 15
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 2,
+            "max": 15
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {
+      "name": "setup_policy_denied", "type": "activity",
+      "_comment": "Denied by security policy before an app could be identified - app: incomplete (real PAN-OS App-ID value)",
+      "variables": [
+        {"name": "var_start", "type": "clock"},
+        {"name": "var_action", "type": "string:static", "value": "deny"},
+        {"name": "var_app", "type": "string:static", "value": "incomplete"},
+        {"name": "var_category_of_app", "type": "string:static", "value": ""},
+        {"name": "var_http_category", "type": "string:static", "value": ""},
+        {"name": "var_log_subtype", "type": "string:static", "value": "deny"},
+        {"name": "var_risk_of_app", "type": "string:static", "value": ""},
+        {"name": "var_rule", "type": "string:static", "value": "Block-Malicious-Countries"},
+        {"name": "var_session_end_reason", "type": "string:static", "value": "policy-deny"},
+        {"name": "var_subcategory_of_app", "type": "string:static", "value": ""},
+        {"name": "var_technology_of_app", "type": "string:static", "value": ""},
+        {"name": "var_transport", "type": "string:static", "value": "tcp"},
+        {
+          "name": "var_dest_location", "type": "enum",
+          "values": ["RU", "CN", "KP", "IR"],
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        },
+        {
+          "name": "var_dest_port", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1,
+            "max": 65535
+          }
+        },
+        {
+          "name": "var_dest_ip", "type": "ipaddress",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 134744064,
+            "max": 3758096383
+          }
+        }
+      ],
+      "next": "pause_policy_denied"
+    },
+    {
+      "name": "pause_policy_denied", "type": "event:intermediate:timer",
+      "cardinality_distribution": {"type": "uniform", "min": 0.05, "max": 0.5},
+      "next": "emit_policy_denied"
+    },
+    {
+      "name": "emit_policy_denied", "type": "activity",
+      "variables": [
+        {"name": "var_end", "type": "clock"},
+        {"name": "var_bytes_in", "type": "int:static", "value": 0},
+        {"name": "var_duration", "type": "int:static", "value": 0},
+        {"name": "var_packets_in", "type": "int:static", "value": 0},
+        {
+          "name": "var_bytes", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 40,
+            "max": 120
+          }
+        },
+        {
+          "name": "var_bytes_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 40,
+            "max": 120
+          }
+        },
+        {
+          "name": "var_packets", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1,
+            "max": 3
+          }
+        },
+        {
+          "name": "var_packets_out", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 1,
+            "max": 3
+          }
+        }
+      ],
+      "emitter": "pan_traffic_log",
+      "next": "session_end"
+    },
+    {"name": "session_end", "type": "event:end"}
+  ]
+}
