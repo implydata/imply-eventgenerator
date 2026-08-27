@@ -5,6 +5,7 @@ DataDriver is the top-level driver: it parses a generator config, builds the
 state machine, spawns worker threads, and writes rendered records to stdout.
 """
 
+import heapq
 import json
 import logging
 import os
@@ -14,7 +15,6 @@ import time
 from datetime import datetime, timedelta
 
 import isodate
-from sortedcontainers import SortedList
 
 from ieg.dimensions import DimensionTimestampClock, DimensionVariable, get_dimensions, get_variables
 from ieg.distributions import parse_distribution, parse_schedule
@@ -109,15 +109,16 @@ class FutureEvent:
 class Clock:
     """Manages time for all worker threads, supporting real-time and simulated modes.
 
-    In simulated mode (time_type != 'REAL'), threads coordinate via a shared sorted
-    event queue: each sleeping thread registers a FutureEvent, and only the thread
+    In simulated mode (time_type != 'REAL'), threads coordinate via a shared
+    event queue (a heap, ordered by scheduled time): each sleeping thread
+    registers a FutureEvent, and only the thread
     with the earliest scheduled time is allowed to run. This produces deterministic,
     serialised output when combined with --seed.
 
     In real-time mode, sleep() delegates to time.sleep() with no coordination.
     """
 
-    future_events = SortedList()
+    future_events = []
     active_threads = 0
     lock = threading.Lock()
     sleep_lock = threading.Lock()
@@ -178,16 +179,14 @@ class Clock:
     def add_event(self, future_t):
         """Schedule a new future event at the given time and return it."""
         this_event = FutureEvent(future_t)
-        self.future_events.add(this_event)
+        heapq.heappush(self.future_events, this_event)
         logger.debug("add_event (after) %s - %s", threading.current_thread().name, self)
         return this_event
 
     def remove_event(self):
         """Remove and return the earliest future event."""
         logger.debug("remove_event (before) %s - %s", threading.current_thread().name, self)
-        next_event = self.future_events[0]
-        self.future_events.remove(next_event)
-        return next_event
+        return heapq.heappop(self.future_events)
 
     def pause(self, event):
         """Pause the current thread on the given event, releasing the lock while waiting."""
