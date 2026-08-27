@@ -19,17 +19,17 @@ Running [`split_stream.sh`](./split-stream.md) directly, rather than through thi
 ## Usage
 
 ```text
-tools/generate_all.sh --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--profile <name>]... [--template <name>]... [--volume <name>] [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
+tools/generate_all.sh --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> --volume <name> [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
 ```
 
 | Option | Description |
 | --- | --- |
-| `--out <dir>` | Output root. Each pair is written to `<dir>/<profile>/<template>/YYYY/MM/DD/`, or `<dir>/<profile>/<template>/<volume>/YYYY/MM/DD/` when `--volume` is given. Required. |
+| `--out <dir>` | Output root. Each pair is written to `<dir>/<profile>/<template>/<volume>/YYYY/MM/DD/`. Required. |
 | `--start <instant>` | Passed straight through to every `generator.py` run's `-s`, e.g. `2026-07-01T00:00:00`. Required. |
 | `--duration <duration>` | Passed straight through to every `generator.py` run's `-r`, e.g. `P31D` or `P1M`. Required. |
+| `--volume <name>` | Target output volume: overrides the profile's own `-i`/`-w` with the settings recorded for it in `tools/generate_all.json`, and becomes a path segment in the output directory. Required. A profile with no entry for the requested volume is skipped, not an error — see [The config file](#the-config-file). |
 | `--profile <name>` | Only this profile; repeatable. Default: all of them. Run `--help` for the current list. |
 | `--template <name>` | Only this template, within whichever profiles are selected; repeatable. Default: every template a selected profile has. |
-| `--volume <name>` | Target output volume, overriding the profile's own `-i`/`-w` with the settings recorded for it in `tools/volumes.json`. A profile with no entry for the requested volume is skipped, not an error — see [The volume sidecar](#the-volume-sidecar). Default: each profile's own `-i`/`-w` from the table in the script. |
 | `--partition <duration>` | ISO 8601 partition size, passed to `-p`. Default: `P1D`. |
 | `--seed <n>` | Passed to every `generator.py` run as `--seed`. |
 | `--no-schedule` | Skip each profile's schedule file, if it has one. |
@@ -39,35 +39,38 @@ tools/generate_all.sh --out <dir> --start <ISO8601 instant> --duration <ISO8601 
 
 ```bash
 # See the plan first — no generation, just the resolved commands
-tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --profile vpc_flow_logs --dry-run
+tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --volume tiny --profile vpc_flow_logs --dry-run
 
 # Run it
-tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --profile vpc_flow_logs
+tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --volume tiny --profile vpc_flow_logs
 
 # Re-run just one template within a profile — e.g. to regenerate a single
 # template's output without redoing every other template for that profile too
-tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --profile vpc_flow_logs --template ocsf:network_activity
+tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --volume tiny --profile vpc_flow_logs --template ocsf:network_activity
 ```
 
-## The profile table
+## The config file
 
-The (profile, template, `-w` ceiling, schedule, extension) table this script runs is hardcoded in the script itself, not discovered from `presets/configs/*.json` at runtime. A `-w` ceiling needs a human to have actually run `tools/bench_config_workers.py` first — see [how-to-build-a-config.md](./how-to-build-a-config.md#step-10--find-the--w-ceiling-and-document-it) — so a newly-added preset shouldn't silently appear in a bulk export with a guessed concurrency value.
+`tools/generate_all.json` is the single source of truth for everything this script runs — nothing is discovered from `presets/configs/*.json` at runtime, and the script itself carries no per-profile data. For each profile it records:
 
-Adding a new preset config means adding a line to both tables near the top of the script: one entry in `PROFILES` (profile name, config file, `-w` ceiling, schedule file or `-`, `-i` override or `-`), and a `template=extension` block in `templates_for()` for each of its templates. This is also called out as the last step of the config-authoring guide — see [how-to-build-a-config.md, Step 11](./how-to-build-a-config.md#step-11--register-it-for-bulk-export).
+- `config` — the config file (relative to `presets/configs/`)
+- `schedule` — the schedule file (relative to `presets/schedules/`), or `null` if the profile has none
+- `templates` — a list of `{"name": ..., "ext": ...}` pairs, one per template the profile supports
+- `volumes` — `-i`/`-w` settings per named volume (see below)
 
-The `-i` column defaults to `-` (the config's own interarrival rate) for every profile. It's only worth setting when a profile's default volume genuinely isn't enough — `-w` alone can't raise throughput past the natural ceiling for whatever interarrival rate is already in effect (Little's Law: `L = λW`), so deliberately raising volume means lowering `-i` *and* raising `-w` to match the new, higher ceiling, using values actually measured in that preset's own `docs/presets/<profile>.md` grid rather than guessed. `zscaler_web`'s `-i 0.1`/`-w 250` (~15× its default volume) is the current example.
+Adding a new preset config means adding its entry to `tools/generate_all.json`, not editing the script. This is also called out as the last step of the config-authoring guide — see [how-to-build-a-config.md, Step 11](./how-to-build-a-config.md#step-11--register-it-for-bulk-export). A `-w` ceiling needs a human to have actually run `tools/bench_config_workers.py` first — see [how-to-build-a-config.md](./how-to-build-a-config.md#step-10--find-the--w-ceiling-and-document-it) — so a newly-added preset shouldn't silently appear in a bulk export with a guessed concurrency value.
 
-The ecommerce presets (`ecommerce`, `ecommerce_lighting`, `ecommerce_furniture`) each get their own separate template block in the script, even though the three currently list identical templates — they're independent configs (see the project's own guidance on this), so keeping their entries independent here too means editing one's templates never silently affects another's.
+The ecommerce presets (`ecommerce`, `ecommerce_lighting`, `ecommerce_furniture`) each get their own separate `templates` list, even though the three currently list identical templates — they're independent configs (see the project's own guidance on this), so keeping their entries independent here too means editing one's templates never silently affects another's.
 
-## The volume sidecar
+### Volumes
 
-`tools/volumes.json` maps a small set of named output sizes (`tiny`, `x-small`, `small`, `medium`, `large`, `x-large`, `huge`) to `-i`/`-w` settings, per profile. Passing `--volume <name>` looks up that profile's entry and uses it in place of the profile's own default `-i`/`-w` from the table above — the volume name also becomes a path segment in the output directory (`<profile>/<template>/<volume>/...`), so runs at different volumes never collide on disk.
+The top-level `volumes` object maps a small set of named output sizes (`tiny`, `x-small`, `small`, `medium`, `large`, `x-large`, `huge`) to target row-count caps. `--volume <name>` is required on every run: it looks up that profile's `-i`/`-w` entry under its `volumes` key and uses it in place of any other default, and the volume name also becomes a path segment in the output directory (`<profile>/<template>/<volume>/...`), so runs at different volumes never collide on disk.
 
-Each named volume is a **cap**, not a target average — the settings for a given profile/volume pair are tuned so that no single day's row count exceeds it, not just so the mean lands near it. This matters because per-day output isn't uniform: a profile with a schedule (the ecommerce family) has a real weekly business-hours cycle, so its peak day can run well above its own weekly average — tuning to the mean alone would let peak days overshoot the cap. Each entry's `-i`/`-w` is validated against the *observed maximum*, not the mean, over a multi-day test window.
+Each named volume is a **cap**, not a target average — the settings for a given profile/volume pair are tuned so that no single day's row count exceeds it, not just so the mean lands near it. This matters because per-day output isn't uniform: a profile with a schedule (the ecommerce family) has a real weekly business-hours cycle, so its peak day can run well above its own weekly average — tuning to the mean alone would let peak days overshoot the cap. Each entry's `-i`/`-w` is validated against the *observed maximum*, not the mean, over a multi-day test window where practical — `-w` alone can't raise throughput past the natural ceiling for whatever interarrival rate is already in effect (Little's Law: `L = λW`), so raising volume means lowering `-i` *and* raising `-w` to match the new, higher ceiling, using values actually measured rather than guessed.
 
 Not every profile supports every volume — the ceiling a profile can actually reach depends on its own `-w`/`-i` limits (see each preset's own `docs/presets/<profile>.md` Volume section). A profile with no recorded entry for the requested volume is skipped with a message rather than failing the whole run, so `--volume large --profile ecommerce --profile endpoint_network` runs whichever of the two actually supports `large` and says why it skipped the other.
 
-Each entry also records `observed_max_rows_per_day`, `observed_mean_rows_per_day`, `test_window_days`, and `tested_on` — real, measured values from an actual multi-day run, not an extrapolation — so the sidecar doubles as a record of what's actually been verified for that profile/volume pair, and of how much headroom exists below the cap.
+Each entry also records `observed_max_rows_per_day`, `observed_mean_rows_per_day`, `test_window_days`, and `tested_on` — real, measured values from an actual run, not an extrapolation — so the file doubles as a record of what's actually been verified for that profile/volume pair, and of how much headroom exists below the cap. A `test_window_days` of 1 means only a single day was measured (typically because a longer run was too expensive to justify for that profile's volume) — treat its margin below the cap as less battle-tested than an entry backed by a multi-day sweep.
 
 ## See also
 
