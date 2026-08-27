@@ -379,6 +379,9 @@ class DimensionString(DimensionBase):
             self.chars = desc['chars']
         else:
             self.chars = string.printable
+        # random.choices() needs a sequence; precompute once instead of
+        # converting the (fixed, never-mutated) chars string on every call.
+        self._chars_list = list(self.chars)
         super().__init__(desc)
 
     def __str__(self):
@@ -419,7 +422,7 @@ class DimensionString(DimensionBase):
 
     def _get_raw_value(self):
         length = int(self.length_distribution.get_sample())
-        return ''.join(random.choices(list(self.chars), k=length))
+        return ''.join(random.choices(self._chars_list, k=length))
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
