@@ -142,17 +142,23 @@ class DistGMMTemporal:
         self.days = days  # dict: str(day_number) -> list of {utc_hour, sigma, weight}
         self.clock = clock
         self.sorted_days = sorted(int(k) for k in self.days.keys())
+        # Only 7 possible ISO weekdays, and the mapping never changes after
+        # construction — precompute once instead of walking back on every call.
+        self._profile_cache = {day: self._compute_profile(day) for day in range(1, 8)}
 
     def __str__(self):
         return f'DistGMMTemporal(mean={self.mean}, days={list(self.days.keys())})'
 
-    def _get_profile(self, day):
+    def _compute_profile(self, day):
         # Walk back from the given ISO weekday to find the nearest defined day key.
         for i in range(7):
             candidate = (day - 1 - i) % 7 + 1
             if candidate in self.sorted_days:
                 return self.days[str(candidate)]
         raise ValueError('No day profiles defined')
+
+    def _get_profile(self, day):
+        return self._profile_cache[day]
 
     def _get_multiplier(self, hour, profile):
         # Evaluate the sum of Gaussian components at the given fractional hour.
