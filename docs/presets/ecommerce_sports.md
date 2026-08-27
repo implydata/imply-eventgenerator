@@ -37,8 +37,11 @@ python generator.py -c presets/configs/ecommerce_sports.json --template ms:iis:a
 | `ms:iis:default:85` | IIS W3C log (`ms:iis:default:85` sourcetype — identical output to `ms:iis:auto`, included for completeness) |
 | `ms:iis:default` | IIS W3C log (`ms:iis:default` sourcetype, IIS 7.0 field ordering) |
 | `ms:iis:splunk` | IIS W3C log (`ms:iis:splunk` sourcetype, adds `Content-Type` and `https` fields) |
+| `ocsf:http_activity` | [OCSF](https://schema.ocsf.io/) 1.4.0 HTTP Activity (`class_uid` 4002) JSON — one event per request, for security data lake / SIEM ingestion |
 
 When generating IIS data for Splunk, use `--template ms:iis:auto` — the other IIS templates are included for completeness but have been marked as deprecated by Splunk.
+
+The `ocsf:http_activity` template maps every session's requests — human, bot, and the `Hacker` actor's probe traffic — onto the OCSF Network Activity category. `activity_id`/`type_uid` are derived from `http_method`; `severity_id`/`status_id` are derived from `status` (2xx/3xx → informational/success, 4xx → medium/failure, 5xx → high/failure). Verified against the real OCSF 1.4.0 `http_activity` JSON Schema (via the [`ocsf-json-schema`](https://github.com/nsmithuk/ocsf-json-schema) package) across all three actor types.
 
 ## Output fields
 
@@ -177,29 +180,28 @@ The loop continues with 98% probability, averaging ~50 crawl requests per sessio
 
 ---
 
-## Concurrency (`-m`)
+## Volume
 
-The `-m` ceiling is ~1,056. Setting `-m` above this has no effect — the worker pool is never fully used.
+The default start interval for workers in this preset is 0.75 seconds, with each worker busy for 792 seconds on average. The maximum number of workers that can be busy at the same time is therefore 792/0.75 = 1,056; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect.
 
-The table below shows how output scales with `-m` (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config.py -c presets/configs/ecommerce_sports.json`.
-
-| `-m` | Rows (PT6H) | Wall-clock (s) |
-| ---: | ---: | ---: |
-| 1 | 389 | 0.3 |
-| 2 | 703 | 0.3 |
-| 5 | 1,786 | 0.3 |
-| 13 | 4,634 | 0.5 |
-| 30 | 10,721 | 0.8 |
-| 70 | 25,028 | 1.5 |
-| 165 | 59,322 | 3.5 |
-| 385 | 138,077 | 8.6 |
-| 902 | 316,769 | 21.7 |
-| 2,112 | 364,442 | 25.6 |
+The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/ecommerce_sports.json`.
 
 ```mermaid
+%%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
 xychart-beta
-    title "ecommerce_sports — rows vs -m (PT6H, seed=42)"
-    x-axis [1, 2, 5, 13, 30, 70, 165, 385, 902, 2112]
-    y-axis "Rows" 0 --> 410000
-    line [389, 703, 1786, 4634, 10721, 25028, 59322, 138077, 316769, 364442]
+    title "ecommerce_sports — rows vs -w (PT6H, seed=42)"
+    x-axis "-w" [1, 2, 5, 13, 30, 70, 165, 385, 902, 2112]
+    y-axis "Rows" 0 --> 420000
+    line [387, 719, 1761, 4632, 10683, 24926, 59483, 137493, 315104, 363774]
 ```
+
+Adjust `-i` and `-w` to model heavier traffic. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/ecommerce_sports.json`.
+
+| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0.01 | ↕️ | ↕️ | ↕️ | ↕️ | ↕️ | 🟥 359,447 | 🟥 901,308 | 🟥 1,798,715 |
+| 0.1 | ↕️ | 🟩 1,796 | 🟨 9,213 | 🟧 35,545 | 🟧 90,289 | 🟥 361,459 | 🟥 891,112 | 🟥 1,777,275 |
+| 0.75 (default) | ↕️ | 🟩 1,761 | 🟨 8,878 | 🟧 36,168 | 🟧 89,481 | 🟥 344,304 | 🟥 359,299 | 🟥 360,559 |
+| 1 | 🟩 387 | 🟩 1,763 | 🟨 8,905 | 🟧 36,243 | 🟧 89,665 | 🟥 274,703 | 🟥 274,453 | 🟥 269,694 |
+
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.
