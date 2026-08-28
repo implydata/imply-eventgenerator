@@ -141,6 +141,19 @@ def main(argv=None):
     )
 
     parser.add_argument(
+        '-p', '--partition',
+        dest='partition_interval',
+        default=None,
+        help='Emit a partition marker (and re-emit the template header, if any) to stdout at '
+             'every calendar-aligned ISO 8601 duration boundary of simulated time, e.g. P1D for '
+             'midnight-to-midnight days, PT1H for the top of every hour — like SQL TIME_TRUNC, '
+             'not an offset from -s. Lets a downstream tool (see tools/split_stream.sh) split '
+             'the stream into per-partition files with csplit, without parsing timestamps out '
+             'of the rendered records themselves. The first partition may be shorter than one '
+             'interval if -s does not itself fall on a boundary.'
+    )
+
+    parser.add_argument(
         '--debug',
         action='store_true',
         default=False,
@@ -226,7 +239,8 @@ def main(argv=None):
             start_time=start_time,
             max_entities=max_entities,
             schedule_config=schedule_config,
-            template_name=args.template_name
+            template_name=args.template_name,
+            partition_interval=args.partition_interval
         )
         logger.info("Starting synthetic event data generator at %s", datetime.now().isoformat())
         driver.simulate()
