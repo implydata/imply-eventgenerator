@@ -53,7 +53,9 @@ to a hung one.
 Output is a markdown table with -i as rows and -w as columns, each cell
 colored by volume (log-scale quartile of the completed results, green=low to
 red=high), or marked with a symbol (crashed/timed-out/plateau-skipped)
-explaining why no measurement is shown.
+explaining why no measurement is shown. An actually-measured cell also shows
+its own wall-clock run time in parentheses, e.g. "1,234 (4.2s)" -- skipped/
+plateau/crashed/timed-out cells never ran a real measurement, so none is shown.
 
 Usage:
     python tools/bench_grid.py -c presets/configs/pbx_calls.json
@@ -334,6 +336,13 @@ def main():
     # fact being recorded) -- but column-plateau's value is still real, useful
     # information for tier coloring elsewhere, unlike a row skip's placeholder 0.
     cell_info = {}
+    # cell_elapsed[(w, i)] = wall-clock seconds for an actually-measured cell.
+    # Kept separate from cell_info/collapse_duplicates() entirely -- a plateau
+    # skip never ran, so it has no timing to report, and a collapsed "ok" cell
+    # (see collapse_duplicates()) intentionally hides its row count too, so
+    # hiding its timing alongside it is the same presentation decision, not a
+    # second one -- no need to touch that function's own logic at all.
+    cell_elapsed = {}
 
     # Column state, threaded across rows (processed slowest -i to fastest -- see
     # module docstring): once two rows agree at a given -w, every row from here on
@@ -381,6 +390,7 @@ def main():
                 args.cell_timeout, on_heartbeat=make_heartbeat(label),
             )
             cell_info[(w, i)] = (rows, status)
+            cell_elapsed[(w, i)] = elapsed
             ran += 1
             status_text = {"ok": f"{rows:,} rows", "crashed": "CRASHED", "timeout": f"TIMED OUT ({rows:,} rows so far)"}[status]
             logger.info(f"[{task_n}/{total_cells}] {label}  {status_text}  ({elapsed:.1f}s)")
@@ -440,7 +450,9 @@ def main():
             elif status == "column-plateau":
                 cells.append(COL_PLATEAU_MARK)
             else:
-                cells.append(f"{tier_for(rows)} {rows:,}")
+                secs = cell_elapsed.get((w, i))
+                suffix = f" ({secs:.1f}s)" if secs is not None else ""
+                cells.append(f"{tier_for(rows)} {rows:,}{suffix}")
         row_label = fmt_i(i) + (" (default)" if config_mean is not None and i == config_mean else "")
         lines.append(f"| {row_label} | " + " | ".join(cells) + " |")
 
@@ -453,7 +465,9 @@ def main():
     print(f"{CRASH_MARK} = thread-creation limit hit. "
           f"{TIMEOUT_MARK} = Timeout. "
           f"{ROW_PLATEAU_MARK} = Plateau -- increasing -w had no effect. "
-          f"{COL_PLATEAU_MARK} = Plateau -- decreasing -i had no effect.")
+          f"{COL_PLATEAU_MARK} = Plateau -- decreasing -i had no effect. "
+          f"(Ns) = wall-clock seconds for that cell's own run -- not shown for "
+          f"skipped/plateau cells, which were never actually run.")
 
 
 if __name__ == "__main__":
