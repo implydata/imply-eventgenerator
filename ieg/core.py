@@ -245,6 +245,62 @@ class Clock:
         else: # Real time
             time.sleep(delta)
 
+class ElasticSemaphore:
+    """A counting semaphore whose capacity can grow or shrink after construction.
+
+    Gates -w admission (see DataDriver.spawning_thread). Growing adds permits
+    immediately. Shrinking never revokes a permit already held by running
+    work — it reclaims currently-unused permits first, and withholds only the
+    remainder from future release() calls, so already-admitted work always
+    runs to completion; only new admissions are throttled, until the
+    held-back amount is repaid. Clock-agnostic by design: admission is a pure
+    counting problem, unrelated to simulated vs. real time.
+    """
+    def __init__(self, value):
+        self._lock = threading.Lock()
+        self._available = value
+        self._held_back = 0
+
+    def try_acquire(self):
+        """Attempt to acquire a permit without blocking. Returns True if acquired."""
+        with self._lock:
+            if self._available > 0:
+                self._available -= 1
+                return True
+            return False
+
+    def release(self):
+        """Return a permit. Silently absorbed instead if capacity is currently
+        shrinking (held_back > 0), so a shrink can never be outrun by growth
+        that lands while it's still being repaid — see grow()."""
+        with self._lock:
+            if self._held_back > 0:
+                self._held_back -= 1
+            else:
+                self._available += 1
+
+    def grow(self, n):
+        """Increase capacity by n permits. Cancels any pending shrink first —
+        otherwise growth while a shrink hasn't fully landed could let new
+        admissions outrun the actual target capacity."""
+        if n <= 0:
+            return
+        with self._lock:
+            cancel = min(n, self._held_back)
+            self._held_back -= cancel
+            self._available += (n - cancel)
+
+    def shrink(self, n):
+        """Decrease capacity by n permits. Takes back currently-unused permits
+        first (immediate effect, nothing running is affected); anything left
+        is withheld from future release() calls instead."""
+        if n <= 0:
+            return
+        with self._lock:
+            from_available = min(n, self._available)
+            self._available -= from_available
+            self._held_back += (n - from_available)
+
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
@@ -372,6 +428,14 @@ class DataDriver:
         timer_desc = next(s for s in state_desc if s.get('type') == 'event:start:timer')
         self.rate_delay = parse_distribution(timer_desc['cardinality_distribution'], clock=self.global_clock)
 
+        # Admission gate for -w: grown/shrunk to track the schedule's effective_max
+        # over time (see spawning_thread) rather than resized — see ElasticSemaphore.
+        if self.schedule:
+            self._effective_max = max(1, int(self.max_entities * self.schedule.get_multiplier()))
+        else:
+            self._effective_max = self.max_entities
+        self._admission = ElasticSemaphore(self._effective_max)
+
 
     def render_record(self, record):
         """Render a record as a Jinja2 template string, or plain JSON if no template is active."""
@@ -431,8 +495,15 @@ class DataDriver:
                 break
             current_state = next_state
 
-        self.global_clock.end_thread()
+        # Release the permit and drop the entity count *before* giving up the
+        # Clock's turn (end_thread) — once that hands off to whichever thread
+        # runs next, this thread is still real and keeps executing, so doing
+        # this after would race with spawning_thread's very next admission
+        # check on the same permit, with the outcome depending on real OS
+        # thread scheduling rather than simulated time.
+        self._admission.release()
         self.sim_control.remove_entity()
+        self.global_clock.end_thread()
 
     def _emit(self, formatted_record, record_time):
         """Print formatted_record. Before the first record ever printed — and, once
@@ -479,11 +550,23 @@ class DataDriver:
         """Spawn worker threads at the rate set by the event:start:timer's cardinality_distribution."""
         self.global_clock.activate_thread()
 
-        # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
+        # Ticks at the interarrival pace unconditionally — whether or not a slot was
+        # free — so admission is always checked live against the current permit
+        # count, never on a slower fixed retry. That's what gives a freed slot to
+        # the very next interarrival tick instead of leaving it idle for up to a
+        # fixed retry interval.
         while not self.sim_control.is_done():
-            multiplier = self.schedule.get_multiplier() if self.schedule else 1.0
-            effective_max = max(1, int(self.max_entities * multiplier))
-            if self.sim_control.get_entity_count() < effective_max:
+            if self.schedule:
+                effective_max = max(1, int(self.max_entities * self.schedule.get_multiplier()))
+                if effective_max != self._effective_max:
+                    delta = effective_max - self._effective_max
+                    if delta > 0:
+                        self._admission.grow(delta)
+                    else:
+                        self._admission.shrink(-delta)
+                    self._effective_max = effective_max
+
+            if self._admission.try_acquire():
                 thread_name = 'W'+str(self.sim_control.get_entity_count())
                 self.sim_control.add_entity()
                 t = threading.Thread(target=self.worker_thread, name=thread_name, daemon=True)
@@ -496,6 +579,7 @@ class DataDriver:
                     # back via self.fatal_error rather than raised here, or it would just
                     # print a traceback and the run would silently report success.
                     self.sim_control.remove_entity()
+                    self._admission.release()
                     self.fatal_error = RuntimeError(
                         f"Hit the operating system's thread-creation limit at "
                         f"{self.sim_control.get_entity_count()} active workers (-w {self.max_entities}). "
@@ -503,10 +587,7 @@ class DataDriver:
                     )
                     self.global_clock.end_thread()
                     return
-                # add a sleep event before spawning the next
-                self.global_clock.sleep(float(self.rate_delay.get_sample()))
-            else:
-                self.global_clock.sleep(5.0)
+            self.global_clock.sleep(float(self.rate_delay.get_sample()))
 
         # shut off clock simulator
         self.global_clock.end_thread()
