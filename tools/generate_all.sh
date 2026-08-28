@@ -69,7 +69,7 @@ for t in p.get('templates', []):
 }
 
 usage() {
-  echo "Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> --volume <name> [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]" >&2
+  echo "Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--volume <name>] [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]" >&2
   echo "Try '$0 --help' for more information." >&2
   exit 1
 }
@@ -82,7 +82,7 @@ data = json.load(open('$GENERATE_ALL_CONFIG'))
 print(' '.join(data.get('volumes', {}).keys()))
 ")"
   cat <<EOF
-Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> --volume <name> [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
+Usage: $0 --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--volume <name>] [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
 
 Run generator.py + tools/split_stream.sh in series for every (profile,
 template) pair below, one continuous run per pair.
@@ -99,8 +99,12 @@ Options:
   --volume <name>          Target output volume: overrides each profile's
                            own -i/-w with the settings recorded for it in
                            tools/generate_all.json, and becomes a path segment
-                           in the output directory. Required. A profile with
-                           no entry for this volume is skipped, not an error.
+                           in the output directory. A profile with no entry
+                           for this volume is skipped, not an error. Default:
+                           "default" — neither -i nor -w is passed to
+                           generator.py at all, so it falls back to its own
+                           bare defaults (DEFAULT_CONCURRENCY for -w, the
+                           config's own interarrival rate for -i).
                            Valid names: $volume_names
   --profile <name>         Only this profile; repeatable. Default: all of them.
                            Valid names: $all_profile_names
@@ -124,6 +128,7 @@ new preset means adding an entry there too.
 Example:
   $0 --out out/lake --start 2026-05-27T00:00:00 --duration P3D --profile vpc_flow_logs --volume tiny
   $0 --out out/lake --start 2026-05-27T00:00:00 --duration P3D --profile zscaler_web --volume medium
+  $0 --out out/lake --start 2026-05-27T00:00:00 --duration P3D --profile vpc_flow_logs
 EOF
   exit 0
 }
@@ -156,7 +161,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n "$out_dir" && -n "$start" && -n "$duration" && -n "$volume" ]] || usage
+[[ -n "$out_dir" && -n "$start" && -n "$duration" ]] || usage
 
 # $1: the value to check. $2..: the wanted-list array, expanded by the caller
 # (bash 3.2 can't pass arrays by name) — empty means "everything matches".
@@ -186,27 +191,37 @@ run_count=0
 while IFS= read -r profile; do
   in_list_or_empty "$profile" "${want_profiles[@]+"${want_profiles[@]}"}" || continue
 
-  if ! read -r interval w < <(volume_settings "$profile" "$volume"); then
-    echo "skipping $profile: no '$volume' volume defined for it in $GENERATE_ALL_CONFIG" >&2
-    continue
+  if [[ -n "$volume" ]]; then
+    if ! read -r interval w < <(volume_settings "$profile" "$volume"); then
+      echo "skipping $profile: no '$volume' volume defined for it in $GENERATE_ALL_CONFIG" >&2
+      continue
+    fi
+    volume_label="$volume"
+  else
+    # No --volume: pass neither -i nor -w, so generator.py falls back to its own
+    # bare defaults — deliberately distinct from any named volume's tuned settings.
+    interval="-"
+    w="-"
+    volume_label="default"
   fi
   read -r config_file schedule < <(profile_settings "$profile")
 
   # Built with += rather than assigning "${maybe_empty_array[@]}" into another array
   # literal — bash 3.2 (the macOS system default) errors on expanding an empty array
   # under `set -u`, a bug fixed in bash 4.4+ that this script can't assume is present.
-  base_cmd=(python generator.py -c "$CONFIG_DIR/$config_file" -w "$w" -r "$duration" -s "$start" -p "$partition")
+  base_cmd=(python generator.py -c "$CONFIG_DIR/$config_file" -r "$duration" -s "$start" -p "$partition")
   if [[ "$schedule" != "-" && $no_schedule -eq 0 ]]; then
     base_cmd+=(--schedule "$SCHEDULE_DIR/$schedule")
   fi
   [[ "$interval" != "-" ]] && base_cmd+=(-i "$interval")
+  [[ "$w" != "-" ]] && base_cmd+=(-w "$w")
   [[ -n "$seed" ]] && base_cmd+=(--seed "$seed")
 
   while IFS='=' read -r template ext; do
     [[ -n "$template" ]] || continue
     in_list_or_empty "$template" "${want_templates[@]+"${want_templates[@]}"}" || continue
     slug="$(printf '%s' "$template" | tr -c 'A-Za-z0-9' '_')"
-    dest="$out_dir/$profile/$slug/$volume"
+    dest="$out_dir/$profile/$slug/$volume_label"
     run_count=$((run_count + 1))
 
     cmd=("${base_cmd[@]}" -t "$template")

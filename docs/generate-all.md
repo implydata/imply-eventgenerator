@@ -19,7 +19,7 @@ Running [`split_stream.sh`](./split-stream.md) directly, rather than through thi
 ## Usage
 
 ```text
-tools/generate_all.sh --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> --volume <name> [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
+tools/generate_all.sh --out <dir> --start <ISO8601 instant> --duration <ISO8601 duration> [--volume <name>] [--profile <name>]... [--template <name>]... [--partition <duration>] [--seed <n>] [--no-schedule] [--dry-run]
 ```
 
 | Option | Description |
@@ -27,7 +27,7 @@ tools/generate_all.sh --out <dir> --start <ISO8601 instant> --duration <ISO8601 
 | `--out <dir>` | Output root. Each pair is written to `<dir>/<profile>/<template>/<volume>/YYYY/MM/DD/`. Required. |
 | `--start <instant>` | Passed straight through to every `generator.py` run's `-s`, e.g. `2026-07-01T00:00:00`. Required. |
 | `--duration <duration>` | Passed straight through to every `generator.py` run's `-r`, e.g. `P31D` or `P1M`. Required. |
-| `--volume <name>` | Target output volume: overrides the profile's own `-i`/`-w` with the settings recorded for it in `tools/generate_all.json`, and becomes a path segment in the output directory. Required. A profile with no entry for the requested volume is skipped, not an error — see [The config file](#the-config-file). |
+| `--volume <name>` | Target output volume: overrides the profile's own `-i`/`-w` with the settings recorded for it in `tools/generate_all.json`, and becomes a path segment in the output directory. A profile with no entry for the requested volume is skipped, not an error — see [The config file](#the-config-file). Default: `default` — see below. |
 | `--profile <name>` | Only this profile; repeatable. Default: all of them. Run `--help` for the current list. |
 | `--template <name>` | Only this template, within whichever profiles are selected; repeatable. Default: every template a selected profile has. |
 | `--partition <duration>` | ISO 8601 partition size, passed to `-p`. Default: `P1D`. |
@@ -47,6 +47,10 @@ tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D
 # Re-run just one template within a profile — e.g. to regenerate a single
 # template's output without redoing every other template for that profile too
 tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --volume tiny --profile vpc_flow_logs --template ocsf:network_activity
+
+# No --volume: neither -i nor -w is passed, so generator.py falls back to its
+# own bare defaults. Output lands under .../<profile>/<template>/default/...
+tools/generate_all.sh --out out/lake --start 2026-07-01T00:00:00 --duration P31D --profile vpc_flow_logs
 ```
 
 ## The config file
@@ -64,7 +68,9 @@ The ecommerce presets (`ecommerce`, `ecommerce_lighting`, `ecommerce_furniture`)
 
 ### Volumes
 
-The top-level `volumes` object maps a small set of named output sizes (`tiny`, `x-small`, `small`, `medium`, `large`, `x-large`, `huge`) to target row-count caps. `--volume <name>` is required on every run: it looks up that profile's `-i`/`-w` entry under its `volumes` key and uses it in place of any other default, and the volume name also becomes a path segment in the output directory (`<profile>/<template>/<volume>/...`), so runs at different volumes never collide on disk.
+The top-level `volumes` object maps a small set of named output sizes (`tiny`, `x-small`, `small`, `medium`, `large`, `x-large`, `huge`) to target row-count caps. `--volume <name>` looks up that profile's `-i`/`-w` entry under its `volumes` key and uses it in place of any other default, and the volume name also becomes a path segment in the output directory (`<profile>/<template>/<volume>/...`), so runs at different volumes never collide on disk.
+
+Omitting `--volume` entirely is its own distinct mode, not shorthand for any named volume: **neither `-i` nor `-w` is passed to `generator.py` at all**, so it falls back to its own bare defaults — `DEFAULT_CONCURRENCY` (100) for `-w`, and whatever interarrival rate is already configured in the preset's own `event:start:timer` state for `-i`. The output path segment for this mode is the literal string `default`. This is deliberately *not* the same as any named volume's tuned settings — a profile's natural, un-overridden output can land above, below, or between the named tiers depending on its own ceiling, so `default` exists as its own thing rather than being folded into (or aliased to) one of them.
 
 Each named volume is a **cap**, not a target average — the settings for a given profile/volume pair are tuned so that no single day's row count exceeds it, not just so the mean lands near it. This matters because per-day output isn't uniform: a profile with a schedule (the ecommerce family) has a real weekly business-hours cycle, so its peak day can run well above its own weekly average — tuning to the mean alone would let peak days overshoot the cap. Each entry's `-i`/`-w` is validated against the *observed maximum*, not the mean, over a multi-day test window where practical — `-w` alone can't raise throughput past the natural ceiling for whatever interarrival rate is already in effect (Little's Law: `L = λW`), so raising volume means lowering `-i` *and* raising `-w` to match the new, higher ceiling, using values actually measured rather than guessed.
 
