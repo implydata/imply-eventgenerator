@@ -4,8 +4,10 @@
 writes it to S3 as a date-partitioned datalake:
 
 ```text
-s3://<bucket>/<prefix>/<profile>/<template>/<YYYY>/<MM>/<DD>/<profile>-<template>-<YYYYMMDD>.<ext>.gz
+s3://<bucket>/<prefix>/<profile>/<template>/default/<YYYY>/<MM>/<DD>/<profile>-<template>-<YYYYMMDD>.<ext>.gz
 ```
+
+The literal `default` segment matches `generate_all.sh`'s own path convention when no named volume is given (see [generate-all.md](./generate-all.md#volumes)) — this tool always runs at its own hardcoded `PROFILE_SETTINGS` ceilings, never a `tools/generate_all.json` volume tier.
 
 One object per profile, per template, per day.
 
@@ -63,8 +65,8 @@ what a per-day file wants.
 while keeping the same `y/m/d` folder:
 
 ```text
-vpc_flow_logs/aws_cloudwatchlogs_vpcflow/2026/06/20/vpc_flow_logs-...-20260620T00.log.gz
-vpc_flow_logs/aws_cloudwatchlogs_vpcflow/2026/06/20/vpc_flow_logs-...-20260620T06.log.gz
+vpc_flow_logs/aws_cloudwatchlogs_vpcflow/default/2026/06/20/vpc_flow_logs-...-20260620T00.log.gz
+vpc_flow_logs/aws_cloudwatchlogs_vpcflow/default/2026/06/20/vpc_flow_logs-...-20260620T06.log.gz
 ```
 
 Each window is exact — verified at `--split-hours 6`, the four objects covered `00:00:00`–
