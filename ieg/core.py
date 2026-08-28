@@ -153,10 +153,31 @@ class Clock:
         return self.start_time
 
     def activate_thread(self):
-        """Register a thread as active for simulated time coordination."""
+        """Register a thread as active for simulated time coordination.
+
+        Joins through the same heap/pause-resume protocol sleep() uses,
+        registered at the *current* sim_time (zero delay) rather than a
+        future one — if another thread might currently hold the turn, this
+        one waits its turn instead of proceeding immediately. Without this,
+        a freshly-started thread could run concurrently, in real time, with
+        whichever thread currently holds the turn — racing it for the
+        Clock's lock regardless of simulated time order, since the previous
+        version incremented active_threads and returned with no
+        synchronization at all. Unlike sleep(), this never advances
+        self.sim_time on resume: joining doesn't represent time passing,
+        and time may have already moved on while this thread waited.
+        """
         if self.time_type != 'REAL':
             self.lock.acquire()
             self.active_threads += 1
+            this_event = self.add_event(self.sim_time)
+            if self.active_threads == 1:
+                next_event = self.remove_event()
+                if this_event is not next_event:
+                    self.resume(next_event)
+                    self.pause(this_event)
+            else:
+                self.pause(this_event)
             self.lock.release()
 
     def deactivate_thread(self):
