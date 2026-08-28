@@ -43,7 +43,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 from rich.console import Console
 from rich.progress import (
@@ -148,12 +147,12 @@ class Task:
     template: str
     template_slug: str
     day: date
-    hour: Optional[int]      # None when the partition covers the whole day
+    hour: int | None      # None when the partition covers the whole day
     runtime: str             # ISO 8601 duration passed to generator.py -r
     ext: str
     m: int
-    schedule: Optional[str]
-    seed: Optional[int]
+    schedule: str | None
+    seed: int | None
     key: str
 
 
@@ -194,7 +193,7 @@ def infer_extension(template_name: str, template_def: dict) -> str:
 
 
 def build_key(prefix: str, task_profile: str, template_slug: str, day: date,
-              hour: Optional[int], ext: str) -> str:
+              hour: int | None, ext: str) -> str:
     stamp = day.strftime("%Y%m%d") + ("" if hour is None else f"T{hour:02d}")
     parts = [
         task_profile,
@@ -230,7 +229,11 @@ AUTH_ERROR_CODES = {
 def is_auth_error(exc) -> bool:
     """True if this exception means the credentials, not the object, are the problem."""
     from botocore.exceptions import (
-        ClientError, NoCredentialsError, ProfileNotFound, SSOError, TokenRetrievalError,
+        ClientError,
+        NoCredentialsError,
+        ProfileNotFound,
+        SSOError,
+        TokenRetrievalError,
     )
     if isinstance(exc, (NoCredentialsError, ProfileNotFound, SSOError, TokenRetrievalError)):
         return True
@@ -621,7 +624,9 @@ def load_manifest(path):
 
 def parse_day(value):
     try:
-        return datetime.strptime(value, "%Y-%m-%d").date()
+        # .date() strips any time/tz component immediately, so the naive
+        # intermediate datetime (noqa: DTZ007) never escapes this function.
+        return datetime.strptime(value, "%Y-%m-%d").date()  # noqa: DTZ007
     except ValueError:
         raise argparse.ArgumentTypeError(f"expected YYYY-MM-DD, got '{value}'")
 
@@ -751,7 +756,10 @@ def main(argv=None):
     failures = []
     run_started = time.time()
 
-    manifest_file = open(args.manifest, "a", buffering=1) if args.manifest else None
+    # Conditionally open (args.manifest may be unset) and held across the whole run
+    # below, written to incrementally from multiple threads — not a `with` block,
+    # but still explicitly closed in the `finally` further down.
+    manifest_file = open(args.manifest, "a", buffering=1) if args.manifest else None  # noqa: SIM115
 
     def record(result: Result):
         rec = {
