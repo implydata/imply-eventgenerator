@@ -5,6 +5,7 @@ DataDriver is the top-level driver: it parses a generator config, builds the
 state machine, spawns worker threads, and writes rendered records to stdout.
 """
 
+import heapq
 import json
 import logging
 import os
@@ -13,8 +14,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 
-
-from sortedcontainers import SortedList
+import isodate
 
 from ieg.dimensions import DimensionTimestampClock, DimensionVariable, get_dimensions, get_variables
 from ieg.distributions import parse_distribution, parse_schedule
@@ -45,6 +45,31 @@ class _StrictEnv:
 
 _jinja_env = Environment(undefined=Undefined)
 _jinja_env.globals['env'] = _StrictEnv()
+
+# Prefixes a --partition marker line. \x1e (ASCII Record Separator) rather than a
+# printable string, since no template in this repo renders a line starting with a control
+# character — see tools/split_stream.sh, which splits stdout on this exact prefix.
+PARTITION_MARKER_PREFIX = '\x1ePARTITION '
+
+_EPOCH = datetime(1970, 1, 1)
+
+
+def _partition_bucket(t, interval_seconds):
+    """Return the index of the interval_seconds-sized bucket containing t — an
+    integer comparison key, checked on every record, so it's cheap: no datetime
+    construction, unlike _bucket_start below. Multiplying back by interval_seconds
+    and adding it to the epoch (_bucket_start) recovers the boundary datetime, only
+    needed the rare time a comparison actually finds a new partition has started.
+    """
+    return int((t - _EPOCH).total_seconds() // interval_seconds)
+
+
+def _bucket_start(bucket, interval_seconds):
+    """Return the start of partition bucket `bucket` as a calendar-aligned datetime
+    (TIME_TRUNC semantics: multiples of interval_seconds since the epoch, so PT1H
+    lands on the hour and P1D at midnight) — not an offset from a run's start time.
+    """
+    return _EPOCH + timedelta(seconds=bucket * interval_seconds)
 
 class FutureEvent:
     """A future event in the simulation clock, used to manage simulated time ordering."""
@@ -84,15 +109,16 @@ class FutureEvent:
 class Clock:
     """Manages time for all worker threads, supporting real-time and simulated modes.
 
-    In simulated mode (time_type != 'REAL'), threads coordinate via a shared sorted
-    event queue: each sleeping thread registers a FutureEvent, and only the thread
+    In simulated mode (time_type != 'REAL'), threads coordinate via a shared
+    event queue (a heap, ordered by scheduled time): each sleeping thread
+    registers a FutureEvent, and only the thread
     with the earliest scheduled time is allowed to run. This produces deterministic,
     serialised output when combined with --seed.
 
     In real-time mode, sleep() delegates to time.sleep() with no coordination.
     """
 
-    future_events = SortedList()
+    future_events = []
     active_threads = 0
     lock = threading.Lock()
     sleep_lock = threading.Lock()
@@ -153,16 +179,14 @@ class Clock:
     def add_event(self, future_t):
         """Schedule a new future event at the given time and return it."""
         this_event = FutureEvent(future_t)
-        self.future_events.add(this_event)
+        heapq.heappush(self.future_events, this_event)
         logger.debug("add_event (after) %s - %s", threading.current_thread().name, self)
         return this_event
 
     def remove_event(self):
         """Remove and return the earliest future event."""
         logger.debug("remove_event (before) %s - %s", threading.current_thread().name, self)
-        next_event = self.future_events[0]
-        self.future_events.remove(next_event)
-        return next_event
+        return heapq.heappop(self.future_events)
 
     def pause(self, event):
         """Pause the current thread on the given event, releasing the lock while waiting."""
@@ -195,7 +219,7 @@ class Clock:
             logger.debug("%s active threads %d", threading.current_thread().name, self.active_threads)
             if self.active_threads == 1:
                 next_event = self.remove_event()
-                if str(this_event) != str(next_event):
+                if this_event is not next_event:
                     self.resume(next_event)
                     logger.debug("%s start pause if", threading.current_thread().name)
                     self.pause(this_event)
@@ -216,7 +240,7 @@ class Clock:
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
-    def __init__(self, name, config, runtime, total_recs, time_type, start_time, max_entities, schedule_config=None, template_name=None):
+    def __init__(self, name, config, runtime, total_recs, time_type, start_time, max_entities, schedule_config=None, template_name=None, partition_interval=None):
         self.name = name
         self.config = config
 
@@ -232,6 +256,28 @@ class DataDriver:
         self.header = None
         self.jinja_template = None
         self.fatal_error = None
+
+        if partition_interval is None:
+            self.partition_interval = None
+        else:
+            try:
+                parsed_partition_interval = isodate.parse_duration(partition_interval)
+            except Exception as e:
+                raise ValueError(f"Error parsing --partition duration '{partition_interval}': {e}")
+            if isinstance(parsed_partition_interval, isodate.Duration):
+                # Unlike -r (a one-time span, resolved against the actual start time),
+                # --partition is a repeating bucket size used as a fixed number of
+                # seconds (_partition_bucket). A calendar month resolved once would
+                # only be correct for the first bucket — every later one would drift
+                # out of true calendar alignment (Feb is shorter than Jan, etc.).
+                raise ValueError(
+                    f"--partition duration '{partition_interval}' uses a calendar-based "
+                    f"unit (Y or M), which isn't a fixed size — use P1D, PT1H, P7D, etc."
+                )
+            parsed_partition_interval = parsed_partition_interval.total_seconds()
+            if parsed_partition_interval <= 0:
+                raise ValueError(f"--partition duration '{partition_interval}' must be positive.")
+            self.partition_interval = parsed_partition_interval
 
         if template_name is not None:
             templates = config.get('templates', {})
@@ -252,13 +298,9 @@ class DataDriver:
         self.schedule = parse_schedule(schedule_config, self.global_clock) if schedule_config else None
 
         # Always write to stdout
-        stdout_lock = threading.Lock()
-        class _StdoutPrinter:
-            def print(self, record):
-                with stdout_lock:
-                    sys.stdout.write(str(record) + '\n')
-                    sys.stdout.flush()
-        self.target_printer = _StdoutPrinter()
+        self._stdout_lock = threading.Lock()
+        self.current_partition_bucket = None  # int bucket index once --partition is set
+        self.header_printed = False  # only tracked when --partition is not set
 
         # Remove type validation and default to generator
         self.type = 'generator'
@@ -368,7 +410,7 @@ class DataDriver:
             if current_state.dimensions is not None:
                 record = self.create_record(current_state.dimensions, variables)
                 formatted_record = self.render_record(record)
-                self.target_printer.print(formatted_record)
+                self._emit(formatted_record, self.global_clock.now())
                 self.sim_control.inc_rec_count()
             if self.sim_control.is_done():
                 break
@@ -383,6 +425,47 @@ class DataDriver:
 
         self.global_clock.end_thread()
         self.sim_control.remove_entity()
+
+    def _emit(self, formatted_record, record_time):
+        """Print formatted_record. Before the first record ever printed — and, once
+        --partition is set, again at every later partition boundary — also print the
+        header (if the template has one) and a partition marker, all as one atomic
+        write, so a downstream csplit-based split always gets self-contained files.
+
+        A stray out-of-order record (see the Clock's zero-delay race window) that
+        truncates to an earlier bucket than the one already open is just appended to
+        the current partition rather than reopening a past one — markers must stay
+        monotonically increasing for the split to make sense.
+        """
+        with self._stdout_lock:
+            lines = []
+            if self.partition_interval is not None:
+                bucket = _partition_bucket(record_time, self.partition_interval)
+                is_first = self.current_partition_bucket is None
+                if is_first or bucket > self.current_partition_bucket:
+                    self.current_partition_bucket = bucket
+                    # The very first partition may be shorter than one interval if -s
+                    # doesn't itself fall on a boundary — label it with the true start
+                    # time, not the truncated boundary before it, which data never covers.
+                    marker_time = self.start_time if is_first else _bucket_start(bucket, self.partition_interval)
+                    lines.append(f'{PARTITION_MARKER_PREFIX}{marker_time.isoformat()}')
+                    # A run piped through tools/split_stream.sh writes nothing to its
+                    # destination until the whole thing finishes (ieg/core.py doesn't
+                    # know or care that it's piped) — this is the only sign of life
+                    # visible on stderr in the meantime, at the one cadence the engine
+                    # already has a natural reason to pause at.
+                    logger.info("Partition boundary: %s (%d records so far)",
+                                marker_time.isoformat(), self.sim_control.get_record_count())
+                    if self.header:
+                        lines.append(self.header)
+            elif not self.header_printed:
+                self.header_printed = True
+                if self.header:
+                    lines.append(self.header)
+            lines.append(formatted_record)
+            for line in lines:
+                sys.stdout.write(str(line) + '\n')
+            sys.stdout.flush()
 
     def spawning_thread(self):
         """Spawn worker threads at the rate set by the event:start:timer's cardinality_distribution."""
@@ -426,8 +509,6 @@ class DataDriver:
 
     def simulate(self):
         """Start the simulation, spawning workers and running until completion."""
-        if self.header:
-            self.target_printer.print(self.header)
         self.status_msg = f'Starting {self.type} job.'
         thread_name = 'Spawning'
         thrd = threading.Thread(target=self.spawning_thread, args=(), name=thread_name, daemon=True)

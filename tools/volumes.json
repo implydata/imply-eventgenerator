@@ -1,0 +1,83 @@
+{
+  "volumes": {
+    "tiny": 100000,
+    "x-small": 300000,
+    "small": 1000000,
+    "medium": 3000000,
+    "large": 10000000,
+    "x-large": 30000000,
+    "huge": 100000000
+  },
+  "profiles": {
+    "ecommerce": {
+      "config": "ecommerce.json",
+      "schedule": "ecommerce.json",
+      "volumes": {
+        "tiny": {"i": "6.5", "w": 410, "observed_max_rows_per_day": 96630, "observed_mean_rows_per_day": 87269, "test_window_days": 14, "tested_on": "2026-08-27"}
+      }
+    },
+    "ecommerce_lighting": {
+      "config": "ecommerce_lighting.json",
+      "schedule": "ecommerce.json",
+      "volumes": {
+        "tiny": {"i": "4.4", "w": 355, "observed_max_rows_per_day": 97196, "observed_mean_rows_per_day": 87294, "test_window_days": 14, "tested_on": "2026-08-27"}
+      }
+    },
+    "ecommerce_furniture": {
+      "config": "ecommerce_furniture.json",
+      "schedule": "ecommerce.json",
+      "volumes": {
+        "tiny": {"i": "4.6", "w": 410, "observed_max_rows_per_day": 98912, "observed_mean_rows_per_day": 87138, "test_window_days": 14, "tested_on": "2026-08-27"}
+      }
+    },
+    "vpc_flow_logs": {
+      "config": "vpc_flow_logs.json",
+      "schedule": null,
+      "volumes": {
+        "tiny": {"i": "4.1", "w": 10, "observed_max_rows_per_day": 98074, "observed_mean_rows_per_day": 96593, "test_window_days": 7, "tested_on": "2026-08-27"}
+      }
+    },
+    "vpc_flow_logs_derived": {
+      "config": "vpc_flow_logs_derived.json",
+      "schedule": null,
+      "volumes": {
+        "tiny": {"i": "3.65", "w": 18, "observed_max_rows_per_day": 99005, "observed_mean_rows_per_day": 97024, "test_window_days": 7, "tested_on": "2026-08-27"}
+      }
+    },
+    "endpoint_network": {
+      "config": "endpoint_network.json",
+      "schedule": null,
+      "volumes": {
+        "tiny": {"i": "0.89", "w": 1, "observed_max_rows_per_day": 97320, "observed_mean_rows_per_day": 97081, "test_window_days": 7, "tested_on": "2026-08-27"}
+      }
+    },
+    "ssh_auth": {
+      "config": "ssh_auth.json",
+      "schedule": null,
+      "volumes": {
+        "tiny": {"i": "2.25", "w": 335, "observed_max_rows_per_day": 96349, "observed_mean_rows_per_day": 95913, "test_window_days": 7, "tested_on": "2026-08-27"}
+      }
+    },
+    "pbx_calls": {
+      "config": "pbx_calls.json",
+      "schedule": null,
+      "volumes": {
+        "tiny": {"i": "0.89", "w": 340, "observed_max_rows_per_day": 97654, "observed_mean_rows_per_day": 97130, "test_window_days": 7, "tested_on": "2026-08-27"}
+      }
+    },
+    "palo_alto": {
+      "config": "palo_alto.json",
+      "schedule": null,
+      "volumes": {
+        "tiny": {"i": "0.94", "w": 390, "observed_max_rows_per_day": 97968, "observed_mean_rows_per_day": 97473, "test_window_days": 7, "tested_on": "2026-08-27"}
+      }
+    },
+    "zscaler_web": {
+      "config": "zscaler_web.json",
+      "schedule": null,
+      "volumes": {
+        "tiny": {"i": "3.55", "w": 55, "observed_max_rows_per_day": 98482, "observed_mean_rows_per_day": 97716, "test_window_days": 7, "tested_on": "2026-08-27"}
+      }
+    }
+  }
+}
