@@ -10,7 +10,7 @@ run's arguments — no timestamp parsing is needed, which matters because the pr
 emit eleven different output shapes (NDJSON, CSV, NCSA combined, IIS, key-value).
 Each run's stdout is gzipped in flight and uploaded as one object:
 
-    s3://<bucket>/<prefix>/<profile>/<template>/<YYYY>/<MM>/<DD>/<profile>-<template>-<YYYYMMDD>.<ext>.gz
+    s3://<bucket>/<prefix>/<profile>/<template>/default/<YYYY>/<MM>/<DD>/<profile>-<template>-<YYYYMMDD>.<ext>.gz
 
 Runs are independent, so they parallelise across cores and resume cleanly: every
 completed partition is appended to a JSONL manifest and skipped on re-run.
@@ -199,6 +199,10 @@ def build_key(prefix: str, task_profile: str, template_slug: str, day: date,
     parts = [
         task_profile,
         template_slug,
+        # This script always runs at its own hardcoded PROFILE_SETTINGS ceilings,
+        # never a tools/generate_all.json volume tier — "default" here matches
+        # generate_all.sh's own path segment when --volume is omitted there.
+        "default",
         f"{day.year:04d}",
         f"{day.month:02d}",
         f"{day.day:02d}",
