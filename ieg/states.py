@@ -7,10 +7,12 @@ weighted edge in a gateway:exclusive state's transitions list.
 See docs/states.md for the config-level reference.
 """
 
+import itertools
 import logging
-import threading
 import random
+import threading
 import time
+
 import isodate
 
 logger = logging.getLogger('ieg')
@@ -77,6 +79,10 @@ class State:
         self.transitions = transitions
         self.transition_states = [t.next_state for t in transitions]
         self.transition_probabilities = [t.probability for t in transitions]
+        # random.choices(weights=...) recomputes this cumulative sum from
+        # scratch on every single call — precompute it once, since the
+        # probabilities never change after construction.
+        self._transition_cum_weights = list(itertools.accumulate(self.transition_probabilities))
         self.variables = variables
 
     def __str__(self):
@@ -211,7 +217,7 @@ class State:
     def get_next_state_name(self):
         if not self.transition_states:
             return None
-        return random.choices(self.transition_states, weights=self.transition_probabilities, k=1)[0]
+        return random.choices(self.transition_states, cum_weights=self._transition_cum_weights, k=1)[0]
 
 class Controller:
     # Manages the simulation end conditions.
