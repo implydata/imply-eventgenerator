@@ -142,17 +142,23 @@ class DistGMMTemporal:
         self.days = days  # dict: str(day_number) -> list of {utc_hour, sigma, weight}
         self.clock = clock
         self.sorted_days = sorted(int(k) for k in self.days.keys())
+        # Only 7 possible ISO weekdays, and the mapping never changes after
+        # construction — precompute once instead of walking back on every call.
+        self._profile_cache = {day: self._compute_profile(day) for day in range(1, 8)}
 
     def __str__(self):
         return f'DistGMMTemporal(mean={self.mean}, days={list(self.days.keys())})'
 
-    def _get_profile(self, day):
+    def _compute_profile(self, day):
         # Walk back from the given ISO weekday to find the nearest defined day key.
         for i in range(7):
             candidate = (day - 1 - i) % 7 + 1
             if candidate in self.sorted_days:
                 return self.days[str(candidate)]
         raise ValueError('No day profiles defined')
+
+    def _get_profile(self, day):
+        return self._profile_cache[day]
 
     def _get_multiplier(self, hour, profile):
         # Evaluate the sum of Gaussian components at the given fractional hour.
@@ -254,6 +260,99 @@ class Schedule:
         hour = now.hour + now.minute / 60.0 + now.second / 3600.0
         profile = self._gmm._get_profile(day)
         return max(0.0, self._gmm._get_multiplier(hour, profile))
+
+    @staticmethod
+    def validate_desc(desc, context):
+        """Validate a schedule descriptor, including that its multiplier never exceeds
+        1.0 anywhere. get_multiplier() only floors the result at 0 — nothing caps a
+        gmm_temporal schedule's overlapping Gaussian components from summing above 1 —
+        and effective_max = max_entities * multiplier would then silently exceed the
+        user's own -w cap. Checked by sweeping the actual multiplier function rather
+        than inspecting weights, since overlap isn't obvious by eye.
+        """
+        if 'type' not in desc:
+            logger.error("%s: schedule missing required field 'type'", context)
+            return False
+        dist_type = desc['type'].lower()
+        if dist_type == 'constant':
+            if 'value' not in desc:
+                logger.error("%s: constant schedule missing required field 'value'", context)
+                return False
+            try:
+                value = float(desc['value'])
+            except (TypeError, ValueError):
+                logger.error("%s: constant schedule 'value' must be a number, got %r", context, desc['value'])
+                return False
+            if not (0.0 <= value <= 1.0):
+                logger.error("%s: constant schedule 'value' must be between 0 and 1, got %s", context, value)
+                return False
+            return True
+        elif dist_type == 'gmm_temporal':
+            days = desc.get('days')
+            if not days:
+                logger.error("%s: gmm_temporal schedule missing required field 'days' (must be a non-empty object)", context)
+                return False
+            valid = True
+            for key, components in days.items():
+                try:
+                    day_num = int(key)
+                    if day_num < 1 or day_num > 7:
+                        logger.error("%s: gmm_temporal day key '%s' must be an integer 1–7 (ISO weekday)", context, key)
+                        valid = False
+                except (ValueError, TypeError):
+                    logger.error("%s: gmm_temporal day key '%s' must be an integer 1–7 (ISO weekday)", context, key)
+                    valid = False
+                if not components or not isinstance(components, list):
+                    logger.error("%s: gmm_temporal day '%s' must be a non-empty list of components", context, key)
+                    valid = False
+                else:
+                    for j, comp in enumerate(components):
+                        for field in ('utc_hour', 'sigma', 'weight'):
+                            if field not in comp:
+                                logger.error("%s: gmm_temporal day '%s' component [%d] missing required field '%s'", context, key, j, field)
+                                valid = False
+                                continue
+                            try:
+                                num = float(comp[field])
+                            except (TypeError, ValueError):
+                                logger.error("%s: gmm_temporal day '%s' component [%d] field '%s' must be a number, got %r", context, key, j, field, comp[field])
+                                valid = False
+                                continue
+                            if field == 'sigma' and num <= 0:
+                                logger.error("%s: gmm_temporal day '%s' component [%d] 'sigma' must be > 0, got %s", context, key, j, num)
+                                valid = False
+            if not valid:
+                return False
+            # Sweep every day's profile at fine resolution (0.01h ≈ 36s) — cheap
+            # (~17k evaluations) and, unlike checking weights by eye, can't miss an
+            # overlap between components.
+            #
+            # Tolerance: _get_multiplier sums contributions across components, and a
+            # Gaussian tail never truly reaches zero, so even a single-peak schedule
+            # can land a few 1e-8 above 1.0 from a distant component's tail — real,
+            # but not an actionable mistake. What actually matters is whether it can
+            # push effective_max = int(max_entities * multiplier) above max_entities;
+            # since -w is hard-capped at 10000 (generator.py's MAX_WORKERS), no
+            # multiplier below 1.0001 can ever do that, for any allowed -w.
+            MULTIPLIER_TOLERANCE = 1.0001
+            gmm = DistGMMTemporal(1.0, days, clock=None)
+            for day_num in range(1, 8):
+                profile = gmm._get_profile(day_num)
+                hour = 0.0
+                while hour < 24.0:
+                    multiplier = gmm._get_multiplier(hour, profile)
+                    if multiplier > MULTIPLIER_TOLERANCE:
+                        logger.error(
+                            "%s: multiplier exceeds 1.0 (%.4f at day %d, hour %.2f) — "
+                            "overlapping component weights sum too high; effective_max "
+                            "would exceed the configured -w",
+                            context, multiplier, day_num, hour)
+                        return False
+                    hour += 0.01
+            return True
+        else:
+            logger.error("%s: schedule does not support distribution type '%s'", context, desc['type'])
+            return False
 
 
 def parse_schedule(desc, clock):

@@ -135,14 +135,17 @@ python generator.py -c example.json -t csv -r P3D -s "2024-01-01T00:00:00" -p P1
 ```
 
 ```text
-csv
+<RS>PARTITION 2024-01-01T00:00:00
 time,value
 2024-01-01 00:00:00+00:00,B
 ...
-csv
+<RS>PARTITION 2024-01-02T00:00:00
+time,value
 2024-01-02 00:00:00+00:00,A
 ...
 ```
+
+`<RS>` above is the literal ASCII Record Separator control character (`\x1e`), not printable text — `tools/split_stream.sh` splits on this exact prefix.
 
 This exists so one long, continuous run can be split into per-day (or per-hour) files afterwards without any tool having to parse a timestamp out of the rendered records — not possible generically, since different templates render time in different fields and formats (or none at all). See [split-stream.md](./split-stream.md) for the tool that does the splitting, and [generate-all.md](./generate-all.md) for running this across every preset and template in one pass.
 

@@ -13,15 +13,20 @@ import sys
 import threading
 import time
 from datetime import datetime, timedelta
+from typing import ClassVar
 
 import isodate
+from jinja2 import Environment, Undefined, UndefinedError
 
-from ieg.dimensions import DimensionTimestampClock, DimensionVariable, get_dimensions, get_variables
+from ieg.dimensions import (
+    DimensionTimestampClock,
+    DimensionVariable,
+    get_dimensions,
+    get_variables,
+)
 from ieg.distributions import parse_distribution, parse_schedule
 from ieg.states import Controller, State, Transition
 from ieg.validate import validate_config
-
-from jinja2 import Environment, Undefined, UndefinedError
 
 logger = logging.getLogger('ieg')
 
@@ -51,7 +56,10 @@ _jinja_env.globals['env'] = _StrictEnv()
 # character — see tools/split_stream.sh, which splits stdout on this exact prefix.
 PARTITION_MARKER_PREFIX = '\x1ePARTITION '
 
-_EPOCH = datetime(1970, 1, 1)
+# Naive on purpose (noqa: DTZ001) — every datetime this engine works with, real or
+# simulated, is naive throughout (see Clock), so _EPOCH must stay naive too or
+# `t - _EPOCH` in _partition_bucket below raises on the timezone mismatch.
+_EPOCH = datetime(1970, 1, 1)  # noqa: DTZ001
 
 
 def _partition_bucket(t, interval_seconds):
@@ -118,7 +126,7 @@ class Clock:
     In real-time mode, sleep() delegates to time.sleep() with no coordination.
     """
 
-    future_events = []
+    future_events: ClassVar[list] = []
     active_threads = 0
     lock = threading.Lock()
     sleep_lock = threading.Lock()

@@ -228,6 +228,10 @@ def main(argv=None):
                     schedule_config = json.load(f)
                 except json.JSONDecodeError as e:
                     raise ValueError(f"Error parsing schedule file '{args.schedule_file}': {e}")
+            from ieg.distributions import Schedule
+            if not Schedule.validate_desc(schedule_config, f"schedule '{args.schedule_file}'"):
+                logger.critical("Schedule '%s' is invalid — see errors above.", args.schedule_file)
+                sys.exit(1)
 
         # Start a new data driver
         driver = DataDriver(

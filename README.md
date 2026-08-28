@@ -212,7 +212,7 @@ python tools/generate_lake.py --bucket my-lake --prefix eventgen \
 ```
 
 ```text
-s3://my-lake/eventgen/ecommerce/csv/2026/05/27/ecommerce-csv-20260527.csv.gz
+s3://my-lake/eventgen/ecommerce/csv/default/2026/05/27/ecommerce-csv-20260527.csv.gz
 ```
 
 Add `--dry-run` to see the partition count and estimated volume first, or `--local-dir` to
