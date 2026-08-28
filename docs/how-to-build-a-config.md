@@ -302,7 +302,7 @@ Document the result in the preset's `docs/presets/<name>.md` Volume section usin
 
 ## Step 11 — Register it for bulk export
 
-Add an entry for this config to `tools/generate_all.json` — its config file, schedule file if it has one, and a `templates` list (name + extension) for each of its templates. This file is deliberately hand-maintained rather than discovered at runtime, so a new preset only appears in a bulk export once someone has actually registered it — see [generate-all.md](./generate-all.md#the-config-file) for the exact format. A profile with no entries under `volumes` in that file can still be run with `--profile`, but `--volume` (required by `tools/generate_all.sh`) will skip it until at least one named volume's `-i`/`-w` has been measured and added.
+Add an entry for this config to `tools/generate_all.json` — its config file, schedule file if it has one, and a `templates` list (name + extension) for each of its templates. This file is deliberately hand-maintained rather than discovered at runtime, so a new preset only appears in a bulk export once someone has actually registered it — see [generate-all.md](./generate-all.md#the-config-file) for the exact format. A profile with no entries under `volumes` in that file still runs fine with `--profile` alone — `generate_all.sh` falls back to generator.py's own bare defaults in that case (see [generate-all.md](./generate-all.md#volumes)) — but requesting a specific named `--volume` for it will skip it until at least one named volume's `-i`/`-w` has been measured and added.
 
 ---
 
