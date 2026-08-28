@@ -103,9 +103,9 @@ Adjust `-i` and `-w` to model heavier firewall traffic. The table below illustra
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | ↕️ | ↕️ | ↕️ | 🟧 10,702 | 🟧 26,254 | 🟥 106,037 | 🟥 263,802 | 🟥 529,562 |
-| 0.1 | ↕️ | 🟩 545 | 🟨 2,659 | 🟧 10,267 | 🟧 26,634 | 🟥 104,793 | 🟥 227,518 | 🟥 227,547 |
-| 1 | ↕️ | 🟩 549 | 🟨 2,703 | 🟧 10,622 | 🟧 22,601 | 🟧 22,559 | ↔️ | ↔️ |
-| 5 (default) | 🟩 103 | 🟩 545 | 🟨 2,663 | 🟨 4,586 | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.01 | ↕️ | ↕️ | ↕️ | 🟧 10,702 (1.7s) | 🟧 26,254 (3.9s) | 🟥 106,037 (16.6s) | 🟥 263,814 (52.7s) | 🟥 528,767 (171.2s) |
+| 0.1 | ↕️ | 🟩 545 (0.2s) | 🟨 2,659 (0.5s) | 🟧 10,267 (1.6s) | 🟧 26,634 (3.9s) | 🟥 104,793 (17.0s) | 🟥 228,049 (49.5s) | ↔️ |
+| 1 | ↕️ | 🟩 549 (0.3s) | 🟨 2,703 (0.5s) | 🟧 10,622 (1.6s) | 🟧 22,601 (3.4s) | 🟧 22,559 (3.3s) | ↔️ | ↔️ |
+| 5 (default) | 🟩 103 (0.2s) | 🟩 545 (0.3s) | 🟨 2,663 (0.5s) | 🟨 4,586 (0.8s) | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that cell's own run -- not shown for skipped/plateau cells, which were never actually run.
