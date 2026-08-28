@@ -202,9 +202,9 @@ Adjust `-i` and `-w` to model heavier traffic. The table below illustrates how o
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | ↕️ | 🟩 1,163 | ↕️ | ↕️ | ↕️ | 🟥 239,867 | 🟥 597,228 | 🟥 1,192,726 |
-| 0.1 | ↕️ | 🟩 1,132 | 🟨 5,996 | 🟧 24,441 | 🟧 59,537 | 🟥 238,310 | 🟥 596,158 | 🟥 1,174,961 |
-| 0.6 (default) | ↕️ | 🟩 1,135 | 🟨 6,232 | 🟧 24,195 | 🟧 59,284 | 🟥 235,633 | 🟥 314,181 | 🟥 313,735 |
-| 1 | 🟩 256 | 🟩 1,265 | 🟨 6,031 | 🟧 23,764 | 🟧 59,984 | 🟥 189,418 | 🟥 187,295 | 🟥 187,971 |
+| 0.01 | ↕️ | ↕️ | ↕️ | ↕️ | ↕️ | 🟥 238,466 (13.7s) | 🟥 595,070 (44.6s) | 🟥 1,191,207 (124.2s) |
+| 0.1 | ↕️ | 🟩 1,132 (0.3s) | 🟨 5,996 (0.5s) | 🟧 24,053 (1.4s) | 🟧 59,337 (3.0s) | 🟥 238,627 (13.9s) | 🟥 592,779 (45.5s) | 🟥 1,177,570 (126.8s) |
+| 0.6 (default) | ↕️ | 🟩 1,135 (0.4s) | 🟨 5,950 (0.6s) | 🟧 24,127 (1.4s) | 🟧 58,963 (3.0s) | 🟥 233,506 (13.6s) | 🟥 312,107 (19.5s) | 🟥 311,298 (19.5s) |
+| 1 | 🟩 256 (0.3s) | 🟩 1,233 (0.4s) | 🟨 6,034 (0.6s) | 🟧 24,124 (1.4s) | 🟧 59,091 (3.1s) | 🟥 185,577 (10.5s) | 🟥 186,481 (10.5s) | 🟥 187,843 (10.5s) |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that cell's own run -- not shown for skipped/plateau cells, which were never actually run.

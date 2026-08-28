@@ -81,9 +81,9 @@ Adjust `-i` and `-w` to model a busier PBX. The table below illustrates how outp
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | ↕️ | 🟩 755 | 🟨 3,632 | 🟧 15,199 | 🟧 37,329 | 🟥 148,171 | 🟥 371,698 | 🟥 742,921 |
-| 0.1 | ↕️ | 🟩 717 | 🟨 3,615 | 🟧 14,953 | 🟧 36,938 | 🟥 147,531 | 🟥 213,583 | ↔️ |
-| 1 | 🟩 147 | 🟩 774 | 🟨 3,607 | 🟧 14,552 | 🟧 21,551 | ↔️ | ↔️ | ↔️ |
-| 30 (default) | 🟩 140 | 🟩 572 | 🟩 773 | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.01 | ↕️ | 🟩 755 (0.2s) | 🟨 3,632 (0.5s) | 🟧 15,199 (1.7s) | 🟧 37,329 (4.0s) | 🟥 148,171 (19.1s) | 🟥 371,580 (71.4s) | 🟥 744,224 (249.6s) |
+| 0.1 | ↕️ | 🟩 717 (0.3s) | 🟨 3,615 (0.5s) | 🟧 14,953 (1.6s) | 🟧 36,938 (4.0s) | 🟥 147,428 (20.2s) | 🟥 213,650 (34.4s) | ↔️ |
+| 1 | 🟩 147 (0.2s) | 🟩 774 (0.3s) | 🟨 3,607 (0.5s) | 🟧 14,552 (1.6s) | 🟧 21,551 (2.3s) | ↔️ | ↔️ | ↔️ |
+| 30 (default) | 🟩 140 (0.2s) | 🟩 572 (0.3s) | 🟩 773 (0.3s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that cell's own run -- not shown for skipped/plateau cells, which were never actually run.
