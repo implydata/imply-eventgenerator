@@ -68,7 +68,7 @@ The ecommerce presets (`ecommerce`, `ecommerce_lighting`, `ecommerce_furniture`)
 
 ### Volumes
 
-The top-level `volumes` object maps a small set of named output sizes (`tiny`, `x-small`, `small`, `medium`, `large`, `x-large`, `huge`) to target row-count caps. `--volume <name>` looks up that profile's `-i`/`-w` entry under its `volumes` key and uses it in place of any other default, and the volume name also becomes a path segment in the output directory (`<profile>/<template>/<volume>/...`), so runs at different volumes never collide on disk.
+The top-level `volumes` object maps a small set of named output sizes (`tiny`, `x-small`, `small`, `medium`, `large`, `x-large`, `huge`) to a `max_rows_per_day` cap each. `--volume <name>` looks up that profile's `-i`/`-w` entry under its own `volumes` key and uses it in place of any other default, and the volume name also becomes a path segment in the output directory (`<profile>/<template>/<volume>/...`), so runs at different volumes never collide on disk.
 
 Omitting `--volume` entirely is its own distinct mode, not shorthand for any named volume: **neither `-i` nor `-w` is passed to `generator.py` at all**, so it falls back to its own bare defaults — `DEFAULT_CONCURRENCY` (100) for `-w`, and whatever interarrival rate is already configured in the preset's own `event:start:timer` state for `-i`. The output path segment for this mode is the literal string `default`. This is deliberately *not* the same as any named volume's tuned settings — a profile's natural, un-overridden output can land above, below, or between the named tiers depending on its own ceiling, so `default` exists as its own thing rather than being folded into (or aliased to) one of them.
 
