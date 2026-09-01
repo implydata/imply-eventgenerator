@@ -96,9 +96,9 @@ Adjust `-i` to model heavier network traffic — `-w` won't help. The table belo
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | 🟥 2,161,840 (151.4s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
-| 0.1 | 🟨 215,364 (15.6s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
-| 0.3 (default) | 🟨 71,741 (5.2s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
-| 1 | 🟩 21,621 (1.7s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.01 | 🟥 2,161,840 (155.1s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.1 | 🟨 215,364 (16.0s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.3 (default) | 🟨 71,741 (5.6s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 1 | 🟩 21,621 (1.8s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
 
 💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that cell's own run -- not shown for skipped/plateau cells, which were never actually run.
