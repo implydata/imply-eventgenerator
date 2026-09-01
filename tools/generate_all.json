@@ -1,12 +1,12 @@
 {
   "volumes": {
-    "tiny": 100000,
-    "x-small": 300000,
-    "small": 1000000,
-    "medium": 3000000,
-    "large": 10000000,
-    "x-large": 30000000,
-    "huge": 100000000
+    "tiny": {"max_rows_per_day": 100000},
+    "x-small": {"max_rows_per_day": 300000},
+    "small": {"max_rows_per_day": 1000000},
+    "medium": {"max_rows_per_day": 3000000},
+    "large": {"max_rows_per_day": 10000000},
+    "x-large": {"max_rows_per_day": 30000000},
+    "huge": {"max_rows_per_day": 100000000}
   },
   "profiles": {
     "ecommerce": {
@@ -48,7 +48,8 @@
         {"name": "ocsf:http_activity", "ext": "json"}
       ],
       "volumes": {
-        "tiny": {"i": "4.4", "w": 355, "observed_max_rows_per_day": 97196, "observed_mean_rows_per_day": 87294, "test_window_days": 14, "tested_on": "2026-08-27"}
+        "tiny": {"i": "4.4", "w": 355, "observed_max_rows_per_day": 97196, "observed_mean_rows_per_day": 87294, "test_window_days": 14, "tested_on": "2026-08-27"},
+        "medium": {"i": "0.2044", "w": 8025, "observed_max_rows_per_day": 2912560, "observed_mean_rows_per_day": 2904566, "test_window_days": 7, "tested_on": "2026-09-01"}
       }
     },
     "ecommerce_furniture": {
@@ -69,7 +70,8 @@
         {"name": "ocsf:http_activity", "ext": "json"}
       ],
       "volumes": {
-        "tiny": {"i": "4.6", "w": 410, "observed_max_rows_per_day": 98912, "observed_mean_rows_per_day": 87138, "test_window_days": 14, "tested_on": "2026-08-27"}
+        "tiny": {"i": "4.6", "w": 410, "observed_max_rows_per_day": 98912, "observed_mean_rows_per_day": 87138, "test_window_days": 14, "tested_on": "2026-08-27"},
+        "medium": {"i": "0.2092", "w": 9466, "observed_max_rows_per_day": 2897292, "observed_mean_rows_per_day": 2891656, "test_window_days": 7, "tested_on": "2026-09-01"}
       }
     },
     "vpc_flow_logs": {
