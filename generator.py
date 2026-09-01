@@ -12,9 +12,13 @@ logger = logging.getLogger('ieg')
 
 DEFAULT_CONCURRENCY = 100
 
-MAX_WORKERS = 10000
-WORKERS_LOUD_WARNING_THRESHOLD = 8000
-WORKERS_WARNING_THRESHOLD = 5000
+# -w now bounds a simpy.Resource pool, not OS threads -- there's no
+# thread-creation ceiling to guard against any more (see ieg/core.py's
+# Clock/session_process/arrival_process, migrated off one-OS-thread-per-session
+# onto a single-threaded simpy event loop). This is a sanity bound against
+# fat-fingered input and genuinely unbounded memory growth for a config whose
+# natural ceiling is absurdly high, not a measured hardware limit.
+MAX_WORKERS = 1000000
 
 def validate_concurrency(value):
     try:
@@ -24,28 +28,6 @@ def validate_concurrency(value):
     if ivalue < 1 or ivalue > MAX_WORKERS:
         raise argparse.ArgumentTypeError(f"-w must be an integer between 1 and {MAX_WORKERS}.")
     return ivalue
-
-def warn_if_worker_count_risky(max_entities):
-    """OS thread-creation limits are a separate concern from Little's Law throttling —
-    a high enough -w can crash the process outright ("can't start new thread") well
-    before any data-volume ceiling is reached. Thresholds are round numbers, not a
-    measured guarantee: the real limit is machine- and load-dependent (see the -w
-    section of the README)."""
-    if max_entities > WORKERS_LOUD_WARNING_THRESHOLD:
-        logger.warning(
-            "⚠️  -w %d is very high. OS thread-creation limits can cause the process to "
-            "crash outright (\"can't start new thread\") well before this, and thread "
-            "contention slows the run sharply even when it doesn't crash. Lower -w or "
-            "raise -i instead if you need more volume.",
-            max_entities
-        )
-    elif max_entities > WORKERS_WARNING_THRESHOLD:
-        logger.warning(
-            "-w %d is high enough that OS thread-creation limits could become a factor "
-            "on constrained machines. If the run fails with \"can't start new thread\", "
-            "lower -w.",
-            max_entities
-        )
 
 def validate_start_interval(value):
     try:
@@ -198,7 +180,6 @@ def main(argv=None):
 
     runtime = args.time
     max_entities = int(args.concurrency)  # Convert to integer. Safe as there is a default.
-    warn_if_worker_count_risky(max_entities)
     total_recs = int(args.n_recs) if args.n_recs else None
 
     try:
