@@ -219,6 +219,42 @@ class State:
             return None
         return random.choices(self.transition_states, cum_weights=self._transition_cum_weights, k=1)[0]
 
+def estimate_session_length(states, start_state):
+    """Estimate how long a typical session lasts, from the state graph alone.
+
+    Walks the graph once from start_state, weighting each transition by its
+    probability and summing event:intermediate:timer means, but stops following
+    any branch that revisits a state already seen on that path -- so a loop
+    contributes only its first pass (`naive`). Separately tracks the probability
+    of reaching event:end without ever looping back (`p_escape`). Dividing the
+    two applies the geometric-series correction for a retry loop: exact for a
+    single homogeneous loop, an approximation when a graph has several loops at
+    different depths (each with its own escape dynamics) folded into one
+    aggregate p_escape.
+
+    Used to size the spawning thread's backoff cap (DataDriver._admission),
+    not for exact modelling -- a rough, self-derived estimate is enough there.
+    """
+    def walk(state, visited):
+        if state is None or state.type == 'event:end':
+            return 0.0, 1.0
+        if state.name in visited:
+            return 0.0, 0.0
+        visited = visited | {state.name}
+        own_delay = state.delay.mean() if state.type == 'event:intermediate:timer' else 0.0
+        delay_sum = 0.0
+        escape = 0.0
+        for t in state.transitions:
+            d, e = walk(states.get(t.next_state), visited)
+            delay_sum += t.probability * d
+            escape += t.probability * e
+        return own_delay + delay_sum, escape
+
+    naive, p_escape = walk(start_state, frozenset())
+    if p_escape <= 0:
+        return naive
+    return naive / p_escape
+
 class Controller:
     # Manages the simulation end conditions.
     # Tracks the total records generated and runtime duration.

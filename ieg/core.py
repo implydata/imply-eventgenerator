@@ -25,7 +25,7 @@ from ieg.dimensions import (
     get_variables,
 )
 from ieg.distributions import parse_distribution, parse_schedule
-from ieg.states import Controller, State, Transition
+from ieg.states import Controller, State, Transition, estimate_session_length
 from ieg.validate import validate_config
 
 logger = logging.getLogger('ieg')
@@ -266,6 +266,11 @@ class Clock:
         else: # Real time
             time.sleep(delta)
 
+# 2**40 times any realistic base interarrival sample already dwarfs any sane
+# backoff cap -- past this, spawning_thread's doublings clamp rather than
+# keep computing an ever-larger power for no further effect on the result.
+_MAX_BACKOFF_DOUBLINGS = 40
+
 class ElasticSemaphore:
     """A counting semaphore whose capacity can grow or shrink after construction.
 
@@ -457,6 +462,12 @@ class DataDriver:
             self._effective_max = self.max_entities
         self._admission = ElasticSemaphore(self._effective_max)
 
+        # Backoff cap for spawning_thread's admission retries (see spawning_thread) --
+        # never worth checking more often than roughly how long a session itself
+        # takes, so a self-derived estimate from the state graph is enough.
+        self._estimated_session_length = estimate_session_length(self.states, self.initial_state)
+        self._consecutive_admission_fails = 0
+
 
     def render_record(self, record):
         """Render a record as a Jinja2 template string, or plain JSON if no template is active."""
@@ -571,11 +582,20 @@ class DataDriver:
         """Spawn worker threads at the rate set by the event:start:timer's cardinality_distribution."""
         self.global_clock.activate_thread()
 
-        # Ticks at the interarrival pace unconditionally — whether or not a slot was
-        # free — so admission is always checked live against the current permit
-        # count, never on a slower fixed retry. That's what gives a freed slot to
-        # the very next interarrival tick instead of leaving it idle for up to a
-        # fixed retry interval.
+        # Ticks at the interarrival pace whenever a slot is free — so admission is
+        # always checked live against the current permit count, giving a freed
+        # slot to the very next interarrival tick. On a run of consecutive
+        # rejections (the pool is saturated well beyond -w's natural ceiling),
+        # the wait between checks doubles each time instead, capped at 75% of
+        # estimated_session_length / effective_max. That's the expected time to
+        # the *next* completion among effective_max sessions all in flight at
+        # once, not one session's own duration — the standard result for the
+        # minimum of effective_max ~independent residual service times, which
+        # scales down with occupancy exactly where an occupancy-blind cap
+        # doesn't. (_MAX_BACKOFF_DOUBLINGS guards against computing 2**huge once
+        # far past that cap.) Still far better than the old fixed 5-second poll,
+        # but no longer ticking at full cadence through a stretch where every
+        # single check is known to fail.
         while not self.sim_control.is_done():
             if self.schedule:
                 effective_max = max(1, int(self.max_entities * self.schedule.get_multiplier()))
@@ -587,7 +607,9 @@ class DataDriver:
                         self._admission.shrink(-delta)
                     self._effective_max = effective_max
 
+            spawned = False
             if self._admission.try_acquire():
+                spawned = True
                 thread_name = 'W'+str(self.sim_control.get_entity_count())
                 self.sim_control.add_entity()
                 t = threading.Thread(target=self.worker_thread, name=thread_name, daemon=True)
@@ -608,7 +630,17 @@ class DataDriver:
                     )
                     self.global_clock.end_thread()
                     return
-            self.global_clock.sleep(float(self.rate_delay.get_sample()))
+
+            base_sample = float(self.rate_delay.get_sample())
+            if spawned:
+                self._consecutive_admission_fails = 0
+                sleep_amount = base_sample
+            else:
+                cap = max(0.75 * self._estimated_session_length / self._effective_max, base_sample)
+                doublings = min(self._consecutive_admission_fails, _MAX_BACKOFF_DOUBLINGS)
+                sleep_amount = min(base_sample * (2 ** doublings), cap)
+                self._consecutive_admission_fails += 1
+            self.global_clock.sleep(sleep_amount)
 
         # shut off clock simulator
         self.global_clock.end_thread()
