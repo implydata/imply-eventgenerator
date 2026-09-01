@@ -1,21 +1,21 @@
 """Core engine: Clock, DataDriver, and record rendering.
 
-Clock manages simulated and real-time scheduling across worker threads.
-DataDriver is the top-level driver: it parses a generator config, builds the
-state machine, spawns worker threads, and writes rendered records to stdout.
+Clock manages simulated and real-time scheduling for a single-threaded simpy
+event loop. DataDriver is the top-level driver: it parses a generator config,
+builds the state machine, runs one simpy process per session, and writes
+rendered records to stdout.
 """
 
-import heapq
 import json
 import logging
 import os
 import sys
 import threading
-import time
 from datetime import datetime, timedelta
-from typing import ClassVar
 
 import isodate
+import simpy
+import simpy.rt
 from jinja2 import Environment, Undefined, UndefinedError
 
 from ieg.dimensions import (
@@ -25,7 +25,7 @@ from ieg.dimensions import (
     get_variables,
 )
 from ieg.distributions import parse_distribution, parse_schedule
-from ieg.states import Controller, State, Transition, estimate_session_length
+from ieg.states import Controller, State, Transition
 from ieg.validate import validate_config
 
 logger = logging.getLogger('ieg')
@@ -79,253 +79,61 @@ def _bucket_start(bucket, interval_seconds):
     """
     return _EPOCH + timedelta(seconds=bucket * interval_seconds)
 
-class FutureEvent:
-    """A future event in the simulation clock, used to manage simulated time ordering."""
-
-    def __init__(self, t):
-        self.t = t
-        self.name = threading.current_thread().name
-        self.event = threading.Event()
-    def get_time(self):
-        """Return the scheduled time of this event."""
-        return self.t
-
-    def get_name(self):
-        """Return the thread name that created this event."""
-        return self.name
-
-    def __lt__(self, other):
-        return self.t < other.t
-
-    def __eq__(self, other):
-        return self.t == other.t
-
-    def __str__(self):
-        return 'FutureEvent('+self.name+', '+str(self.t)+')'
-
-    def pause(self):
-        """Block the current thread until this event is resumed."""
-        logger.debug("%s pausing", self.name)
-        self.event.clear()
-        self.event.wait()
-
-    def resume(self):
-        """Unblock the thread waiting on this event."""
-        logger.debug("%s resuming", self.name)
-        self.event.set()
-
 class Clock:
-    """Manages time for all worker threads, supporting real-time and simulated modes.
+    """Manages simulated or real time for the engine's simpy-based event loop.
 
-    In simulated mode (time_type != 'REAL'), threads coordinate via a shared
-    event queue (a heap, ordered by scheduled time): each sleeping thread
-    registers a FutureEvent, and only the thread
-    with the earliest scheduled time is allowed to run. This produces deterministic,
-    serialised output when combined with --seed.
+    Backed by a simpy.Environment (virtual time, SIM mode) or
+    simpy.rt.RealtimeEnvironment (paced to actual wall-clock time, REAL mode).
+    Turn-ordering across concurrently-scheduled sessions is handled entirely by
+    simpy's own event queue — every session is a coroutine in one single-
+    threaded event loop, not an OS thread, so there is no separate
+    thread-coordination protocol to hand-roll here the way there used to be.
 
-    In real-time mode, sleep() delegates to time.sleep() with no coordination.
+    SIM_TO_REAL (switching from simulated to real-time pacing partway through
+    a run) is not supported by this implementation: simpy.Environment and
+    simpy.rt.RealtimeEnvironment are different pacing engines and a running
+    Environment can't be handed over to one mid-run. A config that actually
+    needs this has no equivalent here yet — flag it rather than assume it's
+    unused, since nothing in this repo's own CLI path sets it, but that
+    doesn't rule out an external caller.
     """
 
-    future_events: ClassVar[list] = []
-    active_threads = 0
-    lock = threading.Lock()
-    sleep_lock = threading.Lock()
-
-    def __init__(self, time_type, start_time = datetime.now()):
-        self.sim_time = start_time
-        self.start_time = start_time
+    def __init__(self, time_type, start_time=None):
         self.time_type = time_type
+        self.start_time = start_time if start_time is not None else datetime.now()
+        if time_type == 'REAL':
+            # factor=1: one real second per simulated second. strict=False: a
+            # step that runs behind schedule logs instead of raising -- this
+            # engine has no hard real-time deadline to enforce.
+            self.env = simpy.rt.RealtimeEnvironment(factor=1.0, strict=False)
+        else:
+            self.env = simpy.Environment()
 
     def __str__(self):
-        s = 'Clock(time='+str(self.sim_time)
-        for e in self.future_events:
-            s += ', '+str(e)
-        s += ')'
-        return s
+        return f'Clock(time={self.now()})'
 
     def get_duration(self):
         """Return elapsed seconds since the clock started."""
-        time_delta = self.now() - self.start_time
-        return time_delta.total_seconds()
+        return self.env.now
 
     def get_start_time(self):
         """Return the start time of this clock."""
         return self.start_time
 
-    def activate_thread(self):
-        """Register a thread as active for simulated time coordination.
-
-        Joins through the same heap/pause-resume protocol sleep() uses,
-        registered at the *current* sim_time (zero delay) rather than a
-        future one — if another thread might currently hold the turn, this
-        one waits its turn instead of proceeding immediately. Without this,
-        a freshly-started thread could run concurrently, in real time, with
-        whichever thread currently holds the turn — racing it for the
-        Clock's lock regardless of simulated time order, since the previous
-        version incremented active_threads and returned with no
-        synchronization at all. Unlike sleep(), this never advances
-        self.sim_time on resume: joining doesn't represent time passing,
-        and time may have already moved on while this thread waited.
-        """
-        if self.time_type != 'REAL':
-            self.lock.acquire()
-            self.active_threads += 1
-            this_event = self.add_event(self.sim_time)
-            if self.active_threads == 1:
-                next_event = self.remove_event()
-                if this_event is not next_event:
-                    self.resume(next_event)
-                    self.pause(this_event)
-            else:
-                self.pause(this_event)
-            self.lock.release()
-
-    def deactivate_thread(self):
-        """Unregister a thread from simulated time coordination."""
-        if self.time_type != 'REAL':
-            self.lock.acquire()
-            self.active_threads -= 1
-            self.lock.release()
-
-    def end_thread(self):
-        """Unregister a thread and resume the next pending event if any."""
-        if self.time_type != 'REAL':
-            self.lock.acquire()
-            self.active_threads -= 1
-            if len(self.future_events) > 0:
-                self.remove_event().resume()
-            self.lock.release()
-
-    def release_all(self):
-        """Resume all pending future events."""
-        if self.time_type != 'REAL':
-            self.lock.acquire()
-            logger.debug("release_all - active_threads = %d", self.active_threads)
-            for e in self.future_events:
-                e.resume()
-            self.lock.release()
-
-    def add_event(self, future_t):
-        """Schedule a new future event at the given time and return it."""
-        this_event = FutureEvent(future_t)
-        heapq.heappush(self.future_events, this_event)
-        logger.debug("add_event (after) %s - %s", threading.current_thread().name, self)
-        return this_event
-
-    def remove_event(self):
-        """Remove and return the earliest future event."""
-        logger.debug("remove_event (before) %s - %s", threading.current_thread().name, self)
-        return heapq.heappop(self.future_events)
-
-    def pause(self, event):
-        """Pause the current thread on the given event, releasing the lock while waiting."""
-        self.active_threads -= 1
-        self.lock.release()
-        event.pause()
-        self.lock.acquire()
-        self.active_threads += 1
-
-    def resume(self, event):
-        """Resume a paused event."""
-        event.resume()
-
     def now(self) -> datetime:
         """Return the current time (simulated or real depending on mode)."""
-        if self.time_type != 'REAL':
-            t = self.sim_time
-        else:
-            t = datetime.now()
-        return t
+        return self.start_time + timedelta(seconds=self.env.now)
 
     def sleep(self, delta):
-        """Sleep for delta seconds. In simulated mode, advances sim time instead of waiting."""
+        """Generator: `yield from clock.sleep(delta)` advances time by delta seconds.
+
+        Must be driven from within a simpy process (a generator running under
+        this Clock's own env) — see DataDriver.session_process/arrival_process.
+        """
         if delta <= 0:
             return
-        if self.time_type != 'REAL': # Simulated time
-            self.lock.acquire()
-            logger.debug("%s begin sleep %s + %s", threading.current_thread().name, self.sim_time, delta)
-            this_event = self.add_event(self.sim_time + timedelta(seconds=delta))
-            logger.debug("%s active threads %d", threading.current_thread().name, self.active_threads)
-            if self.active_threads == 1:
-                next_event = self.remove_event()
-                if this_event is not next_event:
-                    self.resume(next_event)
-                    logger.debug("%s start pause if", threading.current_thread().name)
-                    self.pause(this_event)
-                    logger.debug("%s end pause if", threading.current_thread().name)
-            else:
-                logger.debug("%s start pause else", threading.current_thread().name)
-                self.pause(this_event)
-                logger.debug("%s end pause else", threading.current_thread().name)
-            self.sim_time = this_event.get_time()
-            self.lock.release()
-            # if new time is past current time and the simulation is SIM_REAL, switch to REAL and continue in real-time
-            if self.time_type == 'SIM_TO_REAL' and self.sim_time > datetime.now():
-                self.time_type = 'REAL'
-                self.sim_time = datetime.now()
-        else: # Real time
-            time.sleep(delta)
+        yield self.env.timeout(delta)
 
-# 2**40 times any realistic base interarrival sample already dwarfs any sane
-# backoff cap -- past this, spawning_thread's doublings clamp rather than
-# keep computing an ever-larger power for no further effect on the result.
-_MAX_BACKOFF_DOUBLINGS = 40
-
-class ElasticSemaphore:
-    """A counting semaphore whose capacity can grow or shrink after construction.
-
-    Gates -w admission (see DataDriver.spawning_thread). Growing adds permits
-    immediately. Shrinking never revokes a permit already held by running
-    work — it reclaims currently-unused permits first, and withholds only the
-    remainder from future release() calls, so already-admitted work always
-    runs to completion; only new admissions are throttled, until the
-    held-back amount is repaid. Clock-agnostic by design: admission is a pure
-    counting problem, unrelated to simulated vs. real time.
-    """
-    def __init__(self, value):
-        self._lock = threading.Lock()
-        self._available = value
-        self._held_back = 0
-
-    def try_acquire(self):
-        """Attempt to acquire a permit without blocking. Returns True if acquired."""
-        with self._lock:
-            if self._available > 0:
-                self._available -= 1
-                return True
-            return False
-
-    def release(self):
-        """Return a permit. Silently absorbed instead if capacity is currently
-        shrinking (held_back > 0), so a shrink can never be outrun by growth
-        that lands while it's still being repaid — see grow()."""
-        with self._lock:
-            if self._held_back > 0:
-                self._held_back -= 1
-            else:
-                self._available += 1
-
-    def grow(self, n):
-        """Increase capacity by n permits. Cancels any pending shrink first —
-        otherwise growth while a shrink hasn't fully landed could let new
-        admissions outrun the actual target capacity."""
-        if n <= 0:
-            return
-        with self._lock:
-            cancel = min(n, self._held_back)
-            self._held_back -= cancel
-            self._available += (n - cancel)
-
-    def shrink(self, n):
-        """Decrease capacity by n permits. Takes back currently-unused permits
-        first (immediate effect, nothing running is affected); anything left
-        is withheld from future release() calls instead."""
-        if n <= 0:
-            return
-        with self._lock:
-            from_available = min(n, self._available)
-            self._available -= from_available
-            self._held_back += (n - from_available)
 
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
@@ -345,7 +153,6 @@ class DataDriver:
         self.status_msg = 'Creating...'
         self.header = None
         self.jinja_template = None
-        self.fatal_error = None
 
         if partition_interval is None:
             self.partition_interval = None
@@ -454,19 +261,27 @@ class DataDriver:
         timer_desc = next(s for s in state_desc if s.get('type') == 'event:start:timer')
         self.rate_delay = parse_distribution(timer_desc['cardinality_distribution'], clock=self.global_clock)
 
-        # Admission gate for -w: grown/shrunk to track the schedule's effective_max
-        # over time (see spawning_thread) rather than resized — see ElasticSemaphore.
+        # Admission gate for -w: a session either gets a free pool slot
+        # immediately or waits, woken the instant one releases -- no polling,
+        # no retry loop, no rejection path to back off from. effective_max is
+        # tracked separately from pool.capacity (a read-only property; see
+        # _update_effective_max) purely so schedule changes only need to
+        # compute a delta against the last-known value.
         if self.schedule:
             self._effective_max = max(1, int(self.max_entities * self.schedule.get_multiplier()))
         else:
             self._effective_max = self.max_entities
-        self._admission = ElasticSemaphore(self._effective_max)
+        self._pool = simpy.Resource(self.global_clock.env, capacity=self._effective_max)
 
-        # Backoff cap for spawning_thread's admission retries (see spawning_thread) --
-        # never worth checking more often than roughly how long a session itself
-        # takes, so a self-derived estimate from the state graph is enough.
-        self._estimated_session_length = estimate_session_length(self.states, self.initial_state)
-        self._consecutive_admission_fails = 0
+        # Every currently-running arrival_process/session_process, so _end_run
+        # can force them all to wake immediately once is_done() becomes true —
+        # in SIM mode this is a no-op (waking early vs. naturally makes no
+        # real-world time difference), but in REAL mode a session/the arrival
+        # loop can otherwise sit waiting on an already-scheduled future delay
+        # for real wall-clock seconds after the last record has already been
+        # written, well past when the run should actually end.
+        self._active_procs = []
+        self._ending = False
 
 
     def render_record(self, record):
@@ -494,48 +309,103 @@ class DataDriver:
         for d in dimensions:
             variables[d.name] = d.get_stochastic_value()
 
-    def worker_thread(self):
-        """Process the state machine, generating records and sending them to the output target."""
-        self.global_clock.activate_thread()
-        current_state = self.initial_state
-        variables = {}
-        while True:
-            if current_state is None:
-                raise RuntimeError("Unexpected error: current state of the state machine is None.")
-            if current_state.type == 'event:start:timer':
-                logger.debug("Thread %s starting process instance", threading.current_thread().name)
-            # Process delay
-            delta = float(current_state.delay.get_sample())
-            self.global_clock.sleep(delta)
-            self.status_msg=f"Running, Sim Clock: {self.global_clock.now()}"
-            # Set variables (activities only; evaluated before emission)
-            self.set_variable_values(variables, current_state.variables)
-            # Only emit record if state has dimensions (emitter was specified)
-            if current_state.dimensions is not None:
-                record = self.create_record(current_state.dimensions, variables)
-                formatted_record = self.render_record(record)
-                self._emit(formatted_record, self.global_clock.now())
-                self.sim_control.inc_rec_count()
-            if self.sim_control.is_done():
-                break
-            next_state_name = current_state.get_next_state_name()
-            if next_state_name is None:
-                break
-            next_state = self.states.get(next_state_name)
-            if next_state is None or next_state.type == 'event:end':
-                logger.debug("Thread %s reached event:end", threading.current_thread().name)
-                break
-            current_state = next_state
+    def _end_run(self):
+        """Force every currently-running process to wake immediately, once
+        (guarded by self._ending), instead of waiting out its own natural
+        future delay -- see the comment on self._active_procs in __init__ for
+        why. Safe to call from any process, including one of the ones being
+        interrupted: a process can't interrupt itself, so it's skipped, but it
+        already knows to stop (it just called this from its own is_done()
+        check) and will exit on its own.
+        """
+        if self._ending:
+            return
+        self._ending = True
+        logger.debug("_end_run: interrupting %d active procs at sim time %s",
+                     len(self._active_procs), self.global_clock.now())
+        for proc in list(self._active_procs):
+            if proc.is_alive:
+                try:
+                    proc.interrupt()
+                    logger.debug("_end_run: interrupted %s", proc)
+                except RuntimeError:
+                    logger.debug("_end_run: could not interrupt %s (self or already terminated)", proc)
 
-        # Release the permit and drop the entity count *before* giving up the
-        # Clock's turn (end_thread) — once that hands off to whichever thread
-        # runs next, this thread is still real and keeps executing, so doing
-        # this after would race with spawning_thread's very next admission
-        # check on the same permit, with the outcome depending on real OS
-        # thread scheduling rather than simulated time.
-        self._admission.release()
-        self.sim_control.remove_entity()
-        self.global_clock.end_thread()
+    def session_process(self):
+        """A simpy process: wait for a free pool slot, then walk the state
+        machine, generating records and sending them to the output target.
+
+        Manages the pool request explicitly rather than via `with
+        pool.request() as req:` — a request interrupted before it's granted
+        must be cancel()'d, not release()'d: releasing a request simpy never
+        actually granted still triggers a fresh _trigger_put() scan as a side
+        effect, which can admit a *different*, still-queued session that
+        _end_run's interrupt sweep already passed over — an uninterrupted,
+        untracked session left running after the run was supposed to end.
+        """
+        proc = self.global_clock.env.active_process
+        self._active_procs.append(proc)
+        logger.debug("session_process %s: requesting a pool slot at sim time %s", proc, self.global_clock.now())
+        req = self._pool.request()
+        try:
+            try:
+                yield req
+            except simpy.Interrupt:
+                logger.debug("session_process %s: interrupted while queued, cancelling request", proc)
+                req.cancel()
+                return
+            self.sim_control.add_entity()
+            logger.debug("session_process %s: admitted at sim time %s", proc, self.global_clock.now())
+            try:
+                # This session may have been queued for a while; the
+                # record-count or runtime end condition could have been
+                # reached before its turn came. Check before doing any real
+                # work, not just at each step below, so a backlog of queued
+                # sessions drains quickly instead of each one doing a full
+                # run for nothing.
+                if self.sim_control.is_done():
+                    logger.debug("session_process %s: is_done() already true on admission, exiting without running", proc)
+                    self._end_run()
+                    return
+                current_state = self.initial_state
+                variables = {}
+                while True:
+                    if current_state is None:
+                        raise RuntimeError("Unexpected error: current state of the state machine is None.")
+                    # Process delay
+                    delta = float(current_state.delay.get_sample())
+                    try:
+                        yield from self.global_clock.sleep(delta)
+                    except simpy.Interrupt:
+                        logger.debug("session_process %s: interrupted mid-delay at state %s, exiting", proc, current_state.name)
+                        break
+                    self.status_msg = f"Running, Sim Clock: {self.global_clock.now()}"
+                    # Set variables (activities only; evaluated before emission)
+                    self.set_variable_values(variables, current_state.variables)
+                    # Only emit record if state has dimensions (emitter was specified)
+                    if current_state.dimensions is not None:
+                        record = self.create_record(current_state.dimensions, variables)
+                        formatted_record = self.render_record(record)
+                        self._emit(formatted_record, self.global_clock.now())
+                        self.sim_control.inc_rec_count()
+                    if self.sim_control.is_done():
+                        logger.debug("session_process %s: is_done() became true after emitting, ending run", proc)
+                        self._end_run()
+                        break
+                    next_state_name = current_state.get_next_state_name()
+                    if next_state_name is None:
+                        break
+                    next_state = self.states.get(next_state_name)
+                    if next_state is None or next_state.type == 'event:end':
+                        break
+                    current_state = next_state
+            finally:
+                self.sim_control.remove_entity()
+                self._pool.release(req)
+                logger.debug("session_process %s: released its pool slot", proc)
+        finally:
+            self._active_procs.remove(proc)
+            logger.debug("session_process %s: exited, %d active procs remain", proc, len(self._active_procs))
 
     def _emit(self, formatted_record, record_time):
         """Print formatted_record. Before the first record ever printed — and, once
@@ -578,89 +448,85 @@ class DataDriver:
                 sys.stdout.write(str(line) + '\n')
             sys.stdout.flush()
 
-    def spawning_thread(self):
-        """Spawn worker threads at the rate set by the event:start:timer's cardinality_distribution."""
-        self.global_clock.activate_thread()
+    def _update_effective_max(self):
+        """Grow or shrink the pool to match the schedule's current multiplier.
 
-        # Ticks at the interarrival pace whenever a slot is free — so admission is
-        # always checked live against the current permit count, giving a freed
-        # slot to the very next interarrival tick. On a run of consecutive
-        # rejections (the pool is saturated well beyond -w's natural ceiling),
-        # the wait between checks doubles each time instead, capped at 75% of
-        # estimated_session_length / effective_max. That's the expected time to
-        # the *next* completion among effective_max sessions all in flight at
-        # once, not one session's own duration — the standard result for the
-        # minimum of effective_max ~independent residual service times, which
-        # scales down with occupancy exactly where an occupancy-blind cap
-        # doesn't. (_MAX_BACKOFF_DOUBLINGS guards against computing 2**huge once
-        # far past that cap.) Still far better than the old fixed 5-second poll,
-        # but no longer ticking at full cadence through a stretch where every
-        # single check is known to fail.
-        while not self.sim_control.is_done():
-            if self.schedule:
-                effective_max = max(1, int(self.max_entities * self.schedule.get_multiplier()))
-                if effective_max != self._effective_max:
-                    delta = effective_max - self._effective_max
-                    if delta > 0:
-                        self._admission.grow(delta)
-                    else:
-                        self._admission.shrink(-delta)
-                    self._effective_max = effective_max
+        capacity is a read-only property wrapping simpy.Resource's own
+        _capacity, so growing means bumping _capacity and calling
+        _trigger_put(None) to wake anyone already queued now that there's
+        room; shrinking just lowers _capacity. That's the whole mechanism --
+        no held-back bookkeeping needed, because simpy.Resource only ever
+        checks capacity for *new* requests (_do_put); a session already
+        granted a slot is never touched, so shrinking can never interrupt
+        in-flight work.
+        """
+        if not self.schedule:
+            return
+        effective_max = max(1, int(self.max_entities * self.schedule.get_multiplier()))
+        if effective_max != self._effective_max:
+            delta = effective_max - self._effective_max
+            self._pool._capacity += delta
+            if delta > 0:
+                self._pool._trigger_put(None)
+            self._effective_max = effective_max
 
-            spawned = False
-            if self._admission.try_acquire():
-                spawned = True
-                thread_name = 'W'+str(self.sim_control.get_entity_count())
-                self.sim_control.add_entity()
-                t = threading.Thread(target=self.worker_thread, name=thread_name, daemon=True)
+    def arrival_process(self):
+        """A simpy process: start one new session_process at the rate set by
+        the event:start:timer's cardinality_distribution.
+
+        Arrivals are unconditional -- there's no admission check here at all,
+        and so no rejection path to retry or back off from. Each spawned
+        session_process waits for its own pool slot if one isn't immediately
+        free, woken the instant one releases.
+        """
+        proc = self.global_clock.env.active_process
+        self._active_procs.append(proc)
+        try:
+            while not self.sim_control.is_done():
+                delta = float(self.rate_delay.get_sample())
                 try:
-                    t.start()
-                except RuntimeError as e:
-                    # Hit an OS thread-creation limit (e.g. macOS kern.num_taskthreads,
-                    # Linux RLIMIT_NPROC) — an operating-system ceiling, not a data-volume
-                    # one. spawning_thread runs off the main thread, so this must be handed
-                    # back via self.fatal_error rather than raised here, or it would just
-                    # print a traceback and the run would silently report success.
-                    self.sim_control.remove_entity()
-                    self._admission.release()
-                    self.fatal_error = RuntimeError(
-                        f"Hit the operating system's thread-creation limit at "
-                        f"{self.sim_control.get_entity_count()} active workers (-w {self.max_entities}). "
-                        f"Lower -w and retry — this is an OS limit, not a data-volume limit. ({e})"
-                    )
-                    self.global_clock.end_thread()
-                    return
-
-            base_sample = float(self.rate_delay.get_sample())
-            if spawned:
-                self._consecutive_admission_fails = 0
-                sleep_amount = base_sample
-            else:
-                cap = max(0.75 * self._estimated_session_length / self._effective_max, base_sample)
-                doublings = min(self._consecutive_admission_fails, _MAX_BACKOFF_DOUBLINGS)
-                sleep_amount = min(base_sample * (2 ** doublings), cap)
-                self._consecutive_admission_fails += 1
-            self.global_clock.sleep(sleep_amount)
-
-        # shut off clock simulator
-        self.global_clock.end_thread()
+                    yield from self.global_clock.sleep(delta)
+                except simpy.Interrupt:
+                    logger.debug("arrival_process: interrupted at sim time %s", self.global_clock.now())
+                    break
+                self._update_effective_max()
+                new_proc = self.global_clock.env.process(self.session_process())
+                logger.debug("arrival_process: spawned %s at sim time %s", new_proc, self.global_clock.now())
+            self._end_run()
+        finally:
+            self._active_procs.remove(proc)
 
     def get_new_time_for_record(self):
         """Return the current clock time formatted as a string."""
         return self.global_clock.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
     def simulate(self):
-        """Start the simulation, spawning workers and running until completion."""
+        """Start the simulation, running until completion.
+
+        Steps the env manually rather than calling env.run() (which runs
+        until its event queue is empty): interrupting a process (_end_run)
+        detaches it from whatever event it was waiting on, but doesn't
+        remove that event from the queue -- it stays there, scheduled for
+        its original time, and simpy runs it anyway once nothing is left
+        that's earlier (a harmless no-op, since the interrupted process's
+        callback was already detached). In SIM mode that costs nothing --
+        processing a no-op event doesn't advance real time. In REAL mode it
+        costs exactly what it would have without the interrupt: step() still
+        sleeps in real wall-clock time until that event's original moment,
+        for every such leftover event, one at a time. Checking the real stop
+        condition (is_done() and no active procs left) before each step(),
+        rather than relying on the queue draining naturally, means the loop
+        exits the instant nothing meaningful remains, instead of after
+        waiting out however many orphaned events happen to still be queued.
+        """
         self.status_msg = f'Starting {self.type} job.'
-        thread_name = 'Spawning'
-        thrd = threading.Thread(target=self.spawning_thread, args=(), name=thread_name, daemon=True)
-        thrd.start()
-        thrd.join()
-        # spawning_thread runs off the main thread — an exception raised there would
-        # otherwise just print a traceback and let this method return normally, making
-        # a crashed run look like it completed. Re-raise here so it actually fails.
-        if self.fatal_error is not None:
-            raise self.fatal_error
+        env = self.global_clock.env
+        env.process(self.arrival_process())
+        while self._active_procs or not self.sim_control.is_done():
+            try:
+                env.step()
+            except simpy.core.EmptySchedule:
+                break
 
     def terminate(self):
         """Terminate the simulation."""

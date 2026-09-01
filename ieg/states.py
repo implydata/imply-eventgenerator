@@ -11,7 +11,6 @@ import itertools
 import logging
 import random
 import threading
-import time
 
 import isodate
 
@@ -306,17 +305,22 @@ class Controller:
                 or ((self.t is not None) and ((self.get_duration() > self.t) or self.thread_end_event.is_set()))
 
     def wait_for_end(self):
-        if self.t is not None:
-            self.global_clock.activate_thread()
-            self.global_clock.sleep(self.t)
-            self.thread_end_event.set()
-            self.global_clock.deactivate_thread()
-        elif self.total_recs is not None:
-            self.thread_end_event.wait()
-            self.global_clock.release_all()
-        else:
-            while True:
-                time.sleep(60)
+        """Generator: `yield from controller.wait_for_end()` blocks, within the
+        simpy event loop, until this run's end condition is reached.
+
+        No callers within this repo as of the simpy migration (ieg/core.py's
+        arrival_process/session_process already check is_done() directly
+        wherever it matters). The old implementation relied on cross-thread
+        signaling — a dedicated OS thread blocking on a threading.Event or a
+        bare time.sleep(60) loop — which has no equivalent in a
+        single-threaded event loop; adapted here to poll is_done() via the
+        same Clock every caller already has, rather than removed, in case
+        something outside this repo depends on it. Confirm this still meets
+        your needs if so.
+        """
+        while not self.is_done():
+            yield from self.global_clock.sleep(1.0)
+        self.thread_end_event.set()
 
     def get_duration(self):
         return self.global_clock.get_duration()
