@@ -122,9 +122,9 @@ Adjust `-i` and `-w` to model heavier corporate web traffic. The table below ill
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | ↕️ | ↕️ | 🟨 26,073 | 🟧 104,669 | 🟧 261,686 | 🟥 1,046,233 | 🟥 2,615,899 | ⏱️ |
-| 0.1 | ↕️ | 🟩 5,174 | 🟨 26,302 | 🟧 104,560 | 🟧 261,316 | 🟥 863,606 | ↔️ | ↔️ |
-| 1 | 🟩 1,112 | 🟩 5,187 | 🟨 25,932 | 🟧 84,833 | 🟧 86,804 | ↔️ | ↔️ | ↔️ |
-| 5 (default) | 🟩 1,110 | 🟩 5,095 | 🟨 16,973 | 🟨 16,979 | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.01 | ↕️ | ↕️ | 🟨 26,745 (11.3s) | 🟧 108,141 (20.0s) | 🟧 270,440 (37.3s) | 🟥 1,080,327 (141.2s) | 🟥 2,699,778 (414.4s) | ⏱️ |
+| 0.1 | 🟩 1,101 (1.1s) | 🟩 5,344 (1.5s) | 🟨 26,826 (3.6s) | 🟧 107,686 (11.0s) | 🟧 269,859 (26.3s) | 🟥 864,224 (88.5s) | ↔️ | ↔️ |
+| 1 | 🟩 1,047 (0.4s) | 🟩 5,333 (0.8s) | 🟨 26,356 (2.6s) | 🟧 85,689 (7.6s) | 🟧 86,700 (7.7s) | ↔️ | ↔️ | ↔️ |
+| 5 (default) | 🟩 1,041 (0.5s) | 🟩 4,990 (0.7s) | 🟨 17,211 (1.7s) | 🟨 17,226 (1.7s) | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that cell's own run -- not shown for skipped/plateau cells, which were never actually run.

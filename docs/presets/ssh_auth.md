@@ -79,9 +79,9 @@ Adjust `-i` and `-w` to model heavier SSH traffic. The table below illustrates h
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | ↕️ | 🟩 803 | ↕️ | 🟧 13,939 | 🟧 35,860 | 🟥 144,837 | 🟥 357,017 | 🟥 712,843 |
-| 0.1 | ↕️ | 🟩 584 | 🟨 3,694 | 🟧 14,312 | 🟧 35,888 | 🟥 141,811 | 🟥 353,328 | 🟥 533,909 |
-| 1 | ↕️ | 🟩 775 | 🟨 3,580 | 🟧 14,372 | 🟧 35,435 | 🟧 54,119 | ↔️ | ↔️ |
-| 10 (default) | 🟩 136 | 🟩 769 | 🟨 3,541 | 🟨 5,450 | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.01 | 🟩 217 (6.1s) | ↕️ | 🟨 3,801 (7.0s) | 🟧 14,517 (8.2s) | 🟧 35,835 (10.1s) | 🟥 142,726 (20.2s) | 🟥 358,746 (55.9s) | 🟥 713,995 (165.8s) |
+| 0.1 | 🟩 194 (0.8s) | 🟩 739 (0.8s) | 🟨 3,555 (1.0s) | 🟧 14,144 (1.8s) | 🟧 35,361 (3.3s) | 🟥 142,862 (12.3s) | 🟥 355,107 (42.8s) | 🟥 533,962 (83.0s) |
+| 1 | 🟩 161 (0.2s) | 🟩 768 (0.3s) | 🟨 3,651 (0.4s) | 🟧 14,162 (1.0s) | 🟧 34,676 (2.3s) | 🟧 53,360 (3.4s) | ↔️ | ↔️ |
+| 10 (default) | 🟩 130 (0.2s) | 🟩 717 (0.2s) | 🟨 3,306 (0.3s) | 🟨 5,371 (0.4s) | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect.
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that cell's own run -- not shown for skipped/plateau cells, which were never actually run.
