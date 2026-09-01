@@ -30,6 +30,9 @@ class DistConstant:
     def get_sample(self):
         """Return the constant value."""
         return self.value
+    def mean(self):
+        """Return the distribution's mean."""
+        return self.value
 
     @staticmethod
     def validate_desc(desc, context):
@@ -51,6 +54,9 @@ class DistUniform:
     def get_sample(self):
         """Return a uniformly distributed random value between min and max."""
         return np.random.uniform(self.min_value, self.max_value+1)
+    def mean(self):
+        """Return the distribution's mean."""
+        return (self.min_value + self.max_value) / 2
 
     @staticmethod
     def validate_desc(desc, context):
@@ -75,12 +81,15 @@ class DistExponential:
     Represents an exponential distribution with a given mean.
     """
     def __init__(self, mean):
-        self.mean = mean
+        self._mean = mean
     def __str__(self):
-        return 'DistExponential(mean='+str(self.mean)+')'
+        return 'DistExponential(mean='+str(self._mean)+')'
     def get_sample(self):
         """Return an exponentially distributed random value with the configured mean."""
-        return np.random.exponential(scale=self.mean)
+        return np.random.exponential(scale=self._mean)
+    def mean(self):
+        """Return the distribution's mean."""
+        return self._mean
 
     @staticmethod
     def validate_desc(desc, context):
@@ -103,13 +112,16 @@ class DistNormal:
     Represents a normal (Gaussian) distribution with a given mean and standard deviation.
     """
     def __init__(self, mean, stddev):
-        self.mean = mean
+        self._mean = mean
         self.stddev = stddev
     def __str__(self):
-        return 'DistNormal(mean='+str(self.mean)+', stddev='+str(self.stddev)+')'
+        return 'DistNormal(mean='+str(self._mean)+', stddev='+str(self.stddev)+')'
     def get_sample(self):
         """Return a normally distributed random value with the configured mean and stddev."""
-        return np.random.normal(self.mean, self.stddev)
+        return np.random.normal(self._mean, self.stddev)
+    def mean(self):
+        """Return the distribution's mean."""
+        return self._mean
 
     @staticmethod
     def validate_desc(desc, context):
@@ -138,7 +150,7 @@ class DistGMMTemporal:
     Days are keyed by ISO weekday (1=Mon, 7=Sun) with nearest-prior wraparound lookup.
     """
     def __init__(self, mean, days, clock):
-        self.mean = mean
+        self._mean = mean
         self.days = days  # dict: str(day_number) -> list of {utc_hour, sigma, weight}
         self.clock = clock
         self.sorted_days = sorted(int(k) for k in self.days.keys())
@@ -147,7 +159,11 @@ class DistGMMTemporal:
         self._profile_cache = {day: self._compute_profile(day) for day in range(1, 8)}
 
     def __str__(self):
-        return f'DistGMMTemporal(mean={self.mean}, days={list(self.days.keys())})'
+        return f'DistGMMTemporal(mean={self._mean}, days={list(self.days.keys())})'
+
+    def mean(self):
+        """Return the distribution's base mean, ignoring time-of-day/day-of-week modulation."""
+        return self._mean
 
     def _compute_profile(self, day):
         # Walk back from the given ISO weekday to find the nearest defined day key.
@@ -189,7 +205,7 @@ class DistGMMTemporal:
         multiplier = self._get_multiplier(hour, profile)
         if multiplier <= 0:
             multiplier = 0.001
-        return np.random.exponential(scale=self.mean / multiplier)
+        return np.random.exponential(scale=self._mean / multiplier)
 
     @staticmethod
     def validate_desc(desc, context):
