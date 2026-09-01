@@ -135,6 +135,12 @@ class Clock:
         yield self.env.timeout(delta)
 
 
+# See DataDriver.arrival_process for what this bounds and why. 100x is
+# generous enough that no config sized per docs/how-to-build-a-config.md
+# should ever reach it -- healthy provisioning keeps the backlog near zero.
+_MAX_BACKLOG_MULTIPLE = 100
+
+
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
@@ -474,13 +480,27 @@ class DataDriver:
         """A simpy process: start one new session_process at the rate set by
         the event:start:timer's cardinality_distribution.
 
-        Arrivals are unconditional -- there's no admission check here at all,
-        and so no rejection path to retry or back off from. Each spawned
-        session_process waits for its own pool slot if one isn't immediately
-        free, woken the instant one releases.
+        Arrivals normally have no admission check at all -- no rejection path
+        to retry or back off from, since each spawned session_process just
+        waits for its own pool slot if one isn't immediately free, woken the
+        instant one releases. That's correct as long as demand and capacity
+        are in the same ballpark, which any real config's own -w should be
+        sized for (see docs/how-to-build-a-config.md, Step 10). It stops
+        being correct under *permanent, extreme* oversubscription -- e.g. -i
+        set far below any realistic value for the config -- where nothing
+        ever catches up: every waiting session_process is a live Python
+        generator plus a queued Request, and with no ceiling on how many can
+        pile up, the backlog (and the memory and per-release queue-scan cost
+        that comes with it) grows without bound for as long as the run
+        continues. _MAX_BACKLOG_MULTIPLE caps it: past that many sessions
+        already waiting or running, a new arrival is simply not admitted this
+        tick -- a real, previously-nonexistent loss/rejection behavior, but
+        one that only engages far outside any setting a real config would
+        actually use.
         """
         proc = self.global_clock.env.active_process
         self._active_procs.append(proc)
+        backlog_capped = False
         try:
             while not self.sim_control.is_done():
                 delta = float(self.rate_delay.get_sample())
@@ -490,6 +510,16 @@ class DataDriver:
                     logger.debug("arrival_process: interrupted at sim time %s", self.global_clock.now())
                     break
                 self._update_effective_max()
+                if len(self._active_procs) > self._effective_max * _MAX_BACKLOG_MULTIPLE:
+                    if not backlog_capped:
+                        backlog_capped = True
+                        logger.warning(
+                            "Arrivals are permanently outpacing capacity (backlog exceeds %dx "
+                            "effective -w) -- this config's -i is far below what -w can sustain. "
+                            "New arrivals are being dropped rather than queued indefinitely, "
+                            "which will undercount rows relative to -i alone. Raise -w or -i.",
+                            _MAX_BACKLOG_MULTIPLE)
+                    continue
                 new_proc = self.global_clock.env.process(self.session_process())
                 logger.debug("arrival_process: spawned %s at sim time %s", new_proc, self.global_clock.now())
             self._end_run()
