@@ -1,17 +1,21 @@
 # Palo Alto Networks (PAN-OS)
 
-Simulates PAN-OS firewall session logs — one Traffic log per session, plus a Threat log for any session terminated by a threat detection mid-session.
+Simulates PAN-OS firewall session logs — one Traffic log per session, plus a
+Threat log for any session terminated by a threat detection mid-session.
 
 ## Quick start
 
 ```bash
-python generator.py -c presets/configs/palo_alto.json --template pan:syslog -n 500 -s "2025-01-01T00:00"
+python generator.py -c presets/configs/palo_alto.json --template pan:syslog -n \
+  500 -s "2025-01-01T00:00"
 
 # One day of data
-python generator.py -c presets/configs/palo_alto.json --template pan:syslog -r P1D -s "2025-01-01T00:00"
+python generator.py -c presets/configs/palo_alto.json --template pan:syslog -r \
+  P1D -s "2025-01-01T00:00"
 
 # Compact JSON view
-python generator.py -c presets/configs/palo_alto.json --template compact -r P1D -s "2025-01-01T00:00"
+python generator.py -c presets/configs/palo_alto.json --template compact -r \
+  P1D -s "2025-01-01T00:00"
 ```
 
 ## Templates
@@ -21,11 +25,22 @@ python generator.py -c presets/configs/palo_alto.json --template compact -r P1D 
 | `pan:syslog` | Authentic PAN-OS syslog CSV — branches per record on `log_type`, rendering the real 117-column TRAFFIC or 123-column THREAT layout |
 | `compact` | Trimmed JSON view with only the fields that vary meaningfully — the same underlying record, fewer fields rendered |
 
-This config has two emitters — `pan_traffic_log` and `pan_threat_log` — with genuinely different field counts and orders, matching the real vendor layouts. `--template` applies one Jinja template globally to every emitted record regardless of source emitter, so a template can't be scoped per-emitter; `pan:syslog` handles this correctly by branching on the record's own `log_type` field rather than assuming a fixed shape, which also matches how a real PAN-OS syslog destination receives one mixed stream of both log types. `compact` sidesteps the issue by rendering only fields common or gracefully defaulted across both types.
+This config has two emitters — `pan_traffic_log` and `pan_threat_log` — with
+genuinely different field counts and orders, matching the real vendor layouts.
+`--template` applies one Jinja template globally to every emitted record
+regardless of source emitter, so a template can't be scoped per-emitter;
+`pan:syslog` handles this correctly by branching on the record's own `log_type`
+field rather than assuming a fixed shape, which also matches how a real PAN-OS
+syslog destination receives one mixed stream of both log types. `compact`
+sidesteps the issue by rendering only fields common or gracefully defaulted
+across both types.
 
 ## Output fields
 
-Every record carries the full real PAN-OS field set for its log type (117 columns for Traffic, 123 for Threat) — most fields outside the list below are present but blank, matching a single-firewall deployment with no SD-WAN, containers, 5G, or Panorama hierarchy configured.
+Every record carries the full real PAN-OS field set for its log type (117
+columns for Traffic, 123 for Threat) — most fields outside the list below are
+present but blank, matching a single-firewall deployment with no SD-WAN,
+containers, 5G, or Panorama hierarchy configured.
 
 | Field | Description |
 | --- | --- |
@@ -52,7 +67,8 @@ Every record carries the full real PAN-OS field set for its log type (117 column
 
 ## Session categories
 
-Each session is routed to one of App-ID + rule profile, real values from `app_list.csv`/`threat_list.csv`:
+Each session is routed to one of App-ID + rule profile, real values from
+`app_list.csv`/`threat_list.csv`:
 
 | Category | Share of sessions | Outcome |
 | --- | --- | --- |
@@ -73,8 +89,13 @@ Each session is routed to one of App-ID + rule profile, real values from `app_li
 
 ## State machine
 
-Each worker represents one firewall session. Unlike a multi-transaction browsing session, a PAN-OS session emits exactly one Traffic log (at teardown) — plus one Threat log, mid-session, for the four threat-triggered branches.
+Each worker represents one firewall session. Unlike a multi-transaction browsing
+session, a PAN-OS session emits exactly one Traffic log (at teardown) — plus one
+Threat log, mid-session, for the four threat-triggered branches.
 
+<!-- These are Mermaid edge chains; splitting them across lines would break
+     the diagram, not just wrap the source. -->
+<!-- markdownlint-disable MD013 -->
 ```mermaid
 flowchart LR
     A(["<b>session_start</b><br/>event:start:timer"]) --> B["<b>setup_session</b><br/>activity"]
@@ -83,12 +104,20 @@ flowchart LR
     C -->|4 threats| G["<b>setup_threat_*</b><br/>activity"] --> H[/"<b>pause_threat_*</b>"/] --> I["<b>emit_threat_*</b><br/>emits Threat log"] --> J[/"<b>pause_teardown</b>"/] --> K["<b>emit_traffic_threat_*</b><br/>emits Traffic log"] --> Z
     C -->|policy-denied| L["<b>setup_policy_denied</b>"] --> M[/"<b>pause_policy_denied</b>"/] --> N["<b>emit_policy_denied</b>"] --> Z
 ```
+<!-- markdownlint-enable MD013 -->
 
 ## Volume
 
-The default start interval for workers in this preset is 5 seconds, with each worker busy for 330 seconds on average. The maximum number of workers that can be busy at the same time is therefore 330/5 = 66; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect.
+The default start interval for workers in this preset is 5 seconds, with each
+worker busy for 330 seconds on average. The maximum number of workers that can
+be busy at the same time is therefore 330/5 = 66; increasing available workers
+(using `-w`) without adjusting how often they begin work (using `-i`) has no
+effect.
 
-The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/palo_alto.json --clock-field start_time`.
+The chart below shows how output scales with workers (varying `-w`) with the
+preset's default start interval (`--seed 42`, no schedule, PT6H simulated
+window). To regenerate: `python tools/bench_config_workers.py -c
+presets/configs/palo_alto.json --clock-field start_time`.
 
 ```mermaid
 %%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
@@ -99,7 +128,10 @@ xychart-beta
     line [103, 226, 305, 545, 974, 1538, 2707, 4242, 4586, 4586]
 ```
 
-Adjust `-i` and `-w` to model heavier firewall traffic. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/palo_alto.json`.
+Adjust `-i` and `-w` to model heavier firewall traffic. The table below
+illustrates how output scales across `-w` and `-i` together (`--seed 42`, no
+schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c
+presets/configs/palo_alto.json`.
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -108,4 +140,7 @@ Adjust `-i` and `-w` to model heavier firewall traffic. The table below illustra
 | 1 | 🟩 96 (0.2s) | 🟩 507 (0.3s) | 🟨 2,653 (0.6s) | 🟧 10,723 (1.4s) | 🟧 22,570 (2.8s) | 🟧 22,828 (2.9s) | ↔️ | ↔️ |
 | 5 (default) | 🟩 85 (0.2s) | 🟩 514 (0.3s) | 🟨 2,517 (0.5s) | 🟨 4,536 (0.8s) | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that cell's own run -- not shown for skipped/plateau cells, which were never actually run.
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
+seconds for that cell's own run -- not shown for skipped/plateau cells, which
+were never actually run.
