@@ -135,12 +135,6 @@ class Clock:
         yield self.env.timeout(delta)
 
 
-# See DataDriver.arrival_process for what this bounds and why. 100x is
-# generous enough that no config sized per docs/how-to-build-a-config.md
-# should ever reach it -- healthy provisioning keeps the backlog near zero.
-_MAX_BACKLOG_MULTIPLE = 100
-
-
 class DataDriver:
     """Main driver class for generating data. Handles configuration, state machine, and output targets."""
 
@@ -267,17 +261,15 @@ class DataDriver:
         timer_desc = next(s for s in state_desc if s.get('type') == 'event:start:timer')
         self.rate_delay = parse_distribution(timer_desc['cardinality_distribution'], clock=self.global_clock)
 
-        # Admission gate for -w: a session either gets a free pool slot
-        # immediately or waits, woken the instant one releases -- no polling,
-        # no retry loop, no rejection path to back off from. effective_max is
-        # tracked separately from pool.capacity (a read-only property; see
-        # _update_effective_max) purely so schedule changes only need to
-        # compute a delta against the last-known value.
+        # Admission for -w: there's no queue. The population of potential
+        # arrivals is treated as unbounded (see arrival_process), so the only
+        # question ever asked is "is a lane free right now" -- a direct count
+        # compared against effective_max, no simpy.Resource/Request involved.
         if self.schedule:
             self._effective_max = max(1, int(self.max_entities * self.schedule.get_multiplier()))
         else:
             self._effective_max = self.max_entities
-        self._pool = simpy.Resource(self.global_clock.env, capacity=self._effective_max)
+        self._admitted_count = 0
 
         # Every currently-running arrival_process/session_process, so _end_run
         # can force them all to wake immediately once is_done() becomes true —
@@ -338,78 +330,60 @@ class DataDriver:
                     logger.debug("_end_run: could not interrupt %s (self or already terminated)", proc)
 
     def session_process(self):
-        """A simpy process: wait for a free pool slot, then walk the state
-        machine, generating records and sending them to the output target.
+        """A simpy process: walk the state machine, generating records and
+        sending them to the output target.
 
-        Manages the pool request explicitly rather than via `with
-        pool.request() as req:` — a request interrupted before it's granted
-        must be cancel()'d, not release()'d: releasing a request simpy never
-        actually granted still triggers a fresh _trigger_put() scan as a side
-        effect, which can admit a *different*, still-queued session that
-        _end_run's interrupt sweep already passed over — an uninterrupted,
-        untracked session left running after the run was supposed to end.
+        Only ever created by arrival_process once a lane is already confirmed
+        free (see arrival_process), so there's no queued/waiting state to
+        manage here at all -- interruption only ever happens mid-delay, once
+        already running, handled the same way an interrupt during any other
+        sleep is.
         """
         proc = self.global_clock.env.active_process
         self._active_procs.append(proc)
-        logger.debug("session_process %s: requesting a pool slot at sim time %s", proc, self.global_clock.now())
-        req = self._pool.request()
+        self._admitted_count += 1
+        self.sim_control.add_entity()
+        logger.debug("session_process %s: admitted at sim time %s", proc, self.global_clock.now())
         try:
-            try:
-                yield req
-            except simpy.Interrupt:
-                logger.debug("session_process %s: interrupted while queued, cancelling request", proc)
-                req.cancel()
+            if self.sim_control.is_done():
+                logger.debug("session_process %s: is_done() already true on admission, exiting without running", proc)
+                self._end_run()
                 return
-            self.sim_control.add_entity()
-            logger.debug("session_process %s: admitted at sim time %s", proc, self.global_clock.now())
-            try:
-                # This session may have been queued for a while; the
-                # record-count or runtime end condition could have been
-                # reached before its turn came. Check before doing any real
-                # work, not just at each step below, so a backlog of queued
-                # sessions drains quickly instead of each one doing a full
-                # run for nothing.
+            current_state = self.initial_state
+            variables = {}
+            while True:
+                if current_state is None:
+                    raise RuntimeError("Unexpected error: current state of the state machine is None.")
+                # Process delay
+                delta = float(current_state.delay.get_sample())
+                try:
+                    yield from self.global_clock.sleep(delta)
+                except simpy.Interrupt:
+                    logger.debug("session_process %s: interrupted mid-delay at state %s, exiting", proc, current_state.name)
+                    break
+                self.status_msg = f"Running, Sim Clock: {self.global_clock.now()}"
+                # Set variables (activities only; evaluated before emission)
+                self.set_variable_values(variables, current_state.variables)
+                # Only emit record if state has dimensions (emitter was specified)
+                if current_state.dimensions is not None:
+                    record = self.create_record(current_state.dimensions, variables)
+                    formatted_record = self.render_record(record)
+                    self._emit(formatted_record, self.global_clock.now())
+                    self.sim_control.inc_rec_count()
                 if self.sim_control.is_done():
-                    logger.debug("session_process %s: is_done() already true on admission, exiting without running", proc)
+                    logger.debug("session_process %s: is_done() became true after emitting, ending run", proc)
                     self._end_run()
-                    return
-                current_state = self.initial_state
-                variables = {}
-                while True:
-                    if current_state is None:
-                        raise RuntimeError("Unexpected error: current state of the state machine is None.")
-                    # Process delay
-                    delta = float(current_state.delay.get_sample())
-                    try:
-                        yield from self.global_clock.sleep(delta)
-                    except simpy.Interrupt:
-                        logger.debug("session_process %s: interrupted mid-delay at state %s, exiting", proc, current_state.name)
-                        break
-                    self.status_msg = f"Running, Sim Clock: {self.global_clock.now()}"
-                    # Set variables (activities only; evaluated before emission)
-                    self.set_variable_values(variables, current_state.variables)
-                    # Only emit record if state has dimensions (emitter was specified)
-                    if current_state.dimensions is not None:
-                        record = self.create_record(current_state.dimensions, variables)
-                        formatted_record = self.render_record(record)
-                        self._emit(formatted_record, self.global_clock.now())
-                        self.sim_control.inc_rec_count()
-                    if self.sim_control.is_done():
-                        logger.debug("session_process %s: is_done() became true after emitting, ending run", proc)
-                        self._end_run()
-                        break
-                    next_state_name = current_state.get_next_state_name()
-                    if next_state_name is None:
-                        break
-                    next_state = self.states.get(next_state_name)
-                    if next_state is None or next_state.type == 'event:end':
-                        break
-                    current_state = next_state
-            finally:
-                self.sim_control.remove_entity()
-                self._pool.release(req)
-                logger.debug("session_process %s: released its pool slot", proc)
+                    break
+                next_state_name = current_state.get_next_state_name()
+                if next_state_name is None:
+                    break
+                next_state = self.states.get(next_state_name)
+                if next_state is None or next_state.type == 'event:end':
+                    break
+                current_state = next_state
         finally:
+            self.sim_control.remove_entity()
+            self._admitted_count -= 1
             self._active_procs.remove(proc)
             logger.debug("session_process %s: exited, %d active procs remain", proc, len(self._active_procs))
 
@@ -455,52 +429,33 @@ class DataDriver:
             sys.stdout.flush()
 
     def _update_effective_max(self):
-        """Grow or shrink the pool to match the schedule's current multiplier.
-
-        capacity is a read-only property wrapping simpy.Resource's own
-        _capacity, so growing means bumping _capacity and calling
-        _trigger_put(None) to wake anyone already queued now that there's
-        room; shrinking just lowers _capacity. That's the whole mechanism --
-        no held-back bookkeeping needed, because simpy.Resource only ever
-        checks capacity for *new* requests (_do_put); a session already
-        granted a slot is never touched, so shrinking can never interrupt
-        in-flight work.
+        """Grow or shrink the number of lanes to match the schedule's current
+        multiplier. Since admission is a direct count check against
+        self._effective_max (see arrival_process), there's no pool object to
+        resize and no one to wake -- growing simply raises the ceiling the
+        very next arrival check compares against, and shrinking lowers it
+        without touching any session already running.
         """
         if not self.schedule:
             return
-        effective_max = max(1, int(self.max_entities * self.schedule.get_multiplier()))
-        if effective_max != self._effective_max:
-            delta = effective_max - self._effective_max
-            self._pool._capacity += delta
-            if delta > 0:
-                self._pool._trigger_put(None)
-            self._effective_max = effective_max
+        self._effective_max = max(1, int(self.max_entities * self.schedule.get_multiplier()))
 
     def arrival_process(self):
-        """A simpy process: start one new session_process at the rate set by
-        the event:start:timer's cardinality_distribution.
+        """A simpy process: at the rate set by the event:start:timer's
+        cardinality_distribution, start one new session_process -- but only
+        if a lane is free right now.
 
-        Arrivals normally have no admission check at all -- no rejection path
-        to retry or back off from, since each spawned session_process just
-        waits for its own pool slot if one isn't immediately free, woken the
-        instant one releases. That's correct as long as demand and capacity
-        are in the same ballpark, which any real config's own -w should be
-        sized for (see docs/how-to-build-a-config.md, Step 10). It stops
-        being correct under *permanent, extreme* oversubscription -- e.g. -i
-        set far below any realistic value for the config -- where nothing
-        ever catches up: every waiting session_process is a live Python
-        generator plus a queued Request, and with no ceiling on how many can
-        pile up, the backlog (and the memory and per-release queue-scan cost
-        that comes with it) grows without bound for as long as the run
-        continues. _MAX_BACKLOG_MULTIPLE caps it: past that many sessions
-        already waiting or running, a new arrival is simply not admitted this
-        tick -- a real, previously-nonexistent loss/rejection behavior, but
-        one that only engages far outside any setting a real config would
-        actually use.
+        There's no queue and no rejection path to back off from, because
+        there's nothing to back off *to*: the population of potential
+        arrivals is treated as unbounded, so an arrival that finds every lane
+        occupied is simply lost, not held onto for later. That's what keeps
+        -w capping throughput correctly under sustained oversubscription (see
+        docs/how-to-build-a-config.md, Step 10) with no bound on memory or
+        per-arrival bookkeeping needed, at any -i/-w ratio -- healthy or
+        pathological.
         """
         proc = self.global_clock.env.active_process
         self._active_procs.append(proc)
-        backlog_capped = False
         try:
             while not self.sim_control.is_done():
                 delta = float(self.rate_delay.get_sample())
@@ -510,18 +465,9 @@ class DataDriver:
                     logger.debug("arrival_process: interrupted at sim time %s", self.global_clock.now())
                     break
                 self._update_effective_max()
-                if len(self._active_procs) > self._effective_max * _MAX_BACKLOG_MULTIPLE:
-                    if not backlog_capped:
-                        backlog_capped = True
-                        logger.warning(
-                            "Arrivals are permanently outpacing capacity (backlog exceeds %dx "
-                            "effective -w) -- this config's -i is far below what -w can sustain. "
-                            "New arrivals are being dropped rather than queued indefinitely, "
-                            "which will undercount rows relative to -i alone. Raise -w or -i.",
-                            _MAX_BACKLOG_MULTIPLE)
-                    continue
-                new_proc = self.global_clock.env.process(self.session_process())
-                logger.debug("arrival_process: spawned %s at sim time %s", new_proc, self.global_clock.now())
+                if self._admitted_count < self._effective_max:
+                    new_proc = self.global_clock.env.process(self.session_process())
+                    logger.debug("arrival_process: spawned %s at sim time %s", new_proc, self.global_clock.now())
             self._end_run()
         finally:
             self._active_procs.remove(proc)
