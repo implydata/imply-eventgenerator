@@ -14,8 +14,10 @@ See docs/distributions.md for the config-level reference.
 
 import logging
 import math
-import numpy as np
+from datetime import timezone
+
 import dateutil.parser
+import numpy as np
 
 logger = logging.getLogger('ieg')
 
@@ -572,18 +574,30 @@ def parse_timestamp_distribution(desc):
     """
     dist_type = desc['type'].lower()
     if dist_type == 'constant':
-        value = dateutil.parser.isoparse(desc['value']).timestamp()
+        value = _isoparse_utc_timestamp(desc['value'])
         return DistConstant(value)
     elif dist_type == 'uniform':
-        min_value = dateutil.parser.isoparse(desc['min']).timestamp()
-        max_value = dateutil.parser.isoparse(desc['max']).timestamp()
+        min_value = _isoparse_utc_timestamp(desc['min'])
+        max_value = _isoparse_utc_timestamp(desc['max'])
         return DistUniform(min_value, max_value)
     elif dist_type == 'exponential':
-        mean = dateutil.parser.isoparse(desc['mean']).timestamp()
+        mean = _isoparse_utc_timestamp(desc['mean'])
         return DistExponential(mean)
     elif dist_type == 'normal':
-        mean = dateutil.parser.isoparse(desc['mean']).timestamp()
+        mean = _isoparse_utc_timestamp(desc['mean'])
         stddev = desc['stddev']
         return DistNormal(mean, stddev)
     else:
         raise ValueError(f'Error: Unknown distribution "{dist_type}"')
+
+
+def _isoparse_utc_timestamp(value):
+    """Parse an ISO 8601 string to a POSIX epoch, treating a naive string as UTC.
+
+    A bare `datetime.timestamp()` call assumes a naive datetime is local time,
+    which would make this epoch depend on the host machine's timezone.
+    """
+    dt = dateutil.parser.isoparse(value)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.timestamp()
