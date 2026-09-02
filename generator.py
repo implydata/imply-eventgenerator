@@ -24,9 +24,13 @@ def validate_concurrency(value):
     try:
         ivalue = int(value)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"-w must be an integer between 1 and {MAX_WORKERS}.")
+        raise argparse.ArgumentTypeError(
+            f"-w must be an integer between 1 and {MAX_WORKERS}."
+        )
     if ivalue < 1 or ivalue > MAX_WORKERS:
-        raise argparse.ArgumentTypeError(f"-w must be an integer between 1 and {MAX_WORKERS}.")
+        raise argparse.ArgumentTypeError(
+            f"-w must be an integer between 1 and {MAX_WORKERS}."
+        )
     return ivalue
 
 def validate_start_interval(value):
@@ -35,7 +39,9 @@ def validate_start_interval(value):
     except ValueError:
         raise argparse.ArgumentTypeError("Start interval must be a number.")
     if fvalue < 0:
-        raise argparse.ArgumentTypeError("Start interval must be greater than or equal to 0.")
+        raise argparse.ArgumentTypeError(
+            "Start interval must be greater than or equal to 0."
+        )
     return fvalue
 
 def apply_start_interval_override(config, override_value):
@@ -46,14 +52,20 @@ def apply_start_interval_override(config, override_value):
     per type rather than inferred:
       - constant: 'value' (every worker waits exactly this long)
       - exponential, normal: 'mean'
-      - gmm_temporal: 'mean' (the base period; the time-of-day 'days' shape is untouched)
-    Anything else (e.g. 'uniform', which has no single central-tendency field) is
-    unsupported and raises, rather than silently no-op'ing on a field that isn't read.
+      - gmm_temporal: 'mean' (the base period; the time-of-day 'days' shape
+        is untouched)
+    Anything else (e.g. 'uniform', which has no single central-tendency
+    field) is unsupported and raises, rather than silently no-op'ing on a
+    field that isn't read.
     """
     states = config.get('states', [])
-    timer_state = next((s for s in states if s.get('type') == 'event:start:timer'), None)
+    timer_state = next(
+        (s for s in states if s.get('type') == 'event:start:timer'), None
+    )
     if timer_state is None:
-        raise ValueError("Config has no event:start:timer state; cannot apply -i override.")
+        raise ValueError(
+            "Config has no event:start:timer state; cannot apply -i override."
+        )
 
     dist = timer_state.get('cardinality_distribution', {})
     dist_type = dist.get('type')
@@ -63,12 +75,15 @@ def apply_start_interval_override(config, override_value):
         field = 'mean'
     else:
         raise ValueError(
-            f"-i does not support the event:start:timer state's cardinality_distribution "
-            f"type '{dist_type}'. Supported types: constant, exponential, normal, gmm_temporal."
+            f"-i does not support the event:start:timer state's "
+            f"cardinality_distribution type '{dist_type}'. Supported types: "
+            f"constant, exponential, normal, gmm_temporal."
         )
 
     original_value = dist.get(field)
-    logger.warning("Over-riding preset start mean %s with %s.", original_value, override_value)
+    logger.warning(
+        "Over-riding preset start mean %s with %s.", original_value, override_value
+    )
     dist[field] = override_value
 
 def main(argv=None):
@@ -81,20 +96,31 @@ def main(argv=None):
     logger.info("Starting synthetic event data generator")
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Generates synthetic event data.')
-    parser.add_argument('-c', dest='config_file', required=True, help='Generator configuration file')
+    parser.add_argument(
+        '-c', dest='config_file', required=True, help='Generator configuration file'
+    )
 
-    parser.add_argument('-t', '--template', dest='template_name', default=None,
-                        help='Named template from the generator config\'s "templates" block.')
+    parser.add_argument(
+        '-t', '--template', dest='template_name', default=None,
+        help='Named template from the generator config\'s "templates" block.'
+    )
 
     parser.add_argument(
         '-s',
         dest='start_time',
-        help='Specify the start time for the clock (ISO 8601 format). Defaults to the current time if not specified.'
+        help='Specify the start time for the clock (ISO 8601 format). Defaults '
+             'to the current time if not specified.'
     )
 
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('-r', dest='time', help='Length of time to generate data (may not be used with -n)')
-    group.add_argument('-n', dest='n_recs', help='Number of records to generate (may not be used with -r)')
+    group.add_argument(
+        '-r', dest='time',
+        help='Length of time to generate data (may not be used with -n)'
+    )
+    group.add_argument(
+        '-n', dest='n_recs',
+        help='Number of records to generate (may not be used with -r)'
+    )
 
     parser.add_argument(
         '-w', '-m',
@@ -102,15 +128,16 @@ def main(argv=None):
         type=validate_concurrency,
         nargs='?',
         default=DEFAULT_CONCURRENCY,
-        help=f'Max entities (workers) concurrently generating events (1-{MAX_WORKERS}). '
-             f'-m alias will be removed in future versions.'
+        help=f'Max entities (workers) concurrently generating events '
+             f'(1-{MAX_WORKERS}). -m alias will be removed in future versions.'
     )
 
     parser.add_argument(
         '--schedule',
         dest='schedule_file',
         default=None,
-        help='Schedule file (JSON) for modulating max_entities over time. Defaults to full capacity if not specified.'
+        help='Schedule file (JSON) for modulating max_entities over time. '
+             'Defaults to full capacity if not specified.'
     )
 
     parser.add_argument(
@@ -118,21 +145,24 @@ def main(argv=None):
         dest='start_interval',
         type=validate_start_interval,
         default=None,
-        help="Override the event:start:timer state's interarrival period (seconds), e.g. 0.1 = one worker "
-             "dispatched every 1/10s, 5 = one worker every 5s. Overrides the preset's own value."
+        help="Override the event:start:timer state's interarrival period "
+             "(seconds), e.g. 0.1 = one worker dispatched every 1/10s, 5 = "
+             "one worker every 5s. Overrides the preset's own value."
     )
 
     parser.add_argument(
         '-p', '--partition',
         dest='partition_interval',
         default=None,
-        help='Emit a partition marker (and re-emit the template header, if any) to stdout at '
-             'every calendar-aligned ISO 8601 duration boundary of simulated time, e.g. P1D for '
-             'midnight-to-midnight days, PT1H for the top of every hour — like SQL TIME_TRUNC, '
-             'not an offset from -s. Lets a downstream tool (see tools/split_stream.sh) split '
-             'the stream into per-partition files with csplit, without parsing timestamps out '
-             'of the rendered records themselves. The first partition may be shorter than one '
-             'interval if -s does not itself fall on a boundary.'
+        help='Emit a partition marker (and re-emit the template header, if any) '
+             'to stdout at every calendar-aligned ISO 8601 duration boundary of '
+             'simulated time, e.g. P1D for midnight-to-midnight days, PT1H for '
+             'the top of every hour — like SQL TIME_TRUNC, not an offset from '
+             '-s. Lets a downstream tool (see tools/split_stream.sh) split the '
+             'stream into per-partition files with csplit, without parsing '
+             'timestamps out of the rendered records themselves. The first '
+             'partition may be shorter than one interval if -s does not itself '
+             'fall on a boundary.'
     )
 
     parser.add_argument(
@@ -141,13 +171,14 @@ def main(argv=None):
         default=False,
         help='Enable debug logging (written to stderr)'
     )
-    
+
     parser.add_argument(
       '--seed',
         dest='seed',
         type=int,
         default=None,
-        help='Random seed for deterministic data generation. Use with -s (simulated time) for fully reproducible output.'
+        help='Random seed for deterministic data generation. Use with -s '
+             '(simulated time) for fully reproducible output.'
     )
 
     parser.add_argument(
@@ -173,13 +204,17 @@ def main(argv=None):
             start_time = dateutil.parser.isoparse(args.start_time)
             time_type = 'SIM'  # Simulated time when start_time is explicitly provided
         except ValueError as e:
-            raise ValueError(f"Invalid start time format: {args.start_time}. Ensure it is in ISO 8601 format.") from e
+            raise ValueError(
+                f"Invalid start time format: {args.start_time}. "
+                f"Ensure it is in ISO 8601 format."
+            ) from e
     else:
         start_time = datetime.now()
         time_type = 'REAL'  # Real time when start_time is not provided
 
     runtime = args.time
-    max_entities = int(args.concurrency)  # Convert to integer. Safe as there is a default.
+    # Convert to integer. Safe as there is a default.
+    max_entities = int(args.concurrency)
     total_recs = int(args.n_recs) if args.n_recs else None
 
     try:
@@ -197,7 +232,9 @@ def main(argv=None):
         if args.validate:
             from ieg.validate import validate_config
             if not validate_config(config, template_name=args.template_name):
-                logger.critical("Config '%s' is invalid — see errors above.", args.config_file)
+                logger.critical(
+                    "Config '%s' is invalid — see errors above.", args.config_file
+                )
                 sys.exit(1)
             sys.exit(0)
 
@@ -208,10 +245,15 @@ def main(argv=None):
                 try:
                     schedule_config = json.load(f)
                 except json.JSONDecodeError as e:
-                    raise ValueError(f"Error parsing schedule file '{args.schedule_file}': {e}")
+                    raise ValueError(
+                        f"Error parsing schedule file '{args.schedule_file}': {e}"
+                    )
             from ieg.distributions import Schedule
-            if not Schedule.validate_desc(schedule_config, f"schedule '{args.schedule_file}'"):
-                logger.critical("Schedule '%s' is invalid — see errors above.", args.schedule_file)
+            schedule_ctx = f"schedule '{args.schedule_file}'"
+            if not Schedule.validate_desc(schedule_config, schedule_ctx):
+                logger.critical(
+                    "Schedule '%s' is invalid — see errors above.", args.schedule_file
+                )
                 sys.exit(1)
 
         # Start a new data driver
@@ -227,7 +269,9 @@ def main(argv=None):
             template_name=args.template_name,
             partition_interval=args.partition_interval
         )
-        logger.info("Starting synthetic event data generator at %s", datetime.now().isoformat())
+        logger.info(
+            "Starting synthetic event data generator at %s", datetime.now().isoformat()
+        )
         driver.simulate()
 
     except FileNotFoundError as e:

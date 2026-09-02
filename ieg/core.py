@@ -51,9 +51,10 @@ class _StrictEnv:
 _jinja_env = Environment(undefined=Undefined)
 _jinja_env.globals['env'] = _StrictEnv()
 
-# Prefixes a --partition marker line. \x1e (ASCII Record Separator) rather than a
-# printable string, since no template in this repo renders a line starting with a control
-# character — see tools/split_stream.sh, which splits stdout on this exact prefix.
+# Prefixes a --partition marker line. \x1e (ASCII Record Separator) rather
+# than a printable string, since no template in this repo renders a line
+# starting with a control character — see tools/split_stream.sh, which
+# splits stdout on this exact prefix.
 PARTITION_MARKER_PREFIX = '\x1ePARTITION '
 
 # Naive on purpose (noqa: DTZ001) — every datetime this engine works with, real or
@@ -86,8 +87,8 @@ class Clock:
     simpy.rt.RealtimeEnvironment (paced to actual wall-clock time, REAL mode).
     Turn-ordering across concurrently-scheduled sessions is handled entirely by
     simpy's own event queue — every session is a coroutine in one single-
-    threaded event loop, not an OS thread, so there is no separate
-    thread-coordination protocol to hand-roll here the way there used to be.
+    threaded event loop, not an OS thread, so no thread-coordination protocol
+    is needed here.
 
     SIM_TO_REAL (switching from simulated to real-time pacing partway through
     a run) is not supported by this implementation: simpy.Environment and
@@ -136,9 +137,24 @@ class Clock:
 
 
 class DataDriver:
-    """Main driver class for generating data. Handles configuration, state machine, and output targets."""
+    """Main driver class for generating data.
 
-    def __init__(self, name, config, runtime, total_recs, time_type, start_time, max_entities, schedule_config=None, template_name=None, partition_interval=None):
+    Handles configuration, state machine, and output targets.
+    """
+
+    def __init__(
+        self,
+        name,
+        config,
+        runtime,
+        total_recs,
+        time_type,
+        start_time,
+        max_entities,
+        schedule_config=None,
+        template_name=None,
+        partition_interval=None,
+    ):
         self.name = name
         self.config = config
 
@@ -160,27 +176,36 @@ class DataDriver:
             try:
                 parsed_partition_interval = isodate.parse_duration(partition_interval)
             except Exception as e:
-                raise ValueError(f"Error parsing --partition duration '{partition_interval}': {e}")
-            if isinstance(parsed_partition_interval, isodate.Duration):
-                # Unlike -r (a one-time span, resolved against the actual start time),
-                # --partition is a repeating bucket size used as a fixed number of
-                # seconds (_partition_bucket). A calendar month resolved once would
-                # only be correct for the first bucket — every later one would drift
-                # out of true calendar alignment (Feb is shorter than Jan, etc.).
                 raise ValueError(
-                    f"--partition duration '{partition_interval}' uses a calendar-based "
-                    f"unit (Y or M), which isn't a fixed size — use P1D, PT1H, P7D, etc."
+                    f"Error parsing --partition duration '{partition_interval}': {e}"
+                )
+            if isinstance(parsed_partition_interval, isodate.Duration):
+                # Unlike -r (a one-time span, resolved against the actual start
+                # time), --partition is a repeating bucket size used as a fixed
+                # number of seconds (_partition_bucket). A calendar month
+                # resolved once would only be correct for the first bucket —
+                # every later one would drift out of true calendar alignment
+                # (Feb is shorter than Jan, etc.).
+                raise ValueError(
+                    f"--partition duration '{partition_interval}' uses a "
+                    f"calendar-based unit (Y or M), which isn't a fixed size "
+                    f"— use P1D, PT1H, P7D, etc."
                 )
             parsed_partition_interval = parsed_partition_interval.total_seconds()
             if parsed_partition_interval <= 0:
-                raise ValueError(f"--partition duration '{partition_interval}' must be positive.")
+                raise ValueError(
+                    f"--partition duration '{partition_interval}' must be positive."
+                )
             self.partition_interval = parsed_partition_interval
 
         if template_name is not None:
             templates = config.get('templates', {})
             if template_name not in templates:
                 available = ', '.join(templates.keys()) if templates else 'none'
-                raise ValueError(f"Template '{template_name}' not found in config. Available: {available}")
+                raise ValueError(
+                    f"Template '{template_name}' not found in config. "
+                    f"Available: {available}"
+                )
             tmpl = templates[template_name]
             self.jinja_template = _jinja_env.from_string(tmpl['body'])
             if self.header is None and 'header' in tmpl:
@@ -192,11 +217,15 @@ class DataDriver:
 
         self.global_clock = Clock(time_type, start_time)
         self.sim_control = Controller(total_recs, runtime, self.global_clock)
-        self.schedule = parse_schedule(schedule_config, self.global_clock) if schedule_config else None
+        if schedule_config:
+            self.schedule = parse_schedule(schedule_config, self.global_clock)
+        else:
+            self.schedule = None
 
         # Always write to stdout
         self._stdout_lock = threading.Lock()
-        self.current_partition_bucket = None  # int bucket index once --partition is set
+        # int bucket index once --partition is set
+        self.current_partition_bucket = None
         self.header_printed = False  # only tracked when --partition is not set
 
         # Remove type validation and default to generator
@@ -219,7 +248,10 @@ class DataDriver:
             name = state['name']
             state_type = state.get('type')
             if state_type is None:
-                raise RuntimeError(f"State '{state.get('name', '?')}' is missing required field 'type'.")
+                raise RuntimeError(
+                    f"State '{state.get('name', '?')}' is missing required "
+                    f"field 'type'."
+                )
             # Make emitter optional - handle both missing field and explicit null
             emitter_name = state.get('emitter')  # Returns None if not present
             if emitter_name is not None:
@@ -238,7 +270,9 @@ class DataDriver:
                 delay = parse_distribution(_zero, clock=self.global_clock)
                 transitions = [Transition(state['next'], 1.0)]
             elif state_type == 'event:intermediate:timer':
-                delay = parse_distribution(state['cardinality_distribution'], clock=self.global_clock)
+                delay = parse_distribution(
+                    state['cardinality_distribution'], clock=self.global_clock
+                )
                 transitions = [Transition(state['next'], 1.0)]
             elif state_type == 'activity':
                 delay = parse_distribution(_zero, clock=self.global_clock)
@@ -249,7 +283,9 @@ class DataDriver:
             else:
                 delay = parse_distribution(_zero, clock=self.global_clock)
                 transitions = Transition.parse_transitions(state.get('transitions', []))
-            this_state = State(name, state_type, dimensions, delay, transitions, variables)
+            this_state = State(
+                name, state_type, dimensions, delay, transitions, variables
+            )
             self.states[name] = this_state
             if state_type == 'event:start:timer':
                 self.initial_state = this_state
@@ -257,16 +293,21 @@ class DataDriver:
         if self.initial_state is None:
             raise RuntimeError("Config has no event:start:timer state.")
 
-        # Interarrival rate comes from the event:start:timer state's cardinality_distribution field
+        # Interarrival rate comes from the event:start:timer state's
+        # cardinality_distribution field
         timer_desc = next(s for s in state_desc if s.get('type') == 'event:start:timer')
-        self.rate_delay = parse_distribution(timer_desc['cardinality_distribution'], clock=self.global_clock)
+        self.rate_delay = parse_distribution(
+            timer_desc['cardinality_distribution'], clock=self.global_clock
+        )
 
         # Admission for -w: there's no queue. The population of potential
         # arrivals is treated as unbounded (see arrival_process), so the only
         # question ever asked is "is a lane free right now" -- a direct count
-        # compared against effective_max, no simpy.Resource/Request involved.
+        # compared against effective_max.
         if self.schedule:
-            self._effective_max = max(1, int(self.max_entities * self.schedule.get_multiplier()))
+            self._effective_max = max(
+                1, int(self.max_entities * self.schedule.get_multiplier())
+            )
         else:
             self._effective_max = self.max_entities
         self._admitted_count = 0
@@ -283,7 +324,8 @@ class DataDriver:
 
 
     def render_record(self, record):
-        """Render a record as a Jinja2 template string, or plain JSON if no template is active."""
+        """Render a record as a Jinja2 template string, or plain JSON if no
+        template is active."""
         if self.jinja_template is not None:
             return self.jinja_template.render(**record)
         for key, value in record.items():
@@ -298,12 +340,14 @@ class DataDriver:
             if isinstance(element, DimensionVariable):
                 record[element.name] = variables[element.variable_name]
             else:
-                if isinstance(element, DimensionTimestampClock) or not element.is_missing():
+                is_clock = isinstance(element, DimensionTimestampClock)
+                if is_clock or not element.is_missing():
                     record[element.name] = element.get_stochastic_value()
         return record
 
     def set_variable_values(self, variables, dimensions):
-        """Sample stochastic values from dimensions and store them in the variables dict."""
+        """Sample stochastic values from dimensions and store them in the
+        variables dict."""
         for d in dimensions:
             variables[d.name] = d.get_stochastic_value()
 
@@ -327,7 +371,10 @@ class DataDriver:
                     proc.interrupt()
                     logger.debug("_end_run: interrupted %s", proc)
                 except RuntimeError:
-                    logger.debug("_end_run: could not interrupt %s (self or already terminated)", proc)
+                    logger.debug(
+                        "_end_run: could not interrupt %s "
+                        "(self or already terminated)", proc
+                    )
 
     def session_process(self):
         """A simpy process: walk the state machine, generating records and
@@ -343,23 +390,33 @@ class DataDriver:
         self._active_procs.append(proc)
         self._admitted_count += 1
         self.sim_control.add_entity()
-        logger.debug("session_process %s: admitted at sim time %s", proc, self.global_clock.now())
+        logger.debug(
+            "session_process %s: admitted at sim time %s", proc, self.global_clock.now()
+        )
         try:
             if self.sim_control.is_done():
-                logger.debug("session_process %s: is_done() already true on admission, exiting without running", proc)
+                logger.debug(
+                    "session_process %s: is_done() already true on admission, "
+                    "exiting without running", proc
+                )
                 self._end_run()
                 return
             current_state = self.initial_state
             variables = {}
             while True:
                 if current_state is None:
-                    raise RuntimeError("Unexpected error: current state of the state machine is None.")
+                    raise RuntimeError(
+                        "Unexpected error: current state of the state machine is None."
+                    )
                 # Process delay
                 delta = float(current_state.delay.get_sample())
                 try:
                     yield from self.global_clock.sleep(delta)
                 except simpy.Interrupt:
-                    logger.debug("session_process %s: interrupted mid-delay at state %s, exiting", proc, current_state.name)
+                    logger.debug(
+                        "session_process %s: interrupted mid-delay at state %s, "
+                        "exiting", proc, current_state.name
+                    )
                     break
                 self.status_msg = f"Running, Sim Clock: {self.global_clock.now()}"
                 # Set variables (activities only; evaluated before emission)
@@ -371,7 +428,10 @@ class DataDriver:
                     self._emit(formatted_record, self.global_clock.now())
                     self.sim_control.inc_rec_count()
                 if self.sim_control.is_done():
-                    logger.debug("session_process %s: is_done() became true after emitting, ending run", proc)
+                    logger.debug(
+                        "session_process %s: is_done() became true after emitting, "
+                        "ending run", proc
+                    )
                     self._end_run()
                     break
                 next_state_name = current_state.get_next_state_name()
@@ -385,7 +445,10 @@ class DataDriver:
             self.sim_control.remove_entity()
             self._admitted_count -= 1
             self._active_procs.remove(proc)
-            logger.debug("session_process %s: exited, %d active procs remain", proc, len(self._active_procs))
+            logger.debug(
+                "session_process %s: exited, %d active procs remain",
+                proc, len(self._active_procs)
+            )
 
     def _emit(self, formatted_record, record_time):
         """Print formatted_record. Before the first record ever printed — and, once
@@ -405,18 +468,24 @@ class DataDriver:
                 is_first = self.current_partition_bucket is None
                 if is_first or bucket > self.current_partition_bucket:
                     self.current_partition_bucket = bucket
-                    # The very first partition may be shorter than one interval if -s
-                    # doesn't itself fall on a boundary — label it with the true start
-                    # time, not the truncated boundary before it, which data never covers.
-                    marker_time = self.start_time if is_first else _bucket_start(bucket, self.partition_interval)
+                    # The very first partition may be shorter than one interval
+                    # if -s doesn't itself fall on a boundary — label it with
+                    # the true start time, not the truncated boundary before
+                    # it, which data never covers.
+                    if is_first:
+                        marker_time = self.start_time
+                    else:
+                        marker_time = _bucket_start(bucket, self.partition_interval)
                     lines.append(f'{PARTITION_MARKER_PREFIX}{marker_time.isoformat()}')
                     # A run piped through tools/split_stream.sh writes nothing to its
                     # destination until the whole thing finishes (ieg/core.py doesn't
                     # know or care that it's piped) — this is the only sign of life
                     # visible on stderr in the meantime, at the one cadence the engine
                     # already has a natural reason to pause at.
-                    logger.info("Partition boundary: %s (%d records so far)",
-                                marker_time.isoformat(), self.sim_control.get_record_count())
+                    logger.info(
+                        "Partition boundary: %s (%d records so far)",
+                        marker_time.isoformat(), self.sim_control.get_record_count()
+                    )
                     if self.header:
                         lines.append(self.header)
             elif not self.header_printed:
@@ -430,15 +499,15 @@ class DataDriver:
 
     def _update_effective_max(self):
         """Grow or shrink the number of lanes to match the schedule's current
-        multiplier. Since admission is a direct count check against
-        self._effective_max (see arrival_process), there's no pool object to
-        resize and no one to wake -- growing simply raises the ceiling the
-        very next arrival check compares against, and shrinking lowers it
-        without touching any session already running.
+        multiplier. Growing simply raises the ceiling the very next arrival
+        check compares against; shrinking lowers it without touching any
+        session already running.
         """
         if not self.schedule:
             return
-        self._effective_max = max(1, int(self.max_entities * self.schedule.get_multiplier()))
+        self._effective_max = max(
+            1, int(self.max_entities * self.schedule.get_multiplier())
+        )
 
     def arrival_process(self):
         """A simpy process: at the rate set by the event:start:timer's
@@ -462,12 +531,18 @@ class DataDriver:
                 try:
                     yield from self.global_clock.sleep(delta)
                 except simpy.Interrupt:
-                    logger.debug("arrival_process: interrupted at sim time %s", self.global_clock.now())
+                    logger.debug(
+                        "arrival_process: interrupted at sim time %s",
+                        self.global_clock.now()
+                    )
                     break
                 self._update_effective_max()
                 if self._admitted_count < self._effective_max:
                     new_proc = self.global_clock.env.process(self.session_process())
-                    logger.debug("arrival_process: spawned %s at sim time %s", new_proc, self.global_clock.now())
+                    logger.debug(
+                        "arrival_process: spawned %s at sim time %s",
+                        new_proc, self.global_clock.now()
+                    )
             self._end_run()
         finally:
             self._active_procs.remove(proc)
@@ -501,7 +576,7 @@ class DataDriver:
         while self._active_procs or not self.sim_control.is_done():
             try:
                 env.step()
-            except simpy.core.EmptySchedule:
+            except simpy.core.EmptySchedule:  # noqa: PERF203
                 break
 
     def terminate(self):
@@ -510,11 +585,12 @@ class DataDriver:
 
     def report(self):
         """Return a dict of simulation status and statistics."""
+        start_time = self.sim_control.get_start_time().strftime('%Y-%m-%d %H:%M:%S')
         return {  'name': self.name,
                   'config_file': self.config['config_file'],
                   'active_sessions': self.sim_control.get_entity_count(),
                   'total_records': self.sim_control.get_record_count(),
-                  'start_time': self.sim_control.get_start_time().strftime('%Y-%m-%d %H:%M:%S'),
+                  'start_time': start_time,
                   'run_time': self.sim_control.get_duration(),
                   'status' : 'COMPLETE' if self.sim_control.is_done() else 'RUNNING',
                   'status_msg' : self.status_msg
