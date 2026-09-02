@@ -10,10 +10,15 @@ See docs/field-generators.md for the config-level reference.
 
 import logging
 import random
-import string
 import re
+import string
 from datetime import datetime, timezone
-from ieg.distributions import parse_distribution, parse_timestamp_distribution, validate_distribution_desc
+
+from ieg.distributions import (
+    parse_distribution,
+    parse_timestamp_distribution,
+    validate_distribution_desc,
+)
 
 logger = logging.getLogger('ieg')
 
@@ -526,10 +531,7 @@ class DimensionTimestamp(DimensionBase):
 
     def _get_raw_value(self):
         # Return a random timestamp as a datetime object
-        timestamp = datetime.fromtimestamp(self.value_distribution.get_sample())
-        if timestamp.tzinfo is None:
-            timestamp = timestamp.replace(tzinfo=timezone.utc)  # Default to UTC if no timezone
-        return timestamp
+        return datetime.fromtimestamp(self.value_distribution.get_sample(), tz=timezone.utc)
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:

@@ -43,7 +43,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from rich.console import Console
@@ -859,7 +859,7 @@ def main(argv=None):
 
     def record(result: Result):
         rec = {
-            "ts": datetime.now().isoformat(timespec="seconds"),
+            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "status": result.status,
             "key": result.task.key,
             "profile": result.task.profile,

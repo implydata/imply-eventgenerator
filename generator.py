@@ -3,9 +3,11 @@ import json
 import logging
 import random
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
+
 import dateutil.parser
 import numpy as np
+
 from ieg.core import DataDriver
 
 logger = logging.getLogger('ieg')
@@ -209,7 +211,7 @@ def main(argv=None):
                 f"Ensure it is in ISO 8601 format."
             ) from e
     else:
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         time_type = 'REAL'  # Real time when start_time is not provided
 
     runtime = args.time
@@ -270,7 +272,8 @@ def main(argv=None):
             partition_interval=args.partition_interval
         )
         logger.info(
-            "Starting synthetic event data generator at %s", datetime.now().isoformat()
+            "Starting synthetic event data generator at %s",
+            datetime.now(timezone.utc).isoformat(),
         )
         driver.simulate()
 
