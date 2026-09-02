@@ -23,7 +23,10 @@ class Transition:
         self.probability = probability
 
     def __str__(self):
-        return 'Transition(next_state='+str(self.next_state)+', probability='+str(self.probability)+')'
+        return (
+            'Transition(next_state=' + str(self.next_state)
+            + ', probability=' + str(self.probability) + ')'
+        )
 
     @staticmethod
     def validate_desc(desc, context):
@@ -33,7 +36,10 @@ class Transition:
             logger.error("%s: transition missing required field 'next'", context)
             valid = False
         elif not isinstance(desc['next'], str):
-            logger.error("%s: transition 'next' must be a string, got %s", context, type(desc['next']).__name__)
+            logger.error(
+                "%s: transition 'next' must be a string, got %s",
+                context, type(desc['next']).__name__
+            )
             valid = False
         if 'probability' not in desc:
             logger.error("%s: transition missing required field 'probability'", context)
@@ -42,10 +48,16 @@ class Transition:
             try:
                 p = float(desc['probability'])
                 if not (0 < p <= 1):
-                    logger.error("%s: transition 'probability' must be in (0, 1], got %s", context, desc['probability'])
+                    logger.error(
+                        "%s: transition 'probability' must be in (0, 1], got %s",
+                        context, desc['probability']
+                    )
                     valid = False
             except (TypeError, ValueError):
-                logger.error("%s: transition 'probability' must be a number, got %r", context, desc['probability'])
+                logger.error(
+                    "%s: transition 'probability' must be a number, got %r",
+                    context, desc['probability']
+                )
                 valid = False
         return valid
 
@@ -58,7 +70,10 @@ class Transition:
             transitions.append(Transition(next_state, probability))
         return transitions
 
-VALID_TYPES = {'activity', 'gateway:exclusive', 'event:start:timer', 'event:intermediate:timer', 'event:end'}
+VALID_TYPES = {
+    'activity', 'gateway:exclusive', 'event:start:timer',
+    'event:intermediate:timer', 'event:end'
+}
 
 class State:
     """A node in the Actor lifecycle state machine.
@@ -81,11 +96,20 @@ class State:
         # random.choices(weights=...) recomputes this cumulative sum from
         # scratch on every single call — precompute it once, since the
         # probabilities never change after construction.
-        self._transition_cum_weights = list(itertools.accumulate(self.transition_probabilities))
+        self._transition_cum_weights = list(
+            itertools.accumulate(self.transition_probabilities)
+        )
         self.variables = variables
 
     def __str__(self):
-        return 'State(name='+self.name+', type='+self.type+', dimensions='+str([str(d) for d in self.dimensions])+', delay='+str(self.delay)+', transition_states='+str(self.transition_states)+', transition_probabilities='+str(self.transition_probabilities)+'variables='+str([str(v) for v in self.variables])+')'
+        return (
+            'State(name=' + self.name + ', type=' + self.type
+            + ', dimensions=' + str([str(d) for d in self.dimensions])
+            + ', delay=' + str(self.delay)
+            + ', transition_states=' + str(self.transition_states)
+            + ', transition_probabilities=' + str(self.transition_probabilities)
+            + 'variables=' + str([str(v) for v in self.variables]) + ')'
+        )
 
     @staticmethod
     def validate_desc(desc, emitter_names, context):
@@ -108,58 +132,93 @@ class State:
                 logger.error("%s: event:end must not have an emitter", context)
                 valid = False
             if 'variables' in desc or 'variables_on_entry' in desc:
-                logger.error("%s: event:end must not have variables — only activities can set variables", context)
+                logger.error(
+                    "%s: event:end must not have variables — only activities "
+                    "can set variables", context
+                )
                 valid = False
             return valid
 
         if state_type == 'event:start:timer':
             if 'cardinality_distribution' not in desc:
-                logger.error("%s: event:start:timer missing required field 'cardinality_distribution'", context)
+                logger.error(
+                    "%s: event:start:timer missing required field "
+                    "'cardinality_distribution'", context
+                )
                 valid = False
             if desc.get('emitter') is not None:
                 logger.error("%s: event:start:timer must not have an emitter", context)
                 valid = False
             if 'next' not in desc:
-                logger.error("%s: event:start:timer missing required field 'next'", context)
+                logger.error(
+                    "%s: event:start:timer missing required field 'next'", context
+                )
                 valid = False
             elif not isinstance(desc['next'], str):
                 logger.error("%s: event:start:timer 'next' must be a string", context)
                 valid = False
             if 'transitions' in desc:
-                logger.error("%s: event:start:timer uses 'next', not 'transitions'", context)
+                logger.error(
+                    "%s: event:start:timer uses 'next', not 'transitions'", context
+                )
                 valid = False
             if 'variables' in desc or 'variables_on_entry' in desc:
-                logger.error("%s: event:start:timer must not have variables — only activities can set variables", context)
+                logger.error(
+                    "%s: event:start:timer must not have variables — only "
+                    "activities can set variables", context
+                )
                 valid = False
             return valid
 
         if state_type == 'event:intermediate:timer':
             if 'cardinality_distribution' not in desc:
-                logger.error("%s: event:intermediate:timer missing required field 'cardinality_distribution'", context)
+                logger.error(
+                    "%s: event:intermediate:timer missing required field "
+                    "'cardinality_distribution'", context
+                )
                 valid = False
             if 'next' not in desc:
-                logger.error("%s: event:intermediate:timer missing required field 'next'", context)
+                logger.error(
+                    "%s: event:intermediate:timer missing required field 'next'",
+                    context
+                )
                 valid = False
             elif not isinstance(desc['next'], str):
-                logger.error("%s: event:intermediate:timer 'next' must be a string", context)
+                logger.error(
+                    "%s: event:intermediate:timer 'next' must be a string", context
+                )
                 valid = False
             if desc.get('emitter') is not None:
-                logger.error("%s: event:intermediate:timer must not have an emitter", context)
+                logger.error(
+                    "%s: event:intermediate:timer must not have an emitter", context
+                )
                 valid = False
             if 'transitions' in desc:
-                logger.error("%s: event:intermediate:timer uses 'next', not 'transitions'", context)
+                logger.error(
+                    "%s: event:intermediate:timer uses 'next', not 'transitions'",
+                    context
+                )
                 valid = False
             if 'variables' in desc or 'variables_on_entry' in desc:
-                logger.error("%s: event:intermediate:timer must not have variables — only activities can set variables", context)
+                logger.error(
+                    "%s: event:intermediate:timer must not have variables — "
+                    "only activities can set variables", context
+                )
                 valid = False
             return valid
 
         if state_type == 'activity':
             if 'cardinality_distribution' in desc:
-                logger.error("%s: activity must not have 'cardinality_distribution' — precede it with event:intermediate:timer", context)
+                logger.error(
+                    "%s: activity must not have 'cardinality_distribution' — "
+                    "precede it with event:intermediate:timer", context
+                )
                 valid = False
             if 'transitions' in desc:
-                logger.error("%s: activity uses 'next', not 'transitions' — add a gateway:exclusive for routing", context)
+                logger.error(
+                    "%s: activity uses 'next', not 'transitions' — add a "
+                    "gateway:exclusive for routing", context
+                )
                 valid = False
             if 'next' not in desc:
                 logger.error("%s: activity missing required field 'next'", context)
@@ -168,11 +227,17 @@ class State:
                 logger.error("%s: activity 'next' must be a string", context)
                 valid = False
             if 'variables_on_entry' in desc:
-                logger.error("%s: 'variables_on_entry' is not supported — use 'variables' in an activity", context)
+                logger.error(
+                    "%s: 'variables_on_entry' is not supported — use "
+                    "'variables' in an activity", context
+                )
                 valid = False
             emitter = desc.get('emitter')
             if emitter is not None and emitter not in emitter_names:
-                logger.error("%s: references emitter '%s' which is not defined in 'emitters'", context, emitter)
+                logger.error(
+                    "%s: references emitter '%s' which is not defined in 'emitters'",
+                    context, emitter
+                )
                 valid = False
             return valid
 
@@ -181,17 +246,28 @@ class State:
                 logger.error("%s: gateway:exclusive must not have an emitter", context)
                 valid = False
             if 'cardinality_distribution' in desc:
-                logger.error("%s: gateway:exclusive must not have 'cardinality_distribution'", context)
+                logger.error(
+                    "%s: gateway:exclusive must not have 'cardinality_distribution'",
+                    context
+                )
                 valid = False
             if 'next' in desc:
-                logger.error("%s: gateway:exclusive uses 'transitions', not 'next'", context)
+                logger.error(
+                    "%s: gateway:exclusive uses 'transitions', not 'next'", context
+                )
                 valid = False
             if 'variables' in desc or 'variables_on_entry' in desc:
-                logger.error("%s: gateway:exclusive must not have variables — only activities can set variables", context)
+                logger.error(
+                    "%s: gateway:exclusive must not have variables — only "
+                    "activities can set variables", context
+                )
                 valid = False
             transitions = desc.get('transitions')
             if not transitions or not isinstance(transitions, list):
-                logger.error("%s: gateway:exclusive missing required field 'transitions'", context)
+                logger.error(
+                    "%s: gateway:exclusive missing required field 'transitions'",
+                    context
+                )
                 valid = False
             else:
                 total_prob = 0.0
@@ -216,7 +292,9 @@ class State:
     def get_next_state_name(self):
         if not self.transition_states:
             return None
-        return random.choices(self.transition_states, cum_weights=self._transition_cum_weights, k=1)[0]
+        return random.choices(
+            self.transition_states, cum_weights=self._transition_cum_weights, k=1
+        )[0]
 
 def estimate_session_length(states, start_state):
     """Estimate how long a typical session lasts, from the state graph alone.
@@ -231,8 +309,7 @@ def estimate_session_length(states, start_state):
     different depths (each with its own escape dynamics) folded into one
     aggregate p_escape.
 
-    Used to size the spawning thread's backoff cap (DataDriver._admission),
-    not for exact modelling -- a rough, self-derived estimate is enough there.
+    Not currently called from anywhere in this repo.
     """
     def walk(state, visited):
         if state is None or state.type == 'event:end':
@@ -240,7 +317,10 @@ def estimate_session_length(states, start_state):
         if state.name in visited:
             return 0.0, 0.0
         visited = visited | {state.name}
-        own_delay = state.delay.mean() if state.type == 'event:intermediate:timer' else 0.0
+        if state.type == 'event:intermediate:timer':
+            own_delay = state.delay.mean()
+        else:
+            own_delay = 0.0
         delay_sum = 0.0
         escape = 0.0
         for t in state.transitions:
@@ -301,22 +381,21 @@ class Controller:
             self.thread_end_event.set()
 
     def is_done(self):
-        return ((self.total_recs is not None) and (self.record_count >= self.total_recs)) \
-                or ((self.t is not None) and ((self.get_duration() > self.t) or self.thread_end_event.is_set()))
+        recs_done = (
+            self.total_recs is not None and self.record_count >= self.total_recs
+        )
+        time_done = (
+            self.t is not None
+            and (self.get_duration() > self.t or self.thread_end_event.is_set())
+        )
+        return recs_done or time_done
 
     def wait_for_end(self):
-        """Generator: `yield from controller.wait_for_end()` blocks, within the
-        simpy event loop, until this run's end condition is reached.
+        """Generator: `yield from controller.wait_for_end()` blocks, within
+        the simpy event loop, until this run's end condition is reached,
+        polling is_done() once per simulated second via the given Clock.
 
-        No callers within this repo as of the simpy migration (ieg/core.py's
-        arrival_process/session_process already check is_done() directly
-        wherever it matters). The old implementation relied on cross-thread
-        signaling — a dedicated OS thread blocking on a threading.Event or a
-        bare time.sleep(60) loop — which has no equivalent in a
-        single-threaded event loop; adapted here to poll is_done() via the
-        same Clock every caller already has, rather than removed, in case
-        something outside this repo depends on it. Confirm this still meets
-        your needs if so.
+        Not currently called from anywhere in this repo.
         """
         while not self.is_done():
             yield from self.global_clock.sleep(1.0)
