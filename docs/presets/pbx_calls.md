@@ -1,19 +1,26 @@
 # PBX Calls
 
-Simulates Asterisk IP PBX call detail records (`asterisk_cdr` sourcetype). Models the full call lifecycle from dialling through to completion, with realistic outcomes and durations.
+Simulates Asterisk IP PBX call detail records (`asterisk_cdr` sourcetype).
+Models the full call lifecycle from dialling through to completion, with
+realistic outcomes and durations.
 
-**Actor:** A caller making a phone call. Each worker represents one person picking up the phone, waiting for an answer, and either completing the call or hanging up.
+**Actor:** A caller making a phone call. Each worker represents one person
+picking up the phone, waiting for an answer, and either completing the call or
+hanging up.
 
 ## Quick start
 
 ```bash
-python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -n 100 -s "2025-01-01T00:00"
+python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr \
+  -n 100 -s "2025-01-01T00:00"
 
 # One hour of data
-python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -r PT1H -s "2025-01-01T00:00"
+python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr \
+  -r PT1H -s "2025-01-01T00:00"
 
 # Concurrent callers
-python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -r PT1H -s "2025-01-01T00:00" -w 5
+python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr \
+  -r PT1H -s "2025-01-01T00:00" -w 5
 ```
 
 ## Template
@@ -42,7 +49,9 @@ python generator.py -c presets/configs/pbx_calls.json --template asterisk_cdr -r
 | `disposition` | Call outcome: `ANSWERED`, `NO ANSWER`, or `BUSY` |
 | `amaflags` | AMA flags (always `DOCUMENTATION`) |
 
-> `start`, `answer`, and `end` all carry the same clock timestamp since the generator emits the CDR as a single event at call completion. Use `duration` and `billsec` for time-range analysis.
+> `start`, `answer`, and `end` all carry the same clock timestamp since the
+> generator emits the CDR as a single event at call completion. Use
+> `duration` and `billsec` for time-range analysis.
 
 ## State machine
 
@@ -60,13 +69,24 @@ flowchart TD
     H --> Z
 ```
 
-The `ringing` state models real ring time (5–30 s) before the outcome is determined. Answered calls spend an additional ~3 minutes in `answered` before the CDR is emitted — so `-w` controls how many calls are genuinely in progress simultaneously, in both real-time and simulated modes.
+The `ringing` state models real ring time (5–30 s) before the outcome is
+determined. Answered calls spend an additional ~3 minutes in `answered` before
+the CDR is emitted — so `-w` controls how many calls are genuinely in progress
+simultaneously, in both real-time and simulated modes.
 
 ## Volume
 
-The default start interval for workers in this preset is 30 seconds, with each worker busy for 270 seconds on average. The maximum number of workers that can be busy at the same time is therefore 270/30 = 9; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect. At this preset's low volume, treat this as approximate rather than exact.
+The default start interval for workers in this preset is 30 seconds, with each
+worker busy for 270 seconds on average. The maximum number of workers that can
+be busy at the same time is therefore 270/30 = 9; increasing available workers
+(using `-w`) without adjusting how often they begin work (using `-i`) has no
+effect. At this preset's low volume, treat this as approximate rather than
+exact.
 
-The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/pbx_calls.json`.
+The chart below shows how output scales with workers (varying `-w`) with the
+preset's default start interval (`--seed 42`, no schedule, PT6H simulated
+window). To regenerate: `python tools/bench_config_workers.py -c
+presets/configs/pbx_calls.json`.
 
 ```mermaid
 %%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
@@ -77,7 +97,10 @@ xychart-beta
     line [140, 254, 404, 492, 572, 660, 721, 773, 773]
 ```
 
-Adjust `-i` and `-w` to model a busier PBX. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/pbx_calls.json`.
+Adjust `-i` and `-w` to model a busier PBX. The table below illustrates how
+output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H
+simulated window). To regenerate: `python tools/bench_grid.py -c
+presets/configs/pbx_calls.json`.
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -86,4 +109,7 @@ Adjust `-i` and `-w` to model a busier PBX. The table below illustrates how outp
 | 1 | 🟩 147 (0.2s) | 🟩 795 (0.3s) | 🟨 3,905 (0.4s) | 🟧 15,043 (0.8s) | 🟧 21,573 (1.0s) | ↔️ | ↔️ | ↔️ |
 | 30 (default) | 🟩 128 (0.2s) | 🟩 522 (0.2s) | 🟩 693 (0.2s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that cell's own run -- not shown for skipped/plateau cells, which were never actually run.
+💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
+seconds for that cell's own run -- not shown for skipped/plateau cells, which
+were never actually run.
