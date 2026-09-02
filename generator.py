@@ -12,7 +12,7 @@ logger = logging.getLogger('ieg')
 
 DEFAULT_CONCURRENCY = 100
 
-# -w now bounds a simpy.Resource pool, not OS threads -- there's no
+# -w now bounds a plain admitted-session counter, not OS threads -- there's no
 # thread-creation ceiling to guard against any more (see ieg/core.py's
 # Clock/session_process/arrival_process, migrated off one-OS-thread-per-session
 # onto a single-threaded simpy event loop). This is a sanity bound against
