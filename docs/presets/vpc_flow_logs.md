@@ -36,11 +36,14 @@ The `ocsf:network_activity` template treats each flow record as an OCSF `activit
 | `dstport` | Destination port |
 | `protocol` | IP protocol number (6=TCP, 17=UDP) |
 | `packets` | Packet count for the flow |
-| `bytes` | Byte count for the flow |
+| `pkt_size` | Bytes per packet for the flow — a constant MSS per traffic class, so `packets * pkt_size` never exceeds a real path MTU |
+| `bytes` | Byte count for the flow, computed as `packets * pkt_size` in each template. Not present in default (untemplated) JSON output, since that path has no way to compute a value from other fields — request `aws:cloudwatchlogs:vpcflow` or `ocsf:network_activity` if you need `bytes` directly |
 | `start` | Flow start time (Unix epoch) |
 | `end` | Flow end time (Unix epoch) |
 | `action` | `ACCEPT` or `REJECT` |
 | `log_status` | `OK`, `NODATA`, or `SKIPDATA` |
+
+`bytes` is derived rather than sampled independently: an earlier version drew `bytes` and `packets` from unrelated distributions, which could produce physically impossible combinations (an implied bytes-per-packet ratio exceeding a 1500-byte MTU). Deriving `bytes` from `packets * pkt_size` makes every row physically consistent by construction.
 
 ## State machine
 
@@ -73,9 +76,9 @@ Adjust `-i` and `-w` to model heavier network traffic. The table below illustrat
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | ↕️ | ↕️ | 🟨 164,592 (9.5s) | 🟧 664,567 (39.2s) | 🟥 1,671,354 (107.0s) | 🟥 6,683,513 (484.5s) | ⏱️ | ⏱️ |
-| 0.1 | 🟩 5,667 (0.6s) | 🟩 31,898 (2.1s) | 🟨 165,156 (9.9s) | 🟧 658,060 (35.7s) | 🟧 1,001,671 (54.2s) | ↔️ | ↔️ | ↔️ |
-| 0.5 (default) | 🟩 5,659 (0.5s) | 🟩 31,295 (1.9s) | 🟨 151,766 (8.1s) | 🟧 200,252 (10.2s) | ↔️ | ↔️ | ↔️ | ↔️ |
-| 1 | 🟩 5,626 (0.4s) | 🟩 30,656 (1.9s) | 🟨 97,160 (5.1s) | 🟨 99,488 (5.3s) | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.01 | ↕️ | ↕️ | 🟨 166,762 (8.2s) | 🟧 666,752 (24.4s) | 🟥 1,671,340 (56.3s) | 🟥 6,683,523 (222.6s) | 🟥 9,923,637 (338.9s) | ↔️ |
+| 0.1 | 🟩 7,152 (0.7s) | 🟩 32,789 (1.5s) | 🟨 164,680 (5.5s) | 🟧 658,986 (20.4s) | 🟧 996,499 (30.7s) | ↔️ | ↔️ | ↔️ |
+| 0.5 (default) | 🟩 6,807 (0.5s) | 🟩 32,061 (1.2s) | 🟨 150,766 (4.7s) | 🟨 199,652 (6.2s) | ↔️ | ↔️ | ↔️ | ↔️ |
+| 1 | 🟩 6,624 (0.4s) | 🟩 31,192 (1.1s) | 🟨 99,033 (3.1s) | 🟨 99,971 (3.2s) | ↔️ | ↔️ | ↔️ | ↔️ |
 
 💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that cell's own run -- not shown for skipped/plateau cells, which were never actually run.

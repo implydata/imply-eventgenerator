@@ -76,8 +76,8 @@ overlap or gap.
 Two reasons to use it. It shrinks the work unit, so a day of the heaviest profile parallelises
 instead of occupying one core for minutes — one `vpc_flow_logs` day went from 44s at
 `--split-hours 24` to 15s at `--split-hours 6` on four cores. And it caps object size, which
-matters because gzip is not splittable: a full day of `vpc_flow_logs_derived` is ~76 MB in one
-object that no reader can split.
+matters because gzip is not splittable: a full day of a high-volume profile run at a busy `-i`
+can be tens of MB in one object that no reader can split.
 
 The cost is boundary artifacts. Each sub-run starts with an empty worker pool that has to ramp
 up, and sessions in flight are cut at every boundary — the same 6-hour split yielded 791,701
@@ -126,14 +126,21 @@ Measured rates, with the ecommerce schedule applied to the three ecommerce profi
 | `ecommerce` | 2112 | `ecommerce.json` | ~533k | ~135 GB (11 templates) |
 | `ecommerce_lighting` | 2112 | `ecommerce.json` | ~700k | ~177 GB (11 templates) |
 | `ecommerce_furniture` | 528 | `ecommerce.json` | ~156k | ~40 GB (11 templates) |
-| `vpc_flow_logs_derived` | 1056 | — | ~7.04M | ~66 GB |
 | `vpc_flow_logs` | 66 | — | ~795k | ~7 GB |
 | `endpoint_network` | 1 | — | ~289k | ~2 GB |
 | `ssh_auth` | 66 | — | ~21k | ~165 MB |
 | `pbx_calls` | 9 | — | ~2.9k | ~48 MB |
 
-A full 3-month run over all 8 profiles is **3,420 partitions, ~2.1 billion rows, ~425 GB raw,
-~42 GB in S3** after gzip (measured 8.5–10.7:1 depending on format).
+`vpc_flow_logs_derived` has been retired — its physical-consistency fix (bytes derived from
+packets × MSS rather than sampled independently) is now merged directly into `vpc_flow_logs.json`,
+so there's a single config again. It also carried its own, separately-tuned busier `-i` for
+higher export volume; that tuning wasn't carried over into the general-purpose preset, so anyone
+needing that higher-volume profile for a lake export should override `-i` explicitly rather than
+expect an equivalent profile name here.
+
+The figures in this doc predate both that consolidation and this project's migration to a
+single-threaded `simpy`-based engine (see the main engine migration work) — wall-clock and
+concurrency numbers below are no longer representative and need a fresh measurement pass.
 
 To generate less: lower `-m` (throughput scales with it below the ceiling), narrow
 `--profile`/`--template`, or shorten the date range.
@@ -144,20 +151,12 @@ Measured per-partition cost for one simulated day, one generator, no contention:
 
 | Profile | Solo wall per day | Rows/day | gzip/day | Ratio |
 | --- | --- | --- | --- | --- |
-| `vpc_flow_logs_derived` | 8m 25s | 7.04M | 85.3 MB | 8.6:1 |
 | `ecommerce` (`apache:access:json`) | 43s | 563k | 20.3 MB | 13.1:1 |
 | `vpc_flow_logs` | 44s | 795k | 10.3 MB | 8.5:1 |
 | `ssh_auth` | 1.8s | 21k | 0.3 MB | — |
 | `pbx_calls` | 0.6s | 2.9k | 0.1 MB | — |
 
-Summed over a 3-month run of every profile and template that is roughly **44 CPU-hours**: the
-three ecommerce profiles are ~68% of it (11 templates each, every one a separate pass) and
-`vpc_flow_logs_derived` a further 29% on its own.
-
-`vpc_flow_logs_derived` is worth calling out. At its `-m 1056` ceiling one day is 7.04M rows
-and takes 8m 25s — a work unit long enough to leave a core busy while others idle at the tail
-of a run, and an 85 MB gzip object no reader can split. `--split-hours 4` turns each of its
-days into six ~2-minute units and ~14 MB objects.
+(`vpc_flow_logs_derived`'s row is removed along with the profile — see the note above.)
 
 Parallel efficiency is around 50% rather than linear: eight `vpc_flow_logs` partitions at
 `--jobs 8` finished in 87s against 44s for one alone — 8× the work in 2× the time, with each

@@ -105,13 +105,6 @@ PROFILE_SETTINGS = {
         "est_rows_per_hour": 32_500,
         "est_bytes_per_row": 110,
     },
-    # Ceiling probed at ~1056 (docs/presets doc still missing for this config).
-    "vpc_flow_logs_derived": {
-        "m": 1056,
-        "schedule": None,
-        "est_rows_per_hour": 288_000,
-        "est_bytes_per_row": 110,
-    },
     "endpoint_network": {
         "m": 1,
         "schedule": None,

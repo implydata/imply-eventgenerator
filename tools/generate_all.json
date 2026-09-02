@@ -85,16 +85,6 @@
         "tiny": {"i": "4.1", "w": 10, "observed_max_rows_per_day": 98074, "observed_mean_rows_per_day": 96593, "test_window_days": 7, "tested_on": "2026-08-27"}
       }
     },
-    "vpc_flow_logs_derived": {
-      "config": "vpc_flow_logs_derived.json",
-      "schedule": null,
-      "templates": [
-        {"name": "aws:cloudwatchlogs:vpcflow", "ext": "log"}
-      ],
-      "volumes": {
-        "tiny": {"i": "3.65", "w": 18, "observed_max_rows_per_day": 99005, "observed_mean_rows_per_day": 97024, "test_window_days": 7, "tested_on": "2026-08-27"}
-      }
-    },
     "endpoint_network": {
       "config": "endpoint_network.json",
       "schedule": null,
