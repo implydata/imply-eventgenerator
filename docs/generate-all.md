@@ -20,11 +20,14 @@ section](./split-stream.md#requirements).
 
 This script re-execs itself under `caffeinate -i` automatically on macOS, so
 idle sleep can't interrupt what's often a multi-hour run. This isn't just
-tidiness — it's a real, observed failure mode: the engine's threads coordinate
-via an untimed `threading.Event.wait()`, and a sleep/wake cycle mid-run can lose
-that wakeup permanently. The process doesn't crash or recover once the machine
-wakes back up — it just sits there indefinitely, with no further progress and no
-error, even if the machine then stays awake for hours afterward.
+tidiness — it was a real, observed failure mode under the old thread-based
+engine: threads coordinated via an untimed `threading.Event.wait()`, and a
+sleep/wake cycle mid-run could lose that wakeup permanently, leaving the
+process sitting indefinitely with no further progress and no error, even if
+the machine then stayed awake for hours afterward. The engine has since
+migrated onto a single-threaded `simpy` event loop with no equivalent wait,
+but a long real-time run crossing a sleep/wake cycle hasn't been specifically
+re-verified since — keeping this protection is cheap insurance either way.
 
 `caffeinate -i` only prevents *idle* sleep — closing the lid sleeps the machine
 regardless of any assertion, so leave it open (or run plugged in with the lid
