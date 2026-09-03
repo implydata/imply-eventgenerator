@@ -230,7 +230,6 @@ class DataDriver:
         self.current_partition_bucket = None
         self.header_printed = False  # only tracked when --partition is not set
 
-        # Remove type validation and default to generator
         self.type = 'generator'
 
         # Set up emitters list
@@ -254,8 +253,7 @@ class DataDriver:
                     f"State '{state.get('name', '?')}' is missing required "
                     f"field 'type'."
                 )
-            # Make emitter optional - handle both missing field and explicit null
-            emitter_name = state.get('emitter')  # Returns None if not present
+            emitter_name = state.get('emitter')
             if emitter_name is not None:
                 dimensions = self.emitters[emitter_name]
             else:

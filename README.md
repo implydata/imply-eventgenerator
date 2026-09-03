@@ -114,7 +114,7 @@ This is known as Little's Law, and together these three levers impact the amount
 
 The documentation for each preset contains benchmarks showing the volume of data generated when `-w` and `-i` are varied.
 
-`-w` is capped at 1,000,000 for a separate reason: it's a sanity bound against fat-fingered input and unbounded memory growth for a config whose natural ceiling is absurdly high, not a measured hardware limit — the generator is single-threaded internally, so there's no OS thread-creation ceiling to guard against.
+`-w` is capped at 1,000,000 for a separate reason: it's a sanity bound against accidental input (a typo, or a copy-pasted value from the wrong context) and unbounded memory growth for a config whose natural ceiling is absurdly high, not a measured hardware limit — the generator is single-threaded internally, so there's no OS thread-creation ceiling to guard against.
 
 ### Output format
 

@@ -80,8 +80,8 @@ logger = logging.getLogger(__name__)
 
 # Python doesn't run cleanup code on SIGTERM by default, so killing this script
 # (e.g. because a cell is hung) would otherwise orphan its in-flight generator.py
-# child, which keeps running indefinitely -- this happened in practice while
-# building this tool. Track whatever's currently running and kill it too.
+# child, which keeps running indefinitely. Track whatever's currently running
+# and kill it too.
 _current_proc = [None]
 
 
@@ -104,8 +104,8 @@ DEFAULT_CELL_TIMEOUT = 600.0
 
 # Fixed, not computed -- a generic grid meant to be reused across presets without
 # per-profile tuning. See log_space()/linear_space() below if a custom scale is
-# ever needed instead. 10000 (the hard -w cap) is deliberately left out of the
-# default grid; pass --w-values explicitly to probe that far.
+# ever needed instead. The hard -w cap (1,000,000) is deliberately left out of
+# the default grid; pass --w-values explicitly to probe that far.
 DEFAULT_W_VALUES = [1, 5, 25, 100, 250, 1000, 2500, 5000]
 
 # The fixed part of the -i default grid. main() adds the config's own configured
