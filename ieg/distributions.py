@@ -14,8 +14,10 @@ See docs/distributions.md for the config-level reference.
 
 import logging
 import math
-import numpy as np
+from datetime import timezone
+
 import dateutil.parser
+import numpy as np
 
 logger = logging.getLogger('ieg')
 
@@ -30,12 +32,17 @@ class DistConstant:
     def get_sample(self):
         """Return the constant value."""
         return self.value
+    def mean(self):
+        """Return the distribution's mean."""
+        return self.value
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
         if 'value' not in desc:
-            logger.error("%s: constant distribution missing required field 'value'", context)
+            logger.error(
+                "%s: constant distribution missing required field 'value'", context
+            )
             valid = False
         return valid
 
@@ -47,24 +54,37 @@ class DistUniform:
         self.min_value = min_value
         self.max_value = max_value
     def __str__(self):
-        return 'DistUniform(min_value='+str(self.min_value)+', max_value='+str(self.max_value)+')'
+        return (
+            'DistUniform(min_value=' + str(self.min_value)
+            + ', max_value=' + str(self.max_value) + ')'
+        )
     def get_sample(self):
         """Return a uniformly distributed random value between min and max."""
         return np.random.uniform(self.min_value, self.max_value+1)
+    def mean(self):
+        """Return the distribution's mean."""
+        return (self.min_value + self.max_value) / 2
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
         if 'min' not in desc:
-            logger.error("%s: uniform distribution missing required field 'min'", context)
+            logger.error(
+                "%s: uniform distribution missing required field 'min'", context
+            )
             valid = False
         if 'max' not in desc:
-            logger.error("%s: uniform distribution missing required field 'max'", context)
+            logger.error(
+                "%s: uniform distribution missing required field 'max'", context
+            )
             valid = False
         if 'min' in desc and 'max' in desc:
             try:
                 if float(desc['min']) > float(desc['max']):
-                    logger.error("%s: uniform distribution 'min' (%s) must be <= 'max' (%s)", context, desc['min'], desc['max'])
+                    logger.error(
+                        "%s: uniform distribution 'min' (%s) must be <= 'max' (%s)",
+                        context, desc['min'], desc['max']
+                    )
                     valid = False
             except (TypeError, ValueError):
                 pass  # type errors will surface at runtime
@@ -75,58 +95,83 @@ class DistExponential:
     Represents an exponential distribution with a given mean.
     """
     def __init__(self, mean):
-        self.mean = mean
+        self._mean = mean
     def __str__(self):
-        return 'DistExponential(mean='+str(self.mean)+')'
+        return 'DistExponential(mean='+str(self._mean)+')'
     def get_sample(self):
-        """Return an exponentially distributed random value with the configured mean."""
-        return np.random.exponential(scale=self.mean)
+        """Return an exponentially distributed value with the configured mean."""
+        return np.random.exponential(scale=self._mean)
+    def mean(self):
+        """Return the distribution's mean."""
+        return self._mean
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
         if 'mean' not in desc:
-            logger.error("%s: exponential distribution missing required field 'mean'", context)
+            logger.error(
+                "%s: exponential distribution missing required field 'mean'", context
+            )
             valid = False
         else:
             try:
                 if float(desc['mean']) < 0:
-                    logger.error("%s: exponential distribution 'mean' must be >= 0, got %s", context, desc['mean'])
+                    logger.error(
+                        "%s: exponential distribution 'mean' must be >= 0, got %s",
+                        context, desc['mean']
+                    )
                     valid = False
             except (TypeError, ValueError):
-                logger.error("%s: exponential distribution 'mean' must be a number, got %r", context, desc['mean'])
+                logger.error(
+                    "%s: exponential distribution 'mean' must be a number, got %r",
+                    context, desc['mean']
+                )
                 valid = False
         return valid
 
 class DistNormal:
     """
-    Represents a normal (Gaussian) distribution with a given mean and standard deviation.
+    Represents a normal (Gaussian) distribution with a given mean and standard
+    deviation.
     """
     def __init__(self, mean, stddev):
-        self.mean = mean
+        self._mean = mean
         self.stddev = stddev
     def __str__(self):
-        return 'DistNormal(mean='+str(self.mean)+', stddev='+str(self.stddev)+')'
+        return 'DistNormal(mean='+str(self._mean)+', stddev='+str(self.stddev)+')'
     def get_sample(self):
-        """Return a normally distributed random value with the configured mean and stddev."""
-        return np.random.normal(self.mean, self.stddev)
+        """Return a normally distributed value with the configured mean and stddev."""
+        return np.random.normal(self._mean, self.stddev)
+    def mean(self):
+        """Return the distribution's mean."""
+        return self._mean
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
         if 'mean' not in desc:
-            logger.error("%s: normal distribution missing required field 'mean'", context)
+            logger.error(
+                "%s: normal distribution missing required field 'mean'", context
+            )
             valid = False
         if 'stddev' not in desc:
-            logger.error("%s: normal distribution missing required field 'stddev'", context)
+            logger.error(
+                "%s: normal distribution missing required field 'stddev'", context
+            )
             valid = False
         else:
             try:
                 if float(desc['stddev']) <= 0:
-                    logger.error("%s: normal distribution 'stddev' must be > 0, got %s", context, desc['stddev'])
+                    logger.error(
+                        "%s: normal distribution 'stddev' must be > 0, got %s",
+                        context, desc['stddev']
+                    )
                     valid = False
             except (TypeError, ValueError):
-                logger.error("%s: normal distribution 'stddev' must be a number, got %r", context, desc['stddev'])
+                logger.error(
+                    "%s: normal distribution 'stddev' must be a number, got %r",
+                    context, desc['stddev']
+                )
                 valid = False
         return valid
 
@@ -138,7 +183,7 @@ class DistGMMTemporal:
     Days are keyed by ISO weekday (1=Mon, 7=Sun) with nearest-prior wraparound lookup.
     """
     def __init__(self, mean, days, clock):
-        self.mean = mean
+        self._mean = mean
         self.days = days  # dict: str(day_number) -> list of {utc_hour, sigma, weight}
         self.clock = clock
         self.sorted_days = sorted(int(k) for k in self.days.keys())
@@ -147,7 +192,12 @@ class DistGMMTemporal:
         self._profile_cache = {day: self._compute_profile(day) for day in range(1, 8)}
 
     def __str__(self):
-        return f'DistGMMTemporal(mean={self.mean}, days={list(self.days.keys())})'
+        return f'DistGMMTemporal(mean={self._mean}, days={list(self.days.keys())})'
+
+    def mean(self):
+        """Return the distribution's base mean, ignoring time-of-day/day-of-week
+        modulation."""
+        return self._mean
 
     def _compute_profile(self, day):
         # Walk back from the given ISO weekday to find the nearest defined day key.
@@ -189,24 +239,35 @@ class DistGMMTemporal:
         multiplier = self._get_multiplier(hour, profile)
         if multiplier <= 0:
             multiplier = 0.001
-        return np.random.exponential(scale=self.mean / multiplier)
+        return np.random.exponential(scale=self._mean / multiplier)
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
         if 'mean' not in desc:
-            logger.error("%s: gmm_temporal distribution missing required field 'mean'", context)
+            logger.error(
+                "%s: gmm_temporal distribution missing required field 'mean'", context
+            )
             valid = False
         else:
             try:
                 if float(desc['mean']) < 0:
-                    logger.error("%s: gmm_temporal distribution 'mean' must be >= 0, got %s", context, desc['mean'])
+                    logger.error(
+                        "%s: gmm_temporal distribution 'mean' must be >= 0, got %s",
+                        context, desc['mean']
+                    )
                     valid = False
             except (TypeError, ValueError):
-                logger.error("%s: gmm_temporal distribution 'mean' must be a number, got %r", context, desc['mean'])
+                logger.error(
+                    "%s: gmm_temporal distribution 'mean' must be a number, got %r",
+                    context, desc['mean']
+                )
                 valid = False
         if 'days' not in desc or not desc['days']:
-            logger.error("%s: gmm_temporal distribution missing required field 'days' (must be a non-empty object)", context)
+            logger.error(
+                "%s: gmm_temporal distribution missing required field 'days' "
+                "(must be a non-empty object)", context
+            )
             valid = False
         else:
             days = desc['days']
@@ -214,19 +275,32 @@ class DistGMMTemporal:
                 try:
                     day_num = int(key)
                     if day_num < 1 or day_num > 7:
-                        logger.error("%s: gmm_temporal day key '%s' must be an integer 1–7 (ISO weekday)", context, key)
+                        logger.error(
+                            "%s: gmm_temporal day key '%s' must be an integer "
+                            "1–7 (ISO weekday)", context, key
+                        )
                         valid = False
                 except (ValueError, TypeError):
-                    logger.error("%s: gmm_temporal day key '%s' must be an integer 1–7 (ISO weekday)", context, key)
+                    logger.error(
+                        "%s: gmm_temporal day key '%s' must be an integer "
+                        "1–7 (ISO weekday)", context, key
+                    )
                     valid = False
                 if not components or not isinstance(components, list):
-                    logger.error("%s: gmm_temporal day '%s' must be a non-empty list of components", context, key)
+                    logger.error(
+                        "%s: gmm_temporal day '%s' must be a non-empty list "
+                        "of components", context, key
+                    )
                     valid = False
                 else:
                     for j, comp in enumerate(components):
                         for field in ('utc_hour', 'sigma', 'weight'):
                             if field not in comp:
-                                logger.error("%s: gmm_temporal day '%s' component [%d] missing required field '%s'", context, key, j, field)
+                                logger.error(
+                                    "%s: gmm_temporal day '%s' component [%d] "
+                                    "missing required field '%s'",
+                                    context, key, j, field
+                                )
                                 valid = False
         return valid
 
@@ -249,7 +323,9 @@ class Schedule:
             self._gmm = DistGMMTemporal(1.0, days, clock)
             self._constant = None
         else:
-            raise ValueError(f'Schedule does not support distribution type "{dist_type}"')
+            raise ValueError(
+                f'Schedule does not support distribution type "{dist_type}"'
+            )
 
     def get_multiplier(self):
         """Return the current capacity multiplier (0–1)."""
@@ -276,50 +352,82 @@ class Schedule:
         dist_type = desc['type'].lower()
         if dist_type == 'constant':
             if 'value' not in desc:
-                logger.error("%s: constant schedule missing required field 'value'", context)
+                logger.error(
+                    "%s: constant schedule missing required field 'value'", context
+                )
                 return False
             try:
                 value = float(desc['value'])
             except (TypeError, ValueError):
-                logger.error("%s: constant schedule 'value' must be a number, got %r", context, desc['value'])
+                logger.error(
+                    "%s: constant schedule 'value' must be a number, got %r",
+                    context, desc['value']
+                )
                 return False
             if not (0.0 <= value <= 1.0):
-                logger.error("%s: constant schedule 'value' must be between 0 and 1, got %s", context, value)
+                logger.error(
+                    "%s: constant schedule 'value' must be between 0 and 1, got %s",
+                    context, value
+                )
                 return False
             return True
         elif dist_type == 'gmm_temporal':
             days = desc.get('days')
             if not days:
-                logger.error("%s: gmm_temporal schedule missing required field 'days' (must be a non-empty object)", context)
+                logger.error(
+                    "%s: gmm_temporal schedule missing required field 'days' "
+                    "(must be a non-empty object)", context
+                )
                 return False
             valid = True
             for key, components in days.items():
                 try:
                     day_num = int(key)
                     if day_num < 1 or day_num > 7:
-                        logger.error("%s: gmm_temporal day key '%s' must be an integer 1–7 (ISO weekday)", context, key)
+                        logger.error(
+                            "%s: gmm_temporal day key '%s' must be an integer "
+                            "1–7 (ISO weekday)", context, key
+                        )
                         valid = False
                 except (ValueError, TypeError):
-                    logger.error("%s: gmm_temporal day key '%s' must be an integer 1–7 (ISO weekday)", context, key)
+                    logger.error(
+                        "%s: gmm_temporal day key '%s' must be an integer "
+                        "1–7 (ISO weekday)", context, key
+                    )
                     valid = False
                 if not components or not isinstance(components, list):
-                    logger.error("%s: gmm_temporal day '%s' must be a non-empty list of components", context, key)
+                    logger.error(
+                        "%s: gmm_temporal day '%s' must be a non-empty list "
+                        "of components", context, key
+                    )
                     valid = False
                 else:
                     for j, comp in enumerate(components):
                         for field in ('utc_hour', 'sigma', 'weight'):
                             if field not in comp:
-                                logger.error("%s: gmm_temporal day '%s' component [%d] missing required field '%s'", context, key, j, field)
+                                logger.error(
+                                    "%s: gmm_temporal day '%s' component [%d] "
+                                    "missing required field '%s'",
+                                    context, key, j, field
+                                )
                                 valid = False
                                 continue
                             try:
                                 num = float(comp[field])
                             except (TypeError, ValueError):
-                                logger.error("%s: gmm_temporal day '%s' component [%d] field '%s' must be a number, got %r", context, key, j, field, comp[field])
+                                logger.error(
+                                    "%s: gmm_temporal day '%s' component [%d] field "
+                                    "'%s' must be a number, got %r",
+                                    context, key, j, field, comp[field]
+                                )
                                 valid = False
                                 continue
                             if field == 'sigma' and num <= 0:
-                                logger.error("%s: gmm_temporal day '%s' component [%d] 'sigma' must be > 0, got %s", context, key, j, num)
+                                logger.error(
+                                    "%s: gmm_temporal day '%s' component [%d] "
+                                    "'sigma' must be > 0, got %s",
+                                    context, key, j, num
+                                )
                                 valid = False
             if not valid:
                 return False
@@ -351,7 +459,10 @@ class Schedule:
                     hour += 0.01
             return True
         else:
-            logger.error("%s: schedule does not support distribution type '%s'", context, desc['type'])
+            logger.error(
+                "%s: schedule does not support distribution type '%s'",
+                context, desc['type']
+            )
             return False
 
 
@@ -388,22 +499,35 @@ def parse_distribution(desc, clock=None):
             raise ValueError('Error: gmm_temporal distribution requires a clock')
         days = desc.get('days')
         if not days:
-            raise ValueError('Error: gmm_temporal distribution requires at least one day profile in "days"')
+            raise ValueError(
+                'Error: gmm_temporal distribution requires at least one '
+                'day profile in "days"'
+            )
         for key, components in days.items():
             day_num = int(key)
             if day_num < 1 or day_num > 7:
-                raise ValueError(f'Error: gmm_temporal day key "{key}" must be 1-7 (ISO weekday)')
+                raise ValueError(
+                    f'Error: gmm_temporal day key "{key}" must be 1-7 (ISO weekday)'
+                )
             if not components or not isinstance(components, list):
-                raise ValueError(f'Error: gmm_temporal day "{key}" must be a non-empty array of components')
+                raise ValueError(
+                    f'Error: gmm_temporal day "{key}" must be a non-empty array '
+                    f'of components'
+                )
             for comp in components:
                 for field in ('utc_hour', 'sigma', 'weight'):
                     if field not in comp:
-                        raise ValueError(f'Error: gmm_temporal component missing required field "{field}"')
+                        raise ValueError(
+                            f'Error: gmm_temporal component missing required '
+                            f'field "{field}"'
+                        )
         return DistGMMTemporal(desc['mean'], days, clock)
     else:
         raise ValueError(f'Error: Unknown distribution "{dist_type}"')
 
-KNOWN_DISTRIBUTION_TYPES = ('constant', 'uniform', 'exponential', 'normal', 'gmm_temporal')
+KNOWN_DISTRIBUTION_TYPES = (
+    'constant', 'uniform', 'exponential', 'normal', 'gmm_temporal'
+)
 
 def validate_distribution_desc(desc, context):
     """
@@ -428,7 +552,10 @@ def validate_distribution_desc(desc, context):
     elif dist_type == 'gmm_temporal':
         return DistGMMTemporal.validate_desc(desc, context)
     else:
-        logger.error("%s: unknown distribution type '%s' (known: %s)", context, desc['type'], ', '.join(KNOWN_DISTRIBUTION_TYPES))
+        logger.error(
+            "%s: unknown distribution type '%s' (known: %s)",
+            context, desc['type'], ', '.join(KNOWN_DISTRIBUTION_TYPES)
+        )
         return False
 
 
@@ -447,18 +574,30 @@ def parse_timestamp_distribution(desc):
     """
     dist_type = desc['type'].lower()
     if dist_type == 'constant':
-        value = dateutil.parser.isoparse(desc['value']).timestamp()
+        value = _isoparse_utc_timestamp(desc['value'])
         return DistConstant(value)
     elif dist_type == 'uniform':
-        min_value = dateutil.parser.isoparse(desc['min']).timestamp()
-        max_value = dateutil.parser.isoparse(desc['max']).timestamp()
+        min_value = _isoparse_utc_timestamp(desc['min'])
+        max_value = _isoparse_utc_timestamp(desc['max'])
         return DistUniform(min_value, max_value)
     elif dist_type == 'exponential':
-        mean = dateutil.parser.isoparse(desc['mean']).timestamp()
+        mean = _isoparse_utc_timestamp(desc['mean'])
         return DistExponential(mean)
     elif dist_type == 'normal':
-        mean = dateutil.parser.isoparse(desc['mean']).timestamp()
+        mean = _isoparse_utc_timestamp(desc['mean'])
         stddev = desc['stddev']
         return DistNormal(mean, stddev)
     else:
         raise ValueError(f'Error: Unknown distribution "{dist_type}"')
+
+
+def _isoparse_utc_timestamp(value):
+    """Parse an ISO 8601 string to a POSIX epoch, treating a naive string as UTC.
+
+    A bare `datetime.timestamp()` call assumes a naive datetime is local time,
+    which would make this epoch depend on the host machine's timezone.
+    """
+    dt = dateutil.parser.isoparse(value)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.timestamp()

@@ -16,7 +16,7 @@ pip install -r requirements.txt
 
 Contributing to the `tools/` scripts (e.g. `tools/ocsf/validate.py`) requires a couple of additional dev-only dependencies: `pip install -r requirements-dev.txt`.
 
-## Quickstart
+## Quick start
 
 Run the following example to test the generator script:
 
@@ -74,12 +74,12 @@ python generator.py \
 | [`-c`](#generator-configuration) | Path to the generator configuration JSON file. See [generator configuration reference](docs/generator-config.md). |
 | [`-t` / `--template`](docs/templates.md) | A named output template embedded in the generator config. See [output templates](docs/templates.md). |
 | [`-s`](#simulated-time) | Use a simulated clock starting at the specified ISO time, rather than using the system clock. This will cause records to be produced instantaneously (batch) rather than with a real clock (real-time). |
-| [`-w`](#volume) | The maximum number of workers to create (1-10,000). Defaults to 100. `-m` alias will be removed in future versions. |
+| [`-w`](#volume) | The maximum number of workers to create (1-1,000,000). Defaults to 100. `-m` alias will be removed in future versions. |
 | [`-i`](#volume) | Override the preset's [`event:start:timer`](docs/states.md#eventstarttimer) interarrival period (seconds), e.g. `0.1` = one worker dispatched every 1/10s, `5` = one worker every 5s. Lower values mean more data. Supported for `constant`/`exponential`/`normal`/`gmm_temporal` start-timer distributions; raises on others. Logs a warning showing the original and overridden value. |
 | [`-n`](#generation-limits) | The number of records to generate. Must not be used in combination with `-r`. |
 | [`-r`](#generation-limits) | The length of time to create records for, expressed in ISO8601 format. Must not be used in combination with `-n`. |
 | [`--schedule`](docs/schedules.md) | A JSON file that modulates the number of active workers over time, producing time-of-day traffic variation. See the [schedule documentation](docs/schedules.md) for available schedules and how to write your own. |
-| `--debug` | Enable debug logging. Outputs detailed thread scheduling and event queue information to stderr. |
+| `--debug` | Enable debug logging. Outputs detailed session and event-scheduling information to stderr. |
 | [`--seed`](docs/deterministic.md) | An integer seed for deterministic data generation. Use with `-s` for fully reproducible output. |
 
 ### Generator configuration
@@ -114,7 +114,7 @@ This is known as Little's Law, and together these three levers impact the amount
 
 The documentation for each preset contains benchmarks showing the volume of data generated when `-w` and `-i` are varied.
 
-`-w` is capped at 10,000 for a separate reason: spawning that many concurrent workers can exhaust the operating system's thread limit and crash the process outright, independent of the throughput limits above. The generator warns once `-w` passes 5,000, and warns more urgently past 8,000. If a run fails with `can't start new thread`, lower `-w`.
+`-w` is capped at 1,000,000 for a separate reason: it's a sanity bound against accidental input (a typo, or a copy-pasted value from the wrong context) and unbounded memory growth for a config whose natural ceiling is absurdly high, not a measured hardware limit — the generator is single-threaded internally, so there's no OS thread-creation ceiling to guard against.
 
 ### Output format
 

@@ -1,28 +1,35 @@
 # Ecommerce — Lighting Store
 
-A high-traffic e-commerce scenario simulating a lighting retailer. Busier than the generic ecommerce config, with shorter average session durations due to faster product decisions in a commodity-adjacent category.
+A high-traffic e-commerce scenario simulating a lighting retailer. Busier than
+the generic ecommerce config, with shorter average session durations due to
+faster product decisions in a commodity-adjacent category.
 
 ## Quick start
 
 ```bash
 # Apache combined log
-python generator.py -c presets/configs/ecommerce_lighting.json --template access_combined -n 100 -s "2025-01-01T00:00"
+python generator.py -c presets/configs/ecommerce_lighting.json --template \
+  access_combined -n 100 -s "2025-01-01T00:00"
 
 # JSON (Splunk TA)
-python generator.py -c presets/configs/ecommerce_lighting.json --template apache:access:json -r PT1H -s "2025-01-01T00:00"
+python generator.py -c presets/configs/ecommerce_lighting.json --template \
+  apache:access:json -r PT1H -s "2025-01-01T00:00"
 
 # CSV
-python generator.py -c presets/configs/ecommerce_lighting.json --template csv -n 1000 -s "2025-01-01T00:00"
+python generator.py -c presets/configs/ecommerce_lighting.json --template csv \
+  -n 1000 -s "2025-01-01T00:00"
 
 # With time-of-day variation
-python generator.py -c presets/configs/ecommerce_lighting.json --template access_combined \
-  -w 500 --schedule presets/schedules/ecommerce.json
+python generator.py -c presets/configs/ecommerce_lighting.json --template \
+  access_combined -w 500 --schedule presets/schedules/ecommerce.json
 
 # IIS W3C log (Splunk ms:iis:auto sourcetype — recommended)
-python generator.py -c presets/configs/ecommerce_lighting.json --template ms:iis:auto -r PT1H -s "2025-01-01T00:00"
+python generator.py -c presets/configs/ecommerce_lighting.json --template \
+  ms:iis:auto -r PT1H -s "2025-01-01T00:00"
 
 # OCSF HTTP Activity (security data lake / SIEM ingestion)
-python generator.py -c presets/configs/ecommerce_lighting.json --template ocsf:http_activity -r PT1H -s "2025-01-01T00:00"
+python generator.py -c presets/configs/ecommerce_lighting.json --template \
+  ocsf:http_activity -r PT1H -s "2025-01-01T00:00"
 ```
 
 ## Templates
@@ -42,9 +49,18 @@ python generator.py -c presets/configs/ecommerce_lighting.json --template ocsf:h
 | `ms:iis:splunk` | IIS W3C log (`ms:iis:splunk` sourcetype, adds `Content-Type` and `https` fields) |
 | `ocsf:http_activity` | [OCSF](https://schema.ocsf.io/) 1.4.0 HTTP Activity (`class_uid` 4002) JSON — one event per request, for security data lake / SIEM ingestion |
 
-When generating IIS data for Splunk, use `--template ms:iis:auto` — the other IIS templates are included for completeness but have been marked as deprecated by Splunk.
+When generating IIS data for Splunk, use `--template ms:iis:auto` — the other
+IIS templates are included for completeness but have been marked as deprecated
+by Splunk.
 
-The `ocsf:http_activity` template maps every session's requests — human, bot, and the `Hacker` actor's probe traffic — onto the OCSF Network Activity category. `activity_id`/`type_uid` are derived from `http_method`; `severity_id`/`status_id` are derived from `status` (2xx/3xx → informational/success, 4xx → medium/failure, 5xx → high/failure). Verified against the real OCSF 1.4.0 `http_activity` JSON Schema (via the [`ocsf-json-schema`](https://github.com/nsmithuk/ocsf-json-schema) package) across all three actor types.
+The `ocsf:http_activity` template maps every session's requests — human, bot,
+and the `Hacker` actor's probe traffic — onto the OCSF Network Activity
+category. `activity_id`/`type_uid` are derived from `http_method`;
+`severity_id`/`status_id` are derived from `status` (2xx/3xx →
+informational/success, 4xx → medium/failure, 5xx → high/failure). Verified
+against the real OCSF 1.4.0 `http_activity` JSON Schema (via the
+[`ocsf-json-schema`](https://github.com/nsmithuk/ocsf-json-schema) package)
+across all three actor types.
 
 ## Output fields
 
@@ -121,9 +137,19 @@ flowchart TD
     H --> F
 ```
 
-`initial_human` emits the homepage (`/`) hit and sets session-level properties — IP address, browser user-agent, cookie, and HTTP version — which persist unchanged for the rest of the session.
+`initial_human` emits the homepage (`/`) hit and sets session-level properties —
+IP address, browser user-agent, cookie, and HTTP version — which persist
+unchanged for the rest of the session.
 
-From `browse_products` the worker selects a product category (`browse_cat_indoor_lighting`, `browse_cat_outdoor_lighting`, `browse_cat_smart_lighting`, `browse_cat_led_lighting`, `browse_cat_vintage_lighting`). Each category state can self-loop (dwell time: 90–300 s for considered categories, 60–180 s for commodity), proceed to `add_to_cart`, return to `browse_products`, or exit. `not_found` generates a 404 and loops back to `browse_products`. The stop probability is highest at `browse_products` (15%), reflecting the typical drop-off before category selection.
+From `browse_products` the worker selects a product category
+(`browse_cat_indoor_lighting`, `browse_cat_outdoor_lighting`,
+`browse_cat_smart_lighting`, `browse_cat_led_lighting`,
+`browse_cat_vintage_lighting`). Each category state can self-loop (dwell time:
+90–300 s for considered categories, 60–180 s for commodity), proceed to
+`add_to_cart`, return to `browse_products`, or exit. `not_found` generates a 404
+and loops back to `browse_products`. The stop probability is highest at
+`browse_products` (15%), reflecting the typical drop-off before category
+selection.
 
 ---
 
@@ -136,7 +162,8 @@ flowchart LR
     B -->|"1%"| Z(["<b>session_end</b><br/>event:end"])
 ```
 
-`hacker_start` fires once on session entry (no event emitted) to pin the session-level properties:
+`hacker_start` fires once on session entry (no event emitted) to pin the
+session-level properties:
 
 | Property | Value |
 | --- | --- |
@@ -144,14 +171,18 @@ flowchart LR
 | Client IP | Drawn from a pool of **3 IPs** (simulates a single attacker or small botnet) |
 | HTTP version | Always `HTTP/1.1` |
 
-The `hacker` state then loops at ~0.01 s interarrival, emitting probe requests with:
+The `hacker` state then loops at ~0.01 s interarrival, emitting probe requests
+with:
 
-- **Paths:** `/.env`, `/.git/config`, `/phpinfo.php`, `/admin/*`, `/wp-admin`, path traversal strings, backup files
-- **Query strings:** SQL injection fragments (`?user=admin'--`, `?query=SELECT%20*%20FROM%20users`), `?cmd=whoami`
+- **Paths:** `/.env`, `/.git/config`, `/phpinfo.php`, `/admin/*`, `/wp-admin`,
+  path traversal strings, backup files
+- **Query strings:** SQL injection fragments (`?user=admin'--`,
+  `?query=SELECT%20*%20FROM%20users`), `?cmd=whoami`
 - **Methods:** GET, POST, PUT, DELETE
 - **Status codes:** 400, 401, 403, 404, 500, 502, 503
 
-The loop continues with 99% probability, averaging ~100 probe requests per session before stopping.
+The loop continues with 99% probability, averaging ~100 probe requests per
+session before stopping.
 
 ---
 
@@ -164,7 +195,8 @@ flowchart LR
     B -->|"2%"| Z(["<b>session_end</b><br/>event:end"])
 ```
 
-`bot_start` fires once on session entry (no event emitted) to pin the session-level properties:
+`bot_start` fires once on session entry (no event emitted) to pin the
+session-level properties:
 
 | Property | Value |
 | --- | --- |
@@ -174,20 +206,29 @@ flowchart LR
 
 The `bot` state then loops at ~1 s interarrival, emitting crawl requests with:
 
-- **Paths:** `/robots.txt`, `/sitemap.xml`, `/products`, category index pages, individual product pages
+- **Paths:** `/robots.txt`, `/sitemap.xml`, `/products`, category index pages,
+  individual product pages
 - **Methods:** GET only
 - **Status codes:** ~67% 200, ~22% 301, ~11% 404
 - **Referrer:** always `-`
 
-The loop continues with 98% probability, averaging ~50 crawl requests per session before stopping.
+The loop continues with 98% probability, averaging ~50 crawl requests per
+session before stopping.
 
 ---
 
 ## Volume
 
-The default start interval for workers in this preset is 0.6 seconds, with each worker busy for 1267.2 seconds on average. The maximum number of workers that can be busy at the same time is therefore 1267.2/0.6 = 2,112; increasing available workers (using `-w`) without adjusting how often they begin work (using `-i`) has no effect.
+The default start interval for workers in this preset is 0.6 seconds, with each
+worker busy for 1267.2 seconds on average. The maximum number of workers that
+can be busy at the same time is therefore 1267.2/0.6 = 2,112; increasing
+available workers (using `-w`) without adjusting how often they begin work
+(using `-i`) has no effect.
 
-The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_config_workers.py -c presets/configs/ecommerce_lighting.json`.
+The chart below shows how output scales with workers (varying `-w`) with the
+preset's default start interval (`--seed 42`, no schedule, PT6H simulated
+window). To regenerate: `python tools/bench_config_workers.py -c
+presets/configs/ecommerce_lighting.json`.
 
 ```mermaid
 %%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
@@ -198,13 +239,19 @@ xychart-beta
     line [256, 703, 1429, 3748, 9841, 24967, 62247, 155077, 313204, 315356]
 ```
 
-Adjust `-i` and `-w` to model heavier traffic. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/ecommerce_lighting.json`.
+Adjust `-i` and `-w` to model heavier traffic. The table below illustrates how
+output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H
+simulated window). To regenerate: `python tools/bench_grid.py -c
+presets/configs/ecommerce_lighting.json`.
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | ↕️ | ↕️ | ↕️ | ↕️ | ↕️ | 🟥 238,466 (13.7s) | 🟥 595,070 (44.6s) | 🟥 1,191,207 (124.2s) |
-| 0.1 | ↕️ | 🟩 1,132 (0.3s) | 🟨 5,996 (0.5s) | 🟧 24,053 (1.4s) | 🟧 59,337 (3.0s) | 🟥 238,627 (13.9s) | 🟥 592,779 (45.5s) | 🟥 1,177,570 (126.8s) |
-| 0.6 (default) | ↕️ | 🟩 1,135 (0.4s) | 🟨 5,950 (0.6s) | 🟧 24,127 (1.4s) | 🟧 58,963 (3.0s) | 🟥 233,506 (13.6s) | 🟥 312,107 (19.5s) | 🟥 311,298 (19.5s) |
-| 1 | 🟩 256 (0.3s) | 🟩 1,233 (0.4s) | 🟨 6,034 (0.6s) | 🟧 24,124 (1.4s) | 🟧 59,091 (3.1s) | 🟥 185,577 (10.5s) | 🟥 186,481 (10.5s) | 🟥 187,843 (10.5s) |
+| 0.01 | ↕️ | ↕️ | ↕️ | ↕️ | ↕️ | 🟥 238,749 (11.3s) | 🟥 599,417 (24.0s) | 🟥 1,197,664 (46.1s) |
+| 0.1 | 🟩 256 (0.5s) | 🟩 1,166 (0.6s) | 🟨 5,789 (0.8s) | 🟧 23,935 (1.3s) | 🟧 59,455 (2.4s) | 🟥 239,545 (8.1s) | 🟥 597,546 (19.9s) | 🟥 1,181,135 (41.0s) |
+| 0.6 (default) | 🟩 259 (0.3s) | 🟩 1,159 (0.4s) | 🟨 5,938 (0.6s) | 🟧 23,757 (1.0s) | 🟧 60,027 (2.1s) | 🟥 236,158 (7.6s) | 🟥 308,653 (10.0s) | ↔️ |
+| 1 | 🟩 245 (0.4s) | 🟩 1,170 (0.4s) | 🟨 5,908 (0.5s) | 🟧 24,270 (1.0s) | 🟧 59,348 (2.1s) | 🟥 188,138 (6.1s) | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that cell's own run -- not shown for skipped/plateau cells, which were never actually run.
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
+seconds for that cell's own run -- not shown for skipped/plateau cells, which
+were never actually run.

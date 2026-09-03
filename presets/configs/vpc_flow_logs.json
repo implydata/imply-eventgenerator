@@ -1,13 +1,13 @@
 {
   "templates": {
     "aws:cloudwatchlogs:vpcflow": {
-      "body": "{{ version }} {{ account_id }} {{ interface_id }} {{ srcaddr }} {{ dstaddr }} {{ srcport }} {{ dstport }} {{ protocol }} {{ packets }} {{ bytes }} {{ start.timestamp()|int }} {{ end.timestamp()|int }} {{ action }} {{ log_status }}"
+      "body": "{{ version }} {{ account_id }} {{ interface_id }} {{ srcaddr }} {{ dstaddr }} {{ srcport }} {{ dstport }} {{ protocol }} {{ packets }} {{ (packets * pkt_size) | int }} {{ start.timestamp()|int }} {{ end.timestamp()|int }} {{ action }} {{ log_status }}"
     },
     "ocsf:network_activity": {
-      "body": "{% set proto_map = {6: \"TCP\", 17: \"UDP\", 1: \"ICMP\"} %}{% set src_internal = srcaddr.startswith(\"10.\") %}{% set dst_internal = dstaddr.startswith(\"10.\") %}{% set direction_id = 3 if (src_internal and dst_internal) else (1 if not src_internal else 2) %}{% set boundary_id = 2 if (src_internal and dst_internal) else 3 %}{% set status_id = 1 if action == \"ACCEPT\" else 2 %}{% set severity_id = 1 if status_id == 1 else 2 %}{\"activity_id\": 6, \"activity_name\": \"Traffic\", \"category_uid\": 4, \"category_name\": \"Network Activity\", \"class_uid\": 4001, \"class_name\": \"Network Activity\", \"type_uid\": 400106, \"severity_id\": {{ severity_id }}, \"status_id\": {{ status_id }}, \"status\": \"{{ 'Success' if status_id == 1 else 'Failure' }}\", \"time\": {{ (start.timestamp() * 1000)|int }}, \"start_time\": {{ (start.timestamp() * 1000)|int }}, \"end_time\": {{ (end.timestamp() * 1000)|int }}, \"duration\": {{ ((end.timestamp() - start.timestamp()) * 1000)|int }}, \"metadata\": {\"version\": \"1.4.0\", \"product\": {\"name\": \"imply-eventgenerator\", \"vendor_name\": \"Imply\"}, \"log_provider\": \"imply-eventgenerator\", \"log_name\": \"vpc_flow_log\", \"original_time\": \"{{ start.isoformat() }}\"}, \"src_endpoint\": {\"ip\": \"{{ srcaddr }}\", \"port\": {{ srcport }}}, \"dst_endpoint\": {\"ip\": \"{{ dstaddr }}\", \"port\": {{ dstport }}}, \"connection_info\": {\"direction_id\": {{ direction_id }}, \"boundary_id\": {{ boundary_id }}, \"protocol_num\": {{ protocol }}, \"protocol_name\": \"{{ proto_map.get(protocol, \"OTHER\") }}\"}, \"traffic\": {\"bytes\": {{ bytes }}, \"packets\": {{ packets }}}, \"unmapped\": {\"action\": \"{{ action }}\", \"log_status\": \"{{ log_status }}\", \"interface_id\": \"{{ interface_id }}\", \"account_id\": \"{{ account_id }}\", \"version\": {{ version }}}}"
+      "body": "{% set proto_map = {6: \"TCP\", 17: \"UDP\", 1: \"ICMP\"} %}{% set src_internal = srcaddr.startswith(\"10.\") %}{% set dst_internal = dstaddr.startswith(\"10.\") %}{% set direction_id = 3 if (src_internal and dst_internal) else (1 if not src_internal else 2) %}{% set boundary_id = 2 if (src_internal and dst_internal) else 3 %}{% set status_id = 1 if action == \"ACCEPT\" else 2 %}{% set severity_id = 1 if status_id == 1 else 2 %}{\"activity_id\": 6, \"activity_name\": \"Traffic\", \"category_uid\": 4, \"category_name\": \"Network Activity\", \"class_uid\": 4001, \"class_name\": \"Network Activity\", \"type_uid\": 400106, \"severity_id\": {{ severity_id }}, \"status_id\": {{ status_id }}, \"status\": \"{{ 'Success' if status_id == 1 else 'Failure' }}\", \"time\": {{ (start.timestamp() * 1000)|int }}, \"start_time\": {{ (start.timestamp() * 1000)|int }}, \"end_time\": {{ (end.timestamp() * 1000)|int }}, \"duration\": {{ ((end.timestamp() - start.timestamp()) * 1000)|int }}, \"metadata\": {\"version\": \"1.4.0\", \"product\": {\"name\": \"imply-eventgenerator\", \"vendor_name\": \"Imply\"}, \"log_provider\": \"imply-eventgenerator\", \"log_name\": \"vpc_flow_log\", \"original_time\": \"{{ start.isoformat() }}\"}, \"src_endpoint\": {\"ip\": \"{{ srcaddr }}\", \"port\": {{ srcport }}}, \"dst_endpoint\": {\"ip\": \"{{ dstaddr }}\", \"port\": {{ dstport }}}, \"connection_info\": {\"direction_id\": {{ direction_id }}, \"boundary_id\": {{ boundary_id }}, \"protocol_num\": {{ protocol }}, \"protocol_name\": \"{{ proto_map.get(protocol, \"OTHER\") }}\"}, \"traffic\": {\"bytes\": {{ (packets * pkt_size) | int }}, \"packets\": {{ packets }}}, \"unmapped\": {\"action\": \"{{ action }}\", \"log_status\": \"{{ log_status }}\", \"interface_id\": \"{{ interface_id }}\", \"account_id\": \"{{ account_id }}\", \"version\": {{ version }}}}"
     }
   },
-  "_comment": "AWS VPC Flow Logs Generator - Models realistic VPC traffic patterns",
+  "_comment": "AWS VPC Flow Logs Generator - Models realistic VPC traffic patterns. bytes is derived from packets * pkt_size (a per-traffic-class MSS constant) rather than sampled independently, so no row can report a physically impossible bytes/packet ratio; pkt_size and packets are both plain sampled fields, bytes is computed in each template.",
   "_description": "This configuration generates AWS VPC Flow Log records that simulate various traffic scenarios including web traffic, database connections, SSH sessions, internal API calls, and malicious patterns like port scans. Each flow represents a network connection with proper lifecycle modeling.",
   "_vpc_flow_log_format": "version account-id interface-id srcaddr dstaddr srcport dstport protocol packets bytes start end action log-status",
   "_design_notes": {
@@ -33,12 +33,12 @@
         {"name": "log_status", "type": "string:static", "value": "OK"},
         {"name": "account_id", "type": "variable", "variable": "var_account_id"},
         {"name": "action", "type": "variable", "variable": "var_action"},
-        {"name": "bytes", "type": "variable", "variable": "var_bytes"},
         {"name": "dstaddr", "type": "variable", "variable": "var_dstaddr"},
         {"name": "dstport", "type": "variable", "variable": "var_dstport"},
         {"name": "end", "type": "variable", "variable": "var_end"},
         {"name": "interface_id", "type": "variable", "variable": "var_interface_id"},
         {"name": "packets", "type": "variable", "variable": "var_packets"},
+        {"name": "pkt_size", "type": "variable", "variable": "var_pkt_size"},
         {"name": "protocol", "type": "variable", "variable": "var_protocol"},
         {"name": "srcaddr", "type": "variable", "variable": "var_srcaddr"},
         {"name": "srcport", "type": "variable", "variable": "var_srcport"},
@@ -91,11 +91,11 @@
     {
       "name": "route_initial", "type": "gateway:exclusive",
       "transitions": [
-        {"next": "setup_web_traffic_syn", "probability": 0.4},
+        {"next": "setup_web_traffic_syn", "probability": 0.423},
         {"next": "setup_database_traffic_syn", "probability": 0.25},
         {"next": "setup_ssh_traffic_syn", "probability": 0.1},
         {"next": "setup_internal_api_syn", "probability": 0.2},
-        {"next": "setup_port_scan", "probability": 0.03},
+        {"next": "setup_port_scan", "probability": 0.007},
         {"next": "setup_dns_traffic", "probability": 0.02}
       ]
     },
@@ -164,16 +164,6 @@
       "variables": [
         {"name": "var_end", "type": "clock", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 180,
-            "max": 240
-          },
-          "_comment": "TCP handshake packets"
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -181,6 +171,15 @@
             "value": 3
           },
           "_comment": "SYN, SYN-ACK, ACK"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 60,
+            "max": 80
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -212,23 +211,23 @@
       "variables": [
         {"name": "var_end", "type": "clock", "_comment": "Capture flow window end time (after activity delay)"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 5000,
-            "max": 500000
-          },
-          "_comment": "5KB to 500KB"
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
-            "min": 50,
-            "max": 500
-          }
+            "min": 3,
+            "max": 345
+          },
+          "_comment": "rescaled so packets*1448 spans the original byte range"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 1448
+          },
+          "_comment": "MSS for this path MTU; bytes = packets * MSS"
         }
       ],
       "emitter": "vpc_flow_log",
@@ -267,15 +266,6 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 100,
-            "max": 140
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -283,6 +273,15 @@
             "value": 2
           },
           "_comment": "FIN, ACK"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 70
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -307,15 +306,6 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 50,
-            "max": 70
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -323,6 +313,15 @@
             "value": 1
           },
           "_comment": "RST packet"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 70
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -392,16 +391,6 @@
       "variables": [
         {"name": "var_end", "type": "clock", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 180,
-            "max": 240
-          },
-          "_comment": "TCP handshake packets"
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -409,6 +398,15 @@
             "value": 3
           },
           "_comment": "SYN, SYN-ACK, ACK"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 60,
+            "max": 80
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -440,22 +438,23 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 1000,
-            "max": 100000
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
-            "min": 10,
-            "max": 200
-          }
+            "min": 1,
+            "max": 69
+          },
+          "_comment": "rescaled so packets*1448 spans the original byte range"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 1448
+          },
+          "_comment": "MSS for this path MTU; bytes = packets * MSS"
         }
       ],
       "emitter": "vpc_flow_log",
@@ -494,15 +493,6 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 100,
-            "max": 140
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -510,6 +500,15 @@
             "value": 2
           },
           "_comment": "FIN, ACK"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 70
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -534,15 +533,6 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 50,
-            "max": 70
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -550,6 +540,15 @@
             "value": 1
           },
           "_comment": "RST packet"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 70
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -621,16 +620,6 @@
       "variables": [
         {"name": "var_end", "type": "clock", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 180,
-            "max": 240
-          },
-          "_comment": "TCP handshake packets"
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -638,6 +627,15 @@
             "value": 3
           },
           "_comment": "SYN, SYN-ACK, ACK"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 60,
+            "max": 80
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -669,22 +667,23 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 10000,
-            "max": 200000
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
-            "min": 100,
-            "max": 2000
-          }
+            "min": 19,
+            "max": 373
+          },
+          "_comment": "rescaled so packets*536 spans the original byte range"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 536
+          },
+          "_comment": "MSS for this path MTU; bytes = packets * MSS"
         }
       ],
       "emitter": "vpc_flow_log",
@@ -723,15 +722,6 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 100,
-            "max": 140
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -739,6 +729,15 @@
             "value": 2
           },
           "_comment": "FIN, ACK"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 70
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -763,15 +762,6 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 50,
-            "max": 70
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -779,6 +769,15 @@
             "value": 1
           },
           "_comment": "RST packet"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 70
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -846,16 +845,6 @@
       "variables": [
         {"name": "var_end", "type": "clock", "_comment": "Capture end time after handshake delay"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 180,
-            "max": 240
-          },
-          "_comment": "TCP handshake packets"
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -863,6 +852,15 @@
             "value": 3
           },
           "_comment": "SYN, SYN-ACK, ACK"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 60,
+            "max": 80
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -894,22 +892,23 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 500,
-            "max": 50000
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
-            "min": 10,
-            "max": 100
-          }
+            "min": 1,
+            "max": 35
+          },
+          "_comment": "rescaled so packets*1448 spans the original byte range"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "constant",
+            "value": 1448
+          },
+          "_comment": "MSS for this path MTU; bytes = packets * MSS"
         }
       ],
       "emitter": "vpc_flow_log",
@@ -948,15 +947,6 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 100,
-            "max": 140
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -964,6 +954,15 @@
             "value": 2
           },
           "_comment": "FIN, ACK"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 70
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -988,15 +987,6 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 50,
-            "max": 70
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -1004,6 +994,15 @@
             "value": 1
           },
           "_comment": "RST packet"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 70
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -1078,15 +1077,6 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 40,
-            "max": 80
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
@@ -1094,6 +1084,15 @@
             "value": 1
           },
           "_comment": "Single SYN probe"
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 40,
+            "max": 80
+          }
         }
       ],
       "emitter": "vpc_flow_log",
@@ -1149,20 +1148,20 @@
         {"name": "var_end", "type": "clock"},
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 40,
-            "max": 60
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
             "value": 1
+          }
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 40,
+            "max": 60
           }
         }
       ],
@@ -1190,20 +1189,20 @@
         {"name": "var_end", "type": "clock"},
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 40,
-            "max": 60
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "constant",
             "value": 1
+          }
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 40,
+            "max": 60
           }
         }
       ],
@@ -1277,21 +1276,21 @@
       "variables": [
         {"name": "var_end", "type": "clock"},
         {
-          "name": "var_bytes", "type": "int",
-          "cardinality": 0,
-          "distribution": {
-            "type": "uniform",
-            "min": 100,
-            "max": 500
-          }
-        },
-        {
           "name": "var_packets", "type": "int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
             "min": 2,
             "max": 4
+          }
+        },
+        {
+          "name": "var_pkt_size", "type": "int",
+          "cardinality": 0,
+          "distribution": {
+            "type": "uniform",
+            "min": 50,
+            "max": 125
           }
         }
       ],

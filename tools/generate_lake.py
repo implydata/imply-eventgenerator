@@ -17,14 +17,16 @@ completed partition is appended to a JSONL manifest and skipped on re-run.
 
 Usage:
     # Plan first — no generation, no uploads
-    python tools/generate_lake.py --bucket my-lake --start 2026-05-27 --end 2026-08-24 --dry-run
+    python tools/generate_lake.py --bucket my-lake --start 2026-05-27 \
+        --end 2026-08-24 --dry-run
 
     # Full run, 16 parallel generators
-    python tools/generate_lake.py --bucket my-lake --start 2026-05-27 --end 2026-08-24 --jobs 16
+    python tools/generate_lake.py --bucket my-lake --start 2026-05-27 \
+        --end 2026-08-24 --jobs 16
 
     # One profile, to a local tree instead of S3 (smoke test)
-    python tools/generate_lake.py --local-dir /tmp/lake --start 2026-05-27 --end 2026-05-28 \
-        --profile ecommerce --template csv
+    python tools/generate_lake.py --local-dir /tmp/lake --start 2026-05-27 \
+        --end 2026-05-28 --profile ecommerce --template csv
 
 Re-running the same command resumes: partitions already in the manifest are skipped.
 """
@@ -41,7 +43,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from rich.console import Console
@@ -105,13 +107,6 @@ PROFILE_SETTINGS = {
         "est_rows_per_hour": 32_500,
         "est_bytes_per_row": 110,
     },
-    # Ceiling probed at ~1056 (docs/presets doc still missing for this config).
-    "vpc_flow_logs_derived": {
-        "m": 1056,
-        "schedule": None,
-        "est_rows_per_hour": 288_000,
-        "est_bytes_per_row": 110,
-    },
     "endpoint_network": {
         "m": 1,
         "schedule": None,
@@ -173,7 +168,8 @@ class Result:
 # ---------------------------------------------------------------------------
 
 def slugify(name: str) -> str:
-    """Make a template name safe for an object key ('ms:iis:default:85' -> 'ms_iis_default_85')."""
+    """Make a template name safe for an object key
+    ('ms:iis:default:85' -> 'ms_iis_default_85')."""
     return re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_").lower()
 
 
@@ -187,7 +183,8 @@ def infer_extension(template_name: str, template_def: dict) -> str:
     header = (template_def or {}).get("header", "")
     if "json" in name:
         return "json"
-    if name == "csv" or (header and "," in header and not header.lstrip().startswith("#")):
+    is_csv_header = header and "," in header and not header.lstrip().startswith("#")
+    if name == "csv" or is_csv_header:
         return "csv"
     return "log"
 
@@ -220,14 +217,16 @@ def build_key(prefix: str, task_profile: str, template_slug: str, day: date,
 # A run must abort on these: once an SSO token expires mid-run, every remaining
 # partition would burn CPU generating data that can never be uploaded.
 AUTH_ERROR_CODES = {
-    "ExpiredToken", "ExpiredTokenException", "InvalidAccessKeyId", "InvalidClientTokenId",
-    "RequestExpired", "SignatureDoesNotMatch", "InvalidToken", "AccessDenied",
-    "AccessDeniedException", "UnrecognizedClientException",
+    "ExpiredToken", "ExpiredTokenException", "InvalidAccessKeyId",
+    "InvalidClientTokenId", "RequestExpired", "SignatureDoesNotMatch",
+    "InvalidToken", "AccessDenied", "AccessDeniedException",
+    "UnrecognizedClientException",
 }
 
 
 def is_auth_error(exc) -> bool:
-    """True if this exception means the credentials, not the object, are the problem."""
+    """True if this exception means the credentials, not the object, are the
+    problem."""
     from botocore.exceptions import (
         ClientError,
         NoCredentialsError,
@@ -235,7 +234,8 @@ def is_auth_error(exc) -> bool:
         SSOError,
         TokenRetrievalError,
     )
-    if isinstance(exc, (NoCredentialsError, ProfileNotFound, SSOError, TokenRetrievalError)):
+    cred_errors = (NoCredentialsError, ProfileNotFound, SSOError, TokenRetrievalError)
+    if isinstance(exc, cred_errors):
         return True
     if isinstance(exc, ClientError):
         return exc.response.get("Error", {}).get("Code") in AUTH_ERROR_CODES
@@ -247,7 +247,9 @@ def is_auth_error(exc) -> bool:
 def sso_login(profile) -> bool:
     """Run `aws sso login`, which opens a browser. Returns True on success."""
     cmd = ["aws", "sso", "login"] + (["--profile", profile] if profile else [])
-    err.print(f"[cyan]running {' '.join(cmd)} — complete the login in your browser[/cyan]")
+    err.print(
+        f"[cyan]running {' '.join(cmd)} — complete the login in your browser[/cyan]"
+    )
     try:
         return subprocess.call(cmd) == 0
     except FileNotFoundError:
@@ -293,7 +295,10 @@ class S3Sink:
         # max_pool_connections must cover --jobs so parallel uploads don't queue.
         self._client = self._session.client(
             "s3",
-            config=Config(retries={"max_attempts": 10, "mode": "adaptive"}, max_pool_connections=64),
+            config=Config(
+                retries={"max_attempts": 10, "mode": "adaptive"},
+                max_pool_connections=64
+            ),
         )
         self.extra_args = {}
         if storage_class:
@@ -311,27 +316,39 @@ class S3Sink:
     def check_credentials(self, allow_login=False):
         """Resolve credentials before generating anything, so an expired SSO token
         costs a second rather than hours of discarded CPU."""
+        # Bounded to 2 attempts and network I/O bound (an SSO client call), so
+        # the try/except-in-loop overhead PERF203 warns about is negligible here.
         for attempt in (1, 2):
             try:
                 ident = self._session.client("sts").get_caller_identity()
                 return ident.get("Arn", ident.get("Account", "unknown"))
-            except Exception as e:
+            except Exception as e:  # noqa: PERF203
                 if not is_auth_error(e):
-                    err.print(f"[yellow]could not verify identity ({type(e).__name__}) — "
-                              f"continuing[/yellow]")
+                    err.print(
+                        f"[yellow]could not verify identity ({type(e).__name__}) — "
+                        f"continuing[/yellow]"
+                    )
                     return None
                 if attempt == 1 and allow_login and sso_login(self.profile):
                     # Rebuild clients so they pick up the freshly cached SSO token.
                     self._session = self._session.__class__(
-                        profile_name=self.profile, region_name=self._session.region_name)
+                        profile_name=self.profile,
+                        region_name=self._session.region_name
+                    )
                     from botocore.config import Config
                     self._client = self._session.client(
-                        "s3", config=Config(retries={"max_attempts": 10, "mode": "adaptive"},
-                                            max_pool_connections=64))
+                        "s3",
+                        config=Config(
+                            retries={"max_attempts": 10, "mode": "adaptive"},
+                            max_pool_connections=64
+                        )
+                    )
                     continue
                 raise SystemExit(
-                    f"AWS credentials for profile '{self.profile or 'default'}' are expired "
-                    f"or missing ({type(e).__name__}).\n" + login_hint(self.profile))
+                    f"AWS credentials for profile '{self.profile or 'default'}' are "
+                    f"expired or missing ({type(e).__name__}).\n"
+                    + login_hint(self.profile)
+                )
 
     def preflight(self):
         # A write-only role can't HeadBucket (it maps to s3:ListBucket), so a failure
@@ -339,8 +356,11 @@ class S3Sink:
         try:
             self._client.head_bucket(Bucket=self.bucket)
         except Exception as e:
-            err.print(f"[yellow]could not verify bucket '{self.bucket}' ({type(e).__name__}) — "
-                      f"continuing; uploads will fail fast if it is wrong[/yellow]")
+            err.print(
+                f"[yellow]could not verify bucket '{self.bucket}' "
+                f"({type(e).__name__}) — continuing; uploads will fail fast "
+                f"if it is wrong[/yellow]"
+            )
 
     def exists(self, key):
         from botocore.exceptions import ClientError
@@ -403,7 +423,8 @@ def iter_days(start: date, end: date):
 
 
 def load_profiles(only, exclude):
-    """Return {profile: (config_path, {template_name: template_def})} for selected configs."""
+    """Return {profile: (config_path, {template_name: template_def})} for
+    selected configs."""
     profiles = {}
     for path in sorted(CONFIG_DIR.glob("*.json")):
         name = path.stem
@@ -415,7 +436,9 @@ def load_profiles(only, exclude):
             config = json.load(f)
         templates = config.get("templates") or {}
         if not templates:
-            err.print(f"[yellow]skipping {name}: config has no templates block[/yellow]")
+            err.print(
+                f"[yellow]skipping {name}: config has no templates block[/yellow]"
+            )
             continue
         profiles[name] = (path, templates)
     return profiles
@@ -442,7 +465,10 @@ def build_tasks(profiles, days, template_filter, prefix, seed_base, m_override,
             for day in days:
                 for hour in range(0, 24, split_hours):
                     marker = None if split_hours == 24 else hour
-                    seed = None if seed_base is None else seed_base + day.toordinal() * 24 + hour
+                    if seed_base is None:
+                        seed = None
+                    else:
+                        seed = seed_base + day.toordinal() * 24 + hour
                     tasks.append(
                         Task(
                             profile=profile,
@@ -511,8 +537,9 @@ def summarise_plan(tasks, sink, n_days, split_hours):
     )
     err.print(table)
     err.print(
-        "[dim]Estimates use measured rates for the ecommerce schedule and assume a 10:1 "
-        "gzip ratio (measured 10-13:1). Actual volume varies with -m and schedule.[/dim]"
+        "[dim]Estimates use measured rates for the ecommerce schedule and assume "
+        "a 10:1 gzip ratio (measured 10-13:1). Actual volume varies with -m and "
+        "schedule.[/dim]"
     )
 
 
@@ -553,8 +580,12 @@ def run_task(task: Task, sink, compresslevel, timeout, stop: threading.Event) ->
     with tempfile.TemporaryFile() as errfile, \
             tempfile.SpooledTemporaryFile(max_size=SPOOL_MAX, mode="w+b") as spool:
         # mtime=0 keeps the gzip header byte-stable for identical input.
-        gz = gzip.GzipFile(filename="", mode="wb", fileobj=spool, compresslevel=compresslevel, mtime=0)
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=errfile, cwd=str(REPO_ROOT))
+        gz = gzip.GzipFile(
+            filename="", mode="wb", fileobj=spool, compresslevel=compresslevel, mtime=0
+        )
+        proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=errfile, cwd=str(REPO_ROOT)
+        )
         try:
             while True:
                 chunk = proc.stdout.read(READ_CHUNK)
@@ -573,14 +604,19 @@ def run_task(task: Task, sink, compresslevel, timeout, stop: threading.Event) ->
         gz.close()
 
         if killed:
-            return Result(task, "cancelled" if stop.is_set() else "timeout", rows, raw_bytes,
-                          wall_s=time.time() - started,
-                          detail=f"killed after {time.time() - started:.0f}s")
+            status = "cancelled" if stop.is_set() else "timeout"
+            return Result(
+                task, status, rows, raw_bytes,
+                wall_s=time.time() - started,
+                detail=f"killed after {time.time() - started:.0f}s"
+            )
         if rc != 0:
             errfile.seek(0)
             tail = errfile.read()[-2000:].decode("utf-8", "replace").strip()
-            return Result(task, "failed", rows, raw_bytes, wall_s=time.time() - started,
-                          detail=f"generator exit {rc}: {tail}")
+            return Result(
+                task, "failed", rows, raw_bytes, wall_s=time.time() - started,
+                detail=f"generator exit {rc}: {tail}"
+            )
         if rows == 0:
             errfile.seek(0)
             tail = errfile.read()[-2000:].decode("utf-8", "replace").strip()
@@ -639,54 +675,111 @@ def main(argv=None):
     )
     dest = p.add_mutually_exclusive_group(required=True)
     dest.add_argument("--bucket", help="Destination S3 bucket")
-    dest.add_argument("--local-dir", help="Write the partition tree to a local directory instead of S3")
+    dest.add_argument(
+        "--local-dir",
+        help="Write the partition tree to a local directory instead of S3"
+    )
 
-    p.add_argument("--prefix", default="", help="Key prefix within the bucket (default: bucket root)")
-    p.add_argument("--start", type=parse_day, required=True, help="First day to generate (YYYY-MM-DD)")
-    p.add_argument("--end", type=parse_day, required=True, help="Last day to generate, inclusive (YYYY-MM-DD)")
+    p.add_argument(
+        "--prefix", default="",
+        help="Key prefix within the bucket (default: bucket root)"
+    )
+    p.add_argument(
+        "--start", type=parse_day, required=True,
+        help="First day to generate (YYYY-MM-DD)"
+    )
+    p.add_argument(
+        "--end", type=parse_day, required=True,
+        help="Last day to generate, inclusive (YYYY-MM-DD)"
+    )
 
-    p.add_argument("--profile", action="append", default=[],
-                   help="Only this profile (config basename); repeatable. Default: all configs.")
-    p.add_argument("--exclude-profile", action="append", default=[], help="Skip this profile; repeatable")
-    p.add_argument("--template", action="append", default=[],
-                   help="Only this template name; repeatable. Default: every template in each config.")
+    p.add_argument(
+        "--profile", action="append", default=[],
+        help="Only this profile (config basename); repeatable. Default: all configs."
+    )
+    p.add_argument(
+        "--exclude-profile", action="append", default=[],
+        help="Skip this profile; repeatable"
+    )
+    p.add_argument(
+        "--template", action="append", default=[],
+        help="Only this template name; repeatable. Default: every template "
+             "in each config."
+    )
 
-    p.add_argument("--jobs", type=int, default=DEFAULT_JOBS,
-                   help=f"Parallel generator processes (default: {DEFAULT_JOBS} — cores minus 2)")
-    p.add_argument("-m", "--concurrency", type=int, default=None,
-                   help="Override -m for every profile. Default: each profile's measured ceiling.")
-    p.add_argument("--split-hours", type=int, default=24, choices=[1, 2, 3, 4, 6, 8, 12, 24],
-                   help="Split each day into objects of this many hours (default: 24, one object "
-                        "per day). Smaller values give finer parallelism and smaller objects, at "
-                        "the cost of a worker ramp-up and truncated sessions at every boundary.")
-    p.add_argument("--no-schedule", action="store_true",
-                   help="Ignore per-profile schedules (raises ecommerce volume by ~1.5x)")
-    p.add_argument("--seed-base", type=int, default=None,
-                   help="Derive each day's --seed as seed-base + day ordinal. Note: --seed is not "
-                        "reliably reproducible for the ecommerce configs.")
+    p.add_argument(
+        "--jobs", type=int, default=DEFAULT_JOBS,
+        help=f"Parallel generator processes (default: {DEFAULT_JOBS} — cores minus 2)"
+    )
+    p.add_argument(
+        "-m", "--concurrency", type=int, default=None,
+        help="Override -m for every profile. Default: each profile's measured ceiling."
+    )
+    p.add_argument(
+        "--split-hours", type=int, default=24, choices=[1, 2, 3, 4, 6, 8, 12, 24],
+        help="Split each day into objects of this many hours (default: 24, one object "
+             "per day). Smaller values give finer parallelism and smaller objects, at "
+             "the cost of a worker ramp-up and truncated sessions at every boundary."
+    )
+    p.add_argument(
+        "--no-schedule", action="store_true",
+        help="Ignore per-profile schedules (raises ecommerce volume by ~1.5x)"
+    )
+    p.add_argument(
+        "--seed-base", type=int, default=None,
+        help="Derive each day's --seed as seed-base + day ordinal. Note: --seed is "
+             "not reliably reproducible for the ecommerce configs."
+    )
 
-    p.add_argument("--compresslevel", type=int, default=DEFAULT_COMPRESSLEVEL,
-                   help=f"gzip level 1-9 (default: {DEFAULT_COMPRESSLEVEL})")
-    p.add_argument("--aws-profile", default=os.environ.get("AWS_PROFILE"),
-                   help="AWS profile to authenticate with, including SSO profiles from "
-                        "~/.aws/config. Defaults to $AWS_PROFILE, then the default profile. "
-                        "Not to be confused with --profile, which selects a generator config.")
-    p.add_argument("--region", default=None, help="AWS region (default: the profile's region)")
-    p.add_argument("--sso-login", action="store_true",
-                   help="Run `aws sso login` automatically if credentials are expired or missing")
-    p.add_argument("--storage-class", default=None, help="S3 storage class (e.g. STANDARD_IA)")
-    p.add_argument("--sse", default=None, help="Server-side encryption (e.g. AES256, aws:kms)")
+    p.add_argument(
+        "--compresslevel", type=int, default=DEFAULT_COMPRESSLEVEL,
+        help=f"gzip level 1-9 (default: {DEFAULT_COMPRESSLEVEL})"
+    )
+    p.add_argument(
+        "--aws-profile", default=os.environ.get("AWS_PROFILE"),
+        help="AWS profile to authenticate with, including SSO profiles from "
+             "~/.aws/config. Defaults to $AWS_PROFILE, then the default profile. "
+             "Not to be confused with --profile, which selects a generator config."
+    )
+    p.add_argument(
+        "--region", default=None, help="AWS region (default: the profile's region)"
+    )
+    p.add_argument(
+        "--sso-login", action="store_true",
+        help="Run `aws sso login` automatically if credentials are expired or missing"
+    )
+    p.add_argument(
+        "--storage-class", default=None, help="S3 storage class (e.g. STANDARD_IA)"
+    )
+    p.add_argument(
+        "--sse", default=None, help="Server-side encryption (e.g. AES256, aws:kms)"
+    )
     p.add_argument("--kms-key-id", default=None, help="KMS key id when --sse aws:kms")
-    p.add_argument("--acl", default=None, help="Object ACL (e.g. bucket-owner-full-control)")
+    p.add_argument(
+        "--acl", default=None, help="Object ACL (e.g. bucket-owner-full-control)"
+    )
 
-    p.add_argument("--manifest", default=DEFAULT_MANIFEST,
-                   help=f"JSONL run log, also used for resume (default: {DEFAULT_MANIFEST})")
-    p.add_argument("--overwrite", action="store_true", help="Regenerate partitions already in the manifest")
-    p.add_argument("--check-remote", action="store_true",
-                   help="Also skip partitions that already exist at the destination (one HEAD per partition)")
-    p.add_argument("--task-timeout", type=int, default=0,
-                   help="Kill a single partition after N seconds (default: 0, no limit)")
-    p.add_argument("--dry-run", action="store_true", help="Print the plan and exit without generating")
+    p.add_argument(
+        "--manifest", default=DEFAULT_MANIFEST,
+        help=f"JSONL run log, also used for resume (default: {DEFAULT_MANIFEST})"
+    )
+    p.add_argument(
+        "--overwrite", action="store_true",
+        help="Regenerate partitions already in the manifest"
+    )
+    p.add_argument(
+        "--check-remote", action="store_true",
+        help="Also skip partitions that already exist at the destination "
+             "(one HEAD per partition)"
+    )
+    p.add_argument(
+        "--task-timeout", type=int, default=0,
+        help="Kill a single partition after N seconds (default: 0, no limit)"
+    )
+    p.add_argument(
+        "--dry-run", action="store_true",
+        help="Print the plan and exit without generating"
+    )
 
     args = p.parse_args(argv)
 
@@ -745,7 +838,10 @@ def main(argv=None):
                     remaining.append(t)
             tasks = remaining
         if skipped:
-            err.print(f"[cyan]resuming: {skipped} partitions already complete, {len(tasks)} to go[/cyan]")
+            err.print(
+                f"[cyan]resuming: {skipped} partitions already complete, "
+                f"{len(tasks)} to go[/cyan]"
+            )
     if not tasks:
         err.print("[green]nothing to do — every partition is already complete[/green]")
         return 0
@@ -763,7 +859,7 @@ def main(argv=None):
 
     def record(result: Result):
         rec = {
-            "ts": datetime.now().isoformat(timespec="seconds"),
+            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "status": result.status,
             "key": result.task.key,
             "profile": result.task.profile,
@@ -775,7 +871,9 @@ def main(argv=None):
             "gz_bytes": result.gz_bytes,
             "wall_s": round(result.wall_s, 1),
             "m": result.task.m,
-            "schedule": Path(result.task.schedule).name if result.task.schedule else None,
+            "schedule": (
+                Path(result.task.schedule).name if result.task.schedule else None
+            ),
             "seed": result.task.seed,
         }
         if result.detail:
@@ -812,21 +910,29 @@ def main(argv=None):
                             totals["gz"] += result.gz_bytes
                         elif result.status != "cancelled":
                             failures.append(result)
-                            err.print(f"[red]{result.status}[/red] {result.task.key}: {result.detail}")
+                            err.print(
+                                f"[red]{result.status}[/red] {result.task.key}: "
+                                f"{result.detail}"
+                            )
                             if result.fatal and not stop.is_set():
-                                # Credentials died mid-run. Every remaining partition would
-                                # generate fine and then fail to upload, so stop now.
+                                # Credentials died mid-run. Every remaining
+                                # partition would generate fine and then fail
+                                # to upload, so stop now.
                                 stop.set()
-                                err.print("[red]credentials failed — aborting the run so it "
-                                          "doesn't generate data it cannot upload.[/red]")
+                                err.print(
+                                    "[red]credentials failed — aborting the run so it "
+                                    "doesn't generate data it cannot upload.[/red]"
+                                )
                                 err.print(login_hint(args.aws_profile))
-                                err.print("[cyan]re-run the same command afterwards; the "
-                                          "manifest resumes from here[/cyan]")
-                        progress.update(
-                            bar, advance=1,
-                            status=f"{human_bytes(totals['gz'])} gz | {totals['rows']:,} rows"
-                                   + (f" | [red]{len(failures)} failed[/red]" if failures else ""),
-                        )
+                                err.print(
+                                    "[cyan]re-run the same command afterwards; the "
+                                    "manifest resumes from here[/cyan]"
+                                )
+                        gz_h = human_bytes(totals['gz'])
+                        status = f"{gz_h} gz | {totals['rows']:,} rows"
+                        if failures:
+                            status += f" | [red]{len(failures)} failed[/red]"
+                        progress.update(bar, advance=1, status=status)
                 except KeyboardInterrupt:
                     stop.set()
                     err.print("[yellow]interrupted — finishing in-flight partitions, "
@@ -842,15 +948,23 @@ def main(argv=None):
 
     elapsed = time.time() - run_started
     err.print()
-    err.print(f"[green]uploaded[/green] {totals['ok']:,}/{len(tasks):,} partitions to {sink.describe()}")
+    err.print(
+        f"[green]uploaded[/green] {totals['ok']:,}/{len(tasks):,} partitions "
+        f"to {sink.describe()}"
+    )
     err.print(f"  rows      {totals['rows']:,}")
     err.print(f"  raw       {human_bytes(totals['raw'])}")
-    err.print(f"  gzipped   {human_bytes(totals['gz'])}"
-              + (f" ({totals['raw'] / totals['gz']:.1f}:1)" if totals["gz"] else ""))
+    gzipped_line = f"  gzipped   {human_bytes(totals['gz'])}"
+    if totals["gz"]:
+        gzipped_line += f" ({totals['raw'] / totals['gz']:.1f}:1)"
+    err.print(gzipped_line)
     err.print(f"  wall      {timedelta(seconds=int(elapsed))} at {args.jobs} jobs")
     err.print(f"  manifest  {args.manifest}")
     if failures:
-        err.print(f"[red]{len(failures)} partitions failed[/red] — re-run the same command to retry them")
+        err.print(
+            f"[red]{len(failures)} partitions failed[/red] — re-run the same "
+            f"command to retry them"
+        )
         return 1
     return 0
 

@@ -1,20 +1,27 @@
 # Endpoint Network Traffic
 
-Simulates the network activity seen by an internet-facing Windows host: inbound HTTP/HTTPS, RDP brute-force attempts, SMB probes, SMTP, and port scanning — plus outbound DNS and Windows Update traffic.
+Simulates the network activity seen by an internet-facing Windows host: inbound
+HTTP/HTTPS, RDP brute-force attempts, SMB probes, SMTP, and port scanning — plus
+outbound DNS and Windows Update traffic.
 
-**Actor:** A connection attempt arriving at (or leaving) a Windows endpoint. Each worker represents one packet decision: the firewall either ALLOWs or DROPs it, and the worker stops.
+**Actor:** A connection attempt arriving at (or leaving) a Windows endpoint.
+Each worker represents one packet decision: the firewall either ALLOWs or DROPs
+it, and the worker stops.
 
 ## Quick start
 
 ```bash
 # Windows Firewall Log
-python generator.py -c presets/configs/endpoint_network.json --template WindowsFirewallLog -n 500 -s "2025-01-01T00:00"
+python generator.py -c presets/configs/endpoint_network.json --template \
+  WindowsFirewallLog -n 500 -s "2025-01-01T00:00"
 
 # One day of data
-python generator.py -c presets/configs/endpoint_network.json --template WindowsFirewallLog -r P1D -s "2025-01-01T00:00"
+python generator.py -c presets/configs/endpoint_network.json --template \
+  WindowsFirewallLog -r P1D -s "2025-01-01T00:00"
 
 # OCSF Network Activity (security data lake / SIEM ingestion)
-python generator.py -c presets/configs/endpoint_network.json --template ocsf:network_activity -r P1D -s "2025-01-01T00:00"
+python generator.py -c presets/configs/endpoint_network.json --template \
+  ocsf:network_activity -r P1D -s "2025-01-01T00:00"
 ```
 
 ## Templates
@@ -24,7 +31,16 @@ python generator.py -c presets/configs/endpoint_network.json --template ocsf:net
 | `WindowsFirewallLog` | Windows Firewall Log (`pfirewall.log` format) |
 | `ocsf:network_activity` | [OCSF](https://schema.ocsf.io/) 1.4.0 Network Activity (`class_uid` 4001) JSON — one event per packet decision, for security data lake / SIEM ingestion |
 
-The `ocsf:network_activity` template maps each ALLOW/DROP decision to `activity_id` 1 ("Open") or 5 ("Refuse") respectively, unlike the `vpc_flow_logs` OCSF template which uses a constant `activity_id` 6 ("Traffic") — this config's Actor represents a single per-packet firewall decision rather than an aggregated flow, so a discrete open/refuse activity is the better fit. `direction_id` comes directly from the `direction` field (`RECEIVE`→Inbound, `SEND`→Outbound); `boundary_id` is a constant `3` (External), since every flow in this config is between the local host and the internet. Verified against the real OCSF 1.4.0 `network_activity` JSON Schema across 24K generated records (0 violations).
+The `ocsf:network_activity` template maps each ALLOW/DROP decision to
+`activity_id` 1 ("Open") or 5 ("Refuse") respectively, unlike the
+`vpc_flow_logs` OCSF template which uses a constant `activity_id` 6 ("Traffic")
+— this config's Actor represents a single per-packet firewall decision rather
+than an aggregated flow, so a discrete open/refuse activity is the better fit.
+`direction_id` comes directly from the `direction` field (`RECEIVE`→Inbound,
+`SEND`→Outbound); `boundary_id` is a constant `3` (External), since every flow
+in this config is between the local host and the internet. Verified against the
+real OCSF 1.4.0 `network_activity` JSON Schema across 24K generated records (0
+violations).
 
 ## Output fields
 
@@ -41,7 +57,8 @@ The `ocsf:network_activity` template maps each ALLOW/DROP decision to `activity_
 | `size` | Packet size in bytes |
 | `direction` | `SEND` (outbound) or `RECEIVE` (inbound) |
 
-TCP/ICMP-specific fields (`tcpflags`, `tcpsyn`, `tcpack`, `tcpwin`, `icmptype`, `icmpcode`, `info`, `process_id`) are emitted as `-`.
+TCP/ICMP-specific fields (`tcpflags`, `tcpsyn`, `tcpack`, `tcpwin`, `icmptype`,
+`icmpcode`, `info`, `process_id`) are emitted as `-`.
 
 ## Traffic mix
 
@@ -56,11 +73,14 @@ TCP/ICMP-specific fields (`tcpflags`, `tcpsyn`, `tcpack`, `tcpwin`, `icmptype`, 
 | DNS | 4% | 53 | SEND | 100% |
 | Windows Update / telemetry | 10% | 443 | SEND | 100% |
 
-RDP and SMB reflect realistic internet exposure: RDP is a common brute-force target, and SMB should never be reachable from the internet.
+RDP and SMB reflect realistic internet exposure: RDP is a common brute-force
+target, and SMB should never be reachable from the internet.
 
 ## State machine
 
-Each worker represents one packet decision — instantaneous, no timer states. The Actor is routed to a traffic-type emit state based on the configured mix, emits one record, and stops.
+Each worker represents one packet decision — instantaneous, no timer states. The
+Actor is routed to a traffic-type emit state based on the configured mix, emits
+one record, and stops.
 
 ```mermaid
 flowchart TD
@@ -79,9 +99,15 @@ flowchart TD
 
 ## Volume
 
-There is no meaningful `-w` ceiling. Each worker completes a single packet decision with zero delay and immediately exits, so the worker pool is never the bottleneck. `-w 1` is always sufficient; raising it has no effect on throughput.
+There is no meaningful `-w` ceiling. Each worker completes a single packet
+decision with zero delay and immediately exits, so the worker pool is never the
+bottleneck. `-w 1` is always sufficient; raising it has no effect on throughput.
 
-The start interval is the only lever that controls volume here. The chart below shows how output scales with workers (varying `-w`) with the preset's default start interval (`--seed 42`, no schedule, PT6H simulated window) — flat, as expected. To regenerate: `python tools/bench_config_workers.py -c presets/configs/endpoint_network.json`.
+The start interval is the only lever that controls volume here. The chart below
+shows how output scales with workers (varying `-w`) with the preset's default
+start interval (`--seed 42`, no schedule, PT6H simulated window) — flat, as
+expected. To regenerate: `python tools/bench_config_workers.py -c
+presets/configs/endpoint_network.json`.
 
 ```mermaid
 %%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
@@ -92,13 +118,19 @@ xychart-beta
     line [71928, 71928, 71928, 71928]
 ```
 
-Adjust `-i` to model heavier network traffic — `-w` won't help. The table below illustrates how output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c presets/configs/endpoint_network.json`.
+Adjust `-i` to model heavier network traffic — `-w` won't help. The table below
+illustrates how output scales across `-w` and `-i` together (`--seed 42`, no
+schedule, PT6H simulated window). To regenerate: `python tools/bench_grid.py -c
+presets/configs/endpoint_network.json`.
 
 | `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | 🟥 2,159,389 (135.9s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
-| 0.1 | 🟨 215,501 (14.1s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
-| 0.3 (default) | 🟨 71,928 (4.7s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
-| 1 | 🟩 21,551 (1.6s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.01 | 🟥 2,158,856 (60.1s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.1 | 🟧 215,894 (6.1s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 0.3 (default) | 🟨 71,819 (2.1s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
+| 1 | 🟩 21,499 (0.9s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that cell's own run -- not shown for skipped/plateau cells, which were never actually run.
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
+seconds for that cell's own run -- not shown for skipped/plateau cells, which
+were never actually run.

@@ -10,7 +10,7 @@ The `--seed` argument accepts an integer that seeds both random number generator
 
 Without `--seed`, the generator uses unseeded random state and produces different output on each run.
 
-When combined with simulated time (`-s`), thread execution is deterministically serialized via the Clock's sorted event queue. This guarantees the same thread interleaving and the same RNG call sequence on every run, producing identical output. `--seed` _can_ be used without `-s` (real-time mode), but deterministic output is only guaranteed in simulated time mode as real-time thread scheduling is non-deterministic.
+When combined with simulated time (`-s`), the engine's single-threaded `simpy` event loop processes every scheduled event in a fully deterministic order — there's no OS thread scheduler involved at all. Combined with a fixed seed, this guarantees the same RNG call sequence on every run, producing identical output. `--seed` _can_ be used without `-s` (real-time mode), but deterministic output is only guaranteed in simulated time mode: real-time mode paces the same event loop against actual wall-clock timing, which introduces its own run-to-run jitter.
 
 ## Usage
 
@@ -25,7 +25,7 @@ python generator.py \
 | Argument | Description |
 | --- | --- |
 | `--seed` | An integer seed value. Any integer is valid. The same seed always produces the same data. |
-| `-s` | Required for deterministic output. Sets simulated time mode, which ensures deterministic thread scheduling. |
+| `-s` | Required for deterministic output. Sets simulated time mode, which processes every event through simpy's own deterministic event queue instead of pacing against real wall-clock time. |
 
 ## Example
 

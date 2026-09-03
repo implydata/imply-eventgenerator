@@ -1,151 +1,702 @@
 {
   "volumes": {
-    "tiny": 100000,
-    "x-small": 300000,
-    "small": 1000000,
-    "medium": 3000000,
-    "large": 10000000,
-    "x-large": 30000000,
-    "huge": 100000000
+    "tiny": {
+      "max_rows_per_day": 100000
+    },
+    "x-small": {
+      "max_rows_per_day": 300000
+    },
+    "small": {
+      "max_rows_per_day": 1000000
+    },
+    "medium": {
+      "max_rows_per_day": 3000000
+    },
+    "large": {
+      "max_rows_per_day": 10000000
+    },
+    "x-large": {
+      "max_rows_per_day": 30000000
+    },
+    "huge": {
+      "max_rows_per_day": 100000000
+    }
   },
   "profiles": {
     "ecommerce": {
       "config": "ecommerce.json",
       "schedule": "ecommerce.json",
       "templates": [
-        {"name": "apache:access:json", "ext": "json"},
-        {"name": "apache:access:kv", "ext": "log"},
-        {"name": "apache:access:combined", "ext": "log"},
-        {"name": "access_combined", "ext": "log"},
-        {"name": "access_combined_wcookie", "ext": "log"},
-        {"name": "access_common", "ext": "log"},
-        {"name": "csv", "ext": "csv"},
-        {"name": "ms:iis:auto", "ext": "log"},
-        {"name": "ms:iis:default:85", "ext": "log"},
-        {"name": "ms:iis:default", "ext": "log"},
-        {"name": "ms:iis:splunk", "ext": "log"},
-        {"name": "ocsf:http_activity", "ext": "json"}
+        {
+          "name": "apache:access:json",
+          "ext": "json"
+        },
+        {
+          "name": "apache:access:kv",
+          "ext": "log"
+        },
+        {
+          "name": "apache:access:combined",
+          "ext": "log"
+        },
+        {
+          "name": "access_combined",
+          "ext": "log"
+        },
+        {
+          "name": "access_combined_wcookie",
+          "ext": "log"
+        },
+        {
+          "name": "access_common",
+          "ext": "log"
+        },
+        {
+          "name": "csv",
+          "ext": "csv"
+        },
+        {
+          "name": "ms:iis:auto",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:default:85",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:default",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:splunk",
+          "ext": "log"
+        },
+        {
+          "name": "ocsf:http_activity",
+          "ext": "json"
+        }
       ],
       "volumes": {
-        "tiny": {"i": "6.5", "w": 410, "observed_max_rows_per_day": 96630, "observed_mean_rows_per_day": 87269, "test_window_days": 14, "tested_on": "2026-08-27"}
+        "tiny": {
+          "i": "6.5",
+          "w": 410,
+          "observed_max_rows_per_day": 96769,
+          "observed_mean_rows_per_day": 93979,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "x-small": {
+          "i": "2.16667",
+          "w": 1230,
+          "observed_max_rows_per_day": 289529,
+          "observed_mean_rows_per_day": 282908,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "small": {
+          "i": "0.65",
+          "w": 4100,
+          "observed_max_rows_per_day": 968011,
+          "observed_mean_rows_per_day": 947200,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "medium": {
+          "i": "0.216667",
+          "w": 12300,
+          "observed_max_rows_per_day": 2902323,
+          "observed_mean_rows_per_day": 2821241,
+          "test_window_days": 5,
+          "tested_on": "2026-09-02"
+        }
       }
     },
     "ecommerce_lighting": {
       "config": "ecommerce_lighting.json",
       "schedule": "ecommerce.json",
       "templates": [
-        {"name": "apache:access:json", "ext": "json"},
-        {"name": "apache:access:kv", "ext": "log"},
-        {"name": "apache:access:combined", "ext": "log"},
-        {"name": "access_combined", "ext": "log"},
-        {"name": "access_combined_wcookie", "ext": "log"},
-        {"name": "access_common", "ext": "log"},
-        {"name": "csv", "ext": "csv"},
-        {"name": "ms:iis:auto", "ext": "log"},
-        {"name": "ms:iis:default:85", "ext": "log"},
-        {"name": "ms:iis:default", "ext": "log"},
-        {"name": "ms:iis:splunk", "ext": "log"},
-        {"name": "ocsf:http_activity", "ext": "json"}
+        {
+          "name": "apache:access:json",
+          "ext": "json"
+        },
+        {
+          "name": "apache:access:kv",
+          "ext": "log"
+        },
+        {
+          "name": "apache:access:combined",
+          "ext": "log"
+        },
+        {
+          "name": "access_combined",
+          "ext": "log"
+        },
+        {
+          "name": "access_combined_wcookie",
+          "ext": "log"
+        },
+        {
+          "name": "access_common",
+          "ext": "log"
+        },
+        {
+          "name": "csv",
+          "ext": "csv"
+        },
+        {
+          "name": "ms:iis:auto",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:default:85",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:default",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:splunk",
+          "ext": "log"
+        },
+        {
+          "name": "ocsf:http_activity",
+          "ext": "json"
+        }
       ],
       "volumes": {
-        "tiny": {"i": "4.4", "w": 355, "observed_max_rows_per_day": 97196, "observed_mean_rows_per_day": 87294, "test_window_days": 14, "tested_on": "2026-08-27"}
+        "tiny": {
+          "i": "4.4",
+          "w": 355,
+          "observed_max_rows_per_day": 96921,
+          "observed_mean_rows_per_day": 95098,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "x-small": {
+          "i": "1.46667",
+          "w": 1065,
+          "observed_max_rows_per_day": 291400,
+          "observed_mean_rows_per_day": 284984,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "small": {
+          "i": "0.44",
+          "w": 3550,
+          "observed_max_rows_per_day": 976072,
+          "observed_mean_rows_per_day": 955065,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "medium": {
+          "i": "0.146667",
+          "w": 10650,
+          "observed_max_rows_per_day": 2936625,
+          "observed_mean_rows_per_day": 2847203,
+          "test_window_days": 5,
+          "tested_on": "2026-09-02"
+        }
       }
     },
     "ecommerce_furniture": {
       "config": "ecommerce_furniture.json",
       "schedule": "ecommerce.json",
       "templates": [
-        {"name": "apache:access:json", "ext": "json"},
-        {"name": "apache:access:kv", "ext": "log"},
-        {"name": "apache:access:combined", "ext": "log"},
-        {"name": "access_combined", "ext": "log"},
-        {"name": "access_combined_wcookie", "ext": "log"},
-        {"name": "access_common", "ext": "log"},
-        {"name": "csv", "ext": "csv"},
-        {"name": "ms:iis:auto", "ext": "log"},
-        {"name": "ms:iis:default:85", "ext": "log"},
-        {"name": "ms:iis:default", "ext": "log"},
-        {"name": "ms:iis:splunk", "ext": "log"},
-        {"name": "ocsf:http_activity", "ext": "json"}
+        {
+          "name": "apache:access:json",
+          "ext": "json"
+        },
+        {
+          "name": "apache:access:kv",
+          "ext": "log"
+        },
+        {
+          "name": "apache:access:combined",
+          "ext": "log"
+        },
+        {
+          "name": "access_combined",
+          "ext": "log"
+        },
+        {
+          "name": "access_combined_wcookie",
+          "ext": "log"
+        },
+        {
+          "name": "access_common",
+          "ext": "log"
+        },
+        {
+          "name": "csv",
+          "ext": "csv"
+        },
+        {
+          "name": "ms:iis:auto",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:default:85",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:default",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:splunk",
+          "ext": "log"
+        },
+        {
+          "name": "ocsf:http_activity",
+          "ext": "json"
+        }
       ],
       "volumes": {
-        "tiny": {"i": "4.6", "w": 410, "observed_max_rows_per_day": 98912, "observed_mean_rows_per_day": 87138, "test_window_days": 14, "tested_on": "2026-08-27"}
+        "tiny": {
+          "i": "4.80323",
+          "w": 418,
+          "observed_max_rows_per_day": 95669,
+          "observed_mean_rows_per_day": 94542,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "x-small": {
+          "i": "1.60108",
+          "w": 1254,
+          "observed_max_rows_per_day": 292773,
+          "observed_mean_rows_per_day": 286881,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "small": {
+          "i": "0.480323",
+          "w": 4180,
+          "observed_max_rows_per_day": 975858,
+          "observed_mean_rows_per_day": 954852,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "medium": {
+          "i": "0.160108",
+          "w": 12540,
+          "observed_max_rows_per_day": 2926845,
+          "observed_mean_rows_per_day": 2851827,
+          "test_window_days": 5,
+          "tested_on": "2026-09-02"
+        }
       }
     },
     "vpc_flow_logs": {
       "config": "vpc_flow_logs.json",
       "schedule": null,
       "templates": [
-        {"name": "aws:cloudwatchlogs:vpcflow", "ext": "log"},
-        {"name": "ocsf:network_activity", "ext": "json"}
+        {
+          "name": "aws:cloudwatchlogs:vpcflow",
+          "ext": "log"
+        },
+        {
+          "name": "ocsf:network_activity",
+          "ext": "json"
+        }
       ],
       "volumes": {
-        "tiny": {"i": "4.1", "w": 10, "observed_max_rows_per_day": 98074, "observed_mean_rows_per_day": 96593, "test_window_days": 7, "tested_on": "2026-08-27"}
-      }
-    },
-    "vpc_flow_logs_derived": {
-      "config": "vpc_flow_logs_derived.json",
-      "schedule": null,
-      "templates": [
-        {"name": "aws:cloudwatchlogs:vpcflow", "ext": "log"}
-      ],
-      "volumes": {
-        "tiny": {"i": "3.65", "w": 18, "observed_max_rows_per_day": 99005, "observed_mean_rows_per_day": 97024, "test_window_days": 7, "tested_on": "2026-08-27"}
+        "tiny": {
+          "i": "3.77523",
+          "w": 12,
+          "observed_max_rows_per_day": 94013,
+          "observed_mean_rows_per_day": 93058,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "x-small": {
+          "i": "1.25841",
+          "w": 36,
+          "observed_max_rows_per_day": 279484,
+          "observed_mean_rows_per_day": 278971,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "small": {
+          "i": "0.377523",
+          "w": 120,
+          "observed_max_rows_per_day": 934304,
+          "observed_mean_rows_per_day": 932812,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "medium": {
+          "i": "0.125841",
+          "w": 360,
+          "observed_max_rows_per_day": 2804457,
+          "observed_mean_rows_per_day": 2799350,
+          "test_window_days": 5,
+          "tested_on": "2026-09-02"
+        },
+        "large": {
+          "i": "0.037752",
+          "w": 1200,
+          "observed_max_rows_per_day": 9337150,
+          "observed_mean_rows_per_day": 9332379,
+          "test_window_days": 2,
+          "tested_on": "2026-09-02"
+        },
+        "x-large": {
+          "i": "0.012584",
+          "w": 3600,
+          "observed_max_rows_per_day": 27987022,
+          "observed_mean_rows_per_day": 27987022,
+          "test_window_days": 1,
+          "tested_on": "2026-09-02"
+        }
       }
     },
     "endpoint_network": {
       "config": "endpoint_network.json",
       "schedule": null,
       "templates": [
-        {"name": "WindowsFirewallLog", "ext": "log"},
-        {"name": "ocsf:network_activity", "ext": "json"}
+        {
+          "name": "WindowsFirewallLog",
+          "ext": "log"
+        },
+        {
+          "name": "ocsf:network_activity",
+          "ext": "json"
+        }
       ],
       "volumes": {
-        "tiny": {"i": "0.89", "w": 1, "observed_max_rows_per_day": 97320, "observed_mean_rows_per_day": 97081, "test_window_days": 7, "tested_on": "2026-08-27"}
+        "tiny": {
+          "i": "0.89",
+          "w": 1,
+          "observed_max_rows_per_day": 97132,
+          "observed_mean_rows_per_day": 97002,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "x-small": {
+          "i": "0.296667",
+          "w": 3,
+          "observed_max_rows_per_day": 291169,
+          "observed_mean_rows_per_day": 291032,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "small": {
+          "i": "0.089",
+          "w": 10,
+          "observed_max_rows_per_day": 970478,
+          "observed_mean_rows_per_day": 970132,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "medium": {
+          "i": "0.029667",
+          "w": 30,
+          "observed_max_rows_per_day": 2914837,
+          "observed_mean_rows_per_day": 2912483,
+          "test_window_days": 5,
+          "tested_on": "2026-09-02"
+        }
       }
     },
     "ssh_auth": {
       "config": "ssh_auth.json",
       "schedule": null,
       "templates": [
-        {"name": "linux_secure", "ext": "log"},
-        {"name": "ocsf:authentication", "ext": "json"}
+        {
+          "name": "linux_secure",
+          "ext": "log"
+        },
+        {
+          "name": "ocsf:authentication",
+          "ext": "json"
+        }
       ],
       "volumes": {
-        "tiny": {"i": "2.25", "w": 335, "observed_max_rows_per_day": 96349, "observed_mean_rows_per_day": 95913, "test_window_days": 7, "tested_on": "2026-08-27"}
+        "tiny": {
+          "i": "2.25",
+          "w": 335,
+          "observed_max_rows_per_day": 96098,
+          "observed_mean_rows_per_day": 95806,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "x-small": {
+          "i": "0.75",
+          "w": 1005,
+          "observed_max_rows_per_day": 289765,
+          "observed_mean_rows_per_day": 288749,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "small": {
+          "i": "0.225",
+          "w": 3350,
+          "observed_max_rows_per_day": 963206,
+          "observed_mean_rows_per_day": 961959,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "medium": {
+          "i": "0.075",
+          "w": 10050,
+          "observed_max_rows_per_day": 2889877,
+          "observed_mean_rows_per_day": 2887040,
+          "test_window_days": 5,
+          "tested_on": "2026-09-02"
+        }
       }
     },
     "pbx_calls": {
       "config": "pbx_calls.json",
       "schedule": null,
       "templates": [
-        {"name": "asterisk_cdr", "ext": "log"}
+        {
+          "name": "asterisk_cdr",
+          "ext": "log"
+        }
       ],
       "volumes": {
-        "tiny": {"i": "0.89", "w": 340, "observed_max_rows_per_day": 97654, "observed_mean_rows_per_day": 97130, "test_window_days": 7, "tested_on": "2026-08-27"}
+        "tiny": {
+          "i": "0.89",
+          "w": 340,
+          "observed_max_rows_per_day": 97654,
+          "observed_mean_rows_per_day": 97130,
+          "test_window_days": 7,
+          "tested_on": "2026-08-27"
+        }
       }
     },
     "palo_alto": {
       "config": "palo_alto.json",
       "schedule": null,
       "templates": [
-        {"name": "pan:syslog", "ext": "log"},
-        {"name": "compact", "ext": "json"}
+        {
+          "name": "pan:syslog",
+          "ext": "log"
+        },
+        {
+          "name": "compact",
+          "ext": "json"
+        }
       ],
       "volumes": {
-        "tiny": {"i": "0.94", "w": 390, "observed_max_rows_per_day": 97968, "observed_mean_rows_per_day": 97473, "test_window_days": 7, "tested_on": "2026-08-27"}
+        "tiny": {
+          "i": "0.94",
+          "w": 390,
+          "observed_max_rows_per_day": 97968,
+          "observed_mean_rows_per_day": 97473,
+          "test_window_days": 7,
+          "tested_on": "2026-08-27"
+        }
       }
     },
     "zscaler_web": {
       "config": "zscaler_web.json",
       "schedule": null,
       "templates": [
-        {"name": "zscalernss-web", "ext": "log"},
-        {"name": "ocsf:http_activity", "ext": "json"}
+        {
+          "name": "zscalernss-web",
+          "ext": "log"
+        },
+        {
+          "name": "ocsf:http_activity",
+          "ext": "json"
+        }
       ],
       "volumes": {
-        "tiny": {"i": "3.55", "w": 55, "observed_max_rows_per_day": 98482, "observed_mean_rows_per_day": 97716, "test_window_days": 7, "tested_on": "2026-08-27"},
-        "medium": {"i": "0.118", "w": 1500, "observed_max_rows_per_day": 2926073, "observed_mean_rows_per_day": 2926073, "test_window_days": 1, "tested_on": "2026-08-27"}
+        "tiny": {
+          "i": "3.55",
+          "w": 55,
+          "observed_max_rows_per_day": 98482,
+          "observed_mean_rows_per_day": 97716,
+          "test_window_days": 7,
+          "tested_on": "2026-08-27"
+        },
+        "medium": {
+          "i": "0.118",
+          "w": 1500,
+          "observed_max_rows_per_day": 2926073,
+          "observed_mean_rows_per_day": 2926073,
+          "test_window_days": 1,
+          "tested_on": "2026-08-27"
+        }
+      }
+    },
+    "ecommerce_gifts": {
+      "config": "ecommerce_gifts.json",
+      "schedule": "ecommerce.json",
+      "templates": [
+        {
+          "name": "apache:access:json",
+          "ext": "json"
+        },
+        {
+          "name": "apache:access:kv",
+          "ext": "log"
+        },
+        {
+          "name": "apache:access:combined",
+          "ext": "log"
+        },
+        {
+          "name": "access_combined",
+          "ext": "log"
+        },
+        {
+          "name": "access_combined_wcookie",
+          "ext": "log"
+        },
+        {
+          "name": "access_common",
+          "ext": "log"
+        },
+        {
+          "name": "csv",
+          "ext": "csv"
+        },
+        {
+          "name": "ms:iis:auto",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:default:85",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:default",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:splunk",
+          "ext": "log"
+        },
+        {
+          "name": "ocsf:http_activity",
+          "ext": "json"
+        }
+      ],
+      "volumes": {
+        "tiny": {
+          "i": "6.5",
+          "w": 410,
+          "observed_max_rows_per_day": 95197,
+          "observed_mean_rows_per_day": 92275,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "x-small": {
+          "i": "2.16667",
+          "w": 1230,
+          "observed_max_rows_per_day": 285297,
+          "observed_mean_rows_per_day": 277408,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "small": {
+          "i": "0.65",
+          "w": 4100,
+          "observed_max_rows_per_day": 961016,
+          "observed_mean_rows_per_day": 931846,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "medium": {
+          "i": "0.216667",
+          "w": 12300,
+          "observed_max_rows_per_day": 2889147,
+          "observed_mean_rows_per_day": 2760182,
+          "test_window_days": 5,
+          "tested_on": "2026-09-02"
+        }
+      }
+    },
+    "ecommerce_sports": {
+      "config": "ecommerce_sports.json",
+      "schedule": "ecommerce.json",
+      "templates": [
+        {
+          "name": "apache:access:json",
+          "ext": "json"
+        },
+        {
+          "name": "apache:access:kv",
+          "ext": "log"
+        },
+        {
+          "name": "apache:access:combined",
+          "ext": "log"
+        },
+        {
+          "name": "access_combined",
+          "ext": "log"
+        },
+        {
+          "name": "access_combined_wcookie",
+          "ext": "log"
+        },
+        {
+          "name": "access_common",
+          "ext": "log"
+        },
+        {
+          "name": "csv",
+          "ext": "csv"
+        },
+        {
+          "name": "ms:iis:auto",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:default:85",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:default",
+          "ext": "log"
+        },
+        {
+          "name": "ms:iis:splunk",
+          "ext": "log"
+        },
+        {
+          "name": "ocsf:http_activity",
+          "ext": "json"
+        }
+      ],
+      "volumes": {
+        "tiny": {
+          "i": "8.05267",
+          "w": 352,
+          "observed_max_rows_per_day": 96334,
+          "observed_mean_rows_per_day": 93027,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "x-small": {
+          "i": "2.81187",
+          "w": 1072,
+          "observed_max_rows_per_day": 283805,
+          "observed_mean_rows_per_day": 274968,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "small": {
+          "i": "0.84356",
+          "w": 3573,
+          "observed_max_rows_per_day": 949757,
+          "observed_mean_rows_per_day": 918749,
+          "test_window_days": 3,
+          "tested_on": "2026-09-02"
+        },
+        "medium": {
+          "i": "0.281187",
+          "w": 10719,
+          "observed_max_rows_per_day": 2853952,
+          "observed_mean_rows_per_day": 2718903,
+          "test_window_days": 5,
+          "tested_on": "2026-09-02"
+        }
       }
     }
   }
