@@ -1050,7 +1050,7 @@ The VPC Flow Logs configuration uses the setup+timer+emit pattern for each TCP p
 
 ### Synthetic clock overview
 
-**Critical Best Practice:** When developing configurations, ALWAYS use the synthetic clock (`-s`) for instant feedback. Only use real-time mode (`-t`) for production streaming scenarios.
+**Critical Best Practice:** When developing configurations, ALWAYS use the synthetic clock (`-s`) for instant feedback. Only use real-time mode (omit `-s`) for production streaming scenarios.
 
 The synthetic clock is one of the most important but often overlooked features for efficient development.
 
@@ -1106,15 +1106,15 @@ With synthetic clock starting at `2024-01-01T00:00:00`:
 
 ### When to use real-time mode
 
-Use real-time mode (`-t`) only for:
+Use real-time mode (omit `-s`) only for:
 
 - **Production streaming**: Sending events to Kafka, Kinesis, etc. at realistic rates
 - **Load testing**: Simulating realistic request rates
 - **Live demos**: Showing real-time data generation
 
 ```bash
-# Real-time mode (events generated at realistic intervals)
-python3 generator.py -c vpc_flow_logs.json -t "2024-01-01T00:00:00"
+# Real-time mode (events generated at realistic intervals) — omit -s
+python3 generator.py -c vpc_flow_logs.json
 ```
 
 ### Development workflow
@@ -1133,8 +1133,8 @@ python3 generator.py -c vpc_flow_logs.json -n 10000 -s "2024-01-01T00:00:00" > l
 # 4. Analyze patterns
 jq -r '[.start, .end, (.end - .start)] | @csv' large_test.json > durations.csv
 
-# 5. Once validated, use real-time mode for production
-python3 generator.py -c vpc_flow_logs.json -t "2024-01-01T00:00:00" | kafka-producer ...
+# 5. Once validated, use real-time mode for production (omit -s)
+python3 generator.py -c vpc_flow_logs.json | kafka-producer ...
 ```
 
 ### Synthetic clock benefits
