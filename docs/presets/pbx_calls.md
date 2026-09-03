@@ -109,7 +109,7 @@ presets/configs/pbx_calls.json`.
 | 1 | 🟩 147 (0.2s) | 🟩 795 (0.3s) | 🟨 3,905 (0.4s) | 🟧 15,043 (0.8s) | 🟧 21,573 (1.0s) | ↔️ | ↔️ | ↔️ |
 | 30 (default) | 🟩 128 (0.2s) | 🟩 522 (0.2s) | 🟩 693 (0.2s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
 no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
 seconds for that cell's own run -- not shown for skipped/plateau cells, which
 were never actually run.

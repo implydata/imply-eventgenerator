@@ -130,7 +130,7 @@ presets/configs/endpoint_network.json`.
 | 0.3 (default) | 🟨 71,819 (2.1s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
 | 1 | 🟩 21,499 (0.9s) | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
 no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
 seconds for that cell's own run -- not shown for skipped/plateau cells, which
 were never actually run.

@@ -6,7 +6,7 @@ This guide walks through the full process of designing a config from scratch —
 
 ## Step 1 — Define the Actor
 
-Before writing any JSON, identify the **Actor**: the single real-world entity whose lifecycle the state machine represents. One worker thread = one Actor instance. Everything in the config models what happens to one Actor from start to finish.
+Before writing any JSON, identify the **Actor**: the single real-world entity whose lifecycle the state machine represents. One worker = one Actor instance. Everything in the config models what happens to one Actor from start to finish.
 
 Ask yourself:
 

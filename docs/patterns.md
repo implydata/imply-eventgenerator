@@ -15,7 +15,7 @@ This guide documents common patterns and techniques for building realistic state
 
 ### Key Concept
 
-**Key Insight:** Variables set in one state automatically persist to all subsequent states within the same worker thread. You only need to redefine variables that change.
+**Key Insight:** Variables set in one state automatically persist to all subsequent states within the same worker. You only need to redefine variables that change.
 
 This is one of the most important concepts for building efficient state machines. Understanding variable persistence allows you to:
 
@@ -68,7 +68,7 @@ This is one of the most important concepts for building efficient state machines
 
 1. **`setup_session` activity**: Sets `var_user_id` and `var_session_id` once for the Actor's lifetime
 2. **`emit_page_view` activity**: References `var_user_id` and `var_session_id` without redefining them
-3. **Actor scope**: Variables persist for the lifetime of the Actor instance (one worker thread)
+3. **Actor scope**: Variables persist for the lifetime of the Actor instance (one worker)
 4. **Only redefine what changes**: Only define new variables or variables whose values should change between states
 
 ### Common Use Cases

@@ -108,7 +108,7 @@ presets/configs/vpc_flow_logs.json`.
 | 0.5 (default) | 🟩 6,807 (0.5s) | 🟩 32,061 (1.2s) | 🟨 150,766 (4.7s) | 🟨 199,652 (6.2s) | ↔️ | ↔️ | ↔️ | ↔️ |
 | 1 | 🟩 6,624 (0.4s) | 🟩 31,192 (1.1s) | 🟨 99,033 (3.1s) | 🟨 99,971 (3.2s) | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
 no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
 seconds for that cell's own run -- not shown for skipped/plateau cells, which
 were never actually run.

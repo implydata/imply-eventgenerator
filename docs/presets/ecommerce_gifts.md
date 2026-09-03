@@ -248,7 +248,7 @@ presets/configs/ecommerce_gifts.json`.
 | 1 | 🟩 294 (0.3s) | 🟩 1,744 (0.3s) | 🟨 7,546 (0.5s) | 🟧 31,185 (1.2s) | 🟧 76,653 (2.6s) | 🟥 210,043 (6.6s) | ↔️ | ↔️ |
 | 1.5 (default) | 🟩 289 (0.2s) | 🟩 1,520 (0.3s) | 🟨 7,718 (0.5s) | 🟧 30,476 (1.1s) | 🟧 75,355 (2.5s) | 🟧 145,125 (4.6s) | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
 no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
 seconds for that cell's own run -- not shown for skipped/plateau cells, which
 were never actually run.

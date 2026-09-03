@@ -14,12 +14,10 @@ logger = logging.getLogger('ieg')
 
 DEFAULT_CONCURRENCY = 100
 
-# -w now bounds a plain admitted-session counter, not OS threads -- there's no
-# thread-creation ceiling to guard against any more (see ieg/core.py's
-# Clock/session_process/arrival_process, migrated off one-OS-thread-per-session
-# onto a single-threaded simpy event loop). This is a sanity bound against
-# fat-fingered input and genuinely unbounded memory growth for a config whose
-# natural ceiling is absurdly high, not a measured hardware limit.
+# -w bounds a plain admitted-session counter (ieg/core.py's arrival_process),
+# not OS threads. This is a sanity bound against fat-fingered input and
+# genuinely unbounded memory growth for a config whose natural ceiling is
+# absurdly high, not a measured hardware limit.
 MAX_WORKERS = 1000000
 
 def validate_concurrency(value):

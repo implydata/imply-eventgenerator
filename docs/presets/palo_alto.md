@@ -140,7 +140,7 @@ presets/configs/palo_alto.json`.
 | 1 | 🟩 96 (0.2s) | 🟩 507 (0.3s) | 🟨 2,653 (0.6s) | 🟧 10,723 (1.4s) | 🟧 22,570 (2.8s) | 🟧 22,828 (2.9s) | ↔️ | ↔️ |
 | 5 (default) | 🟩 85 (0.2s) | 🟩 514 (0.3s) | 🟨 2,517 (0.5s) | 🟨 4,536 (0.8s) | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
 no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
 seconds for that cell's own run -- not shown for skipped/plateau cells, which
 were never actually run.
