@@ -251,7 +251,7 @@ presets/configs/ecommerce_lighting.json`.
 | 0.6 (default) | 🟩 259 (0.3s) | 🟩 1,159 (0.4s) | 🟨 5,938 (0.6s) | 🟧 23,757 (1.0s) | 🟧 60,027 (2.1s) | 🟥 236,158 (7.6s) | 🟥 308,653 (10.0s) | ↔️ |
 | 1 | 🟩 245 (0.4s) | 🟩 1,170 (0.4s) | 🟨 5,908 (0.5s) | 🟧 24,270 (1.0s) | 🟧 59,348 (2.1s) | 🟥 188,138 (6.1s) | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
 no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
 seconds for that cell's own run -- not shown for skipped/plateau cells, which
 were never actually run.

@@ -152,7 +152,7 @@ presets/configs/zscaler_web.json`.
 | 1 | 🟩 1,062 (0.3s) | 🟩 5,363 (0.6s) | 🟨 26,562 (2.0s) | 🟧 85,611 (5.8s) | 🟧 86,572 (5.9s) | ↔️ | ↔️ | ↔️ |
 | 5 (default) | 🟩 996 (0.3s) | 🟩 4,986 (0.5s) | 🟨 17,084 (1.3s) | 🟨 16,905 (1.3s) | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
 no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
 seconds for that cell's own run -- not shown for skipped/plateau cells, which
 were never actually run.

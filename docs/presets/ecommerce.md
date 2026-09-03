@@ -248,7 +248,7 @@ presets/configs/ecommerce.json`.
 | 0.1 | 🟩 205 (0.5s) | 🟩 1,003 (0.6s) | 🟨 5,396 (0.7s) | 🟧 21,085 (1.2s) | 🟧 52,422 (2.2s) | 🟥 209,291 (7.2s) | 🟥 524,414 (17.4s) | 🟥 1,034,212 (34.8s) |
 | 1 (default) | 🟩 202 (0.3s) | 🟩 1,292 (0.3s) | 🟨 5,228 (0.4s) | 🟧 21,039 (0.9s) | 🟧 51,394 (1.8s) | 🟥 202,734 (6.5s) | 🟥 265,009 (8.5s) | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
 no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
 seconds for that cell's own run -- not shown for skipped/plateau cells, which
 were never actually run.

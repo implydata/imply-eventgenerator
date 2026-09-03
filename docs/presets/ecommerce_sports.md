@@ -248,7 +248,7 @@ presets/configs/ecommerce_sports.json`.
 | 0.75 (default) | 🟩 389 (0.3s) | 🟩 1,827 (0.3s) | 🟨 8,965 (0.6s) | 🟧 35,849 (1.3s) | 🟧 90,118 (2.9s) | 🟥 345,387 (10.7s) | 🟥 361,489 (11.1s) | ↔️ |
 | 1 | 🟩 378 (0.3s) | 🟩 1,868 (0.3s) | 🟨 8,869 (0.6s) | 🟧 36,081 (1.3s) | 🟧 88,985 (2.9s) | 🟥 274,744 (8.7s) | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
 no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
 seconds for that cell's own run -- not shown for skipped/plateau cells, which
 were never actually run.

@@ -41,14 +41,17 @@ A crash or a cell exceeding --cell-timeout stops that row's own -w ascent
 propagate across rows -- a crash at fast -i says nothing about a slower row's
 risk at the same -w, since risk here tracks worker count, not arrival rate.
 
-Contention near the OS thread-creation limit gets worse than linearly with
--w well before it actually fails outright, so a cell can take minutes without
-crashing. Each cell therefore runs under a wall-clock budget (--cell-timeout,
-default 600s): if it's not done in time, it's killed and treated like a crash
-for that row's purposes (not a data-volume result). Progress is logged live --
-a heartbeat line every 10s of elapsed time while a cell runs, plus a result
-line when it finishes -- specifically so a slow cell doesn't look identical
-to a hung one.
+Under the old thread-per-session engine, contention near the OS
+thread-creation limit got worse than linearly with -w well before a cell
+actually crashed outright, so a cell could take minutes without crashing --
+this --cell-timeout budget predates the engine's migration to a
+single-threaded event loop and hasn't been re-validated against whatever (if
+anything) makes a cell slow under it. Each cell runs under a wall-clock
+budget (--cell-timeout, default 600s): if it's not done in time, it's killed
+and treated like a crash for that row's purposes (not a data-volume result).
+Progress is logged live -- a heartbeat line every 10s of elapsed time while a
+cell runs, plus a result line when it finishes -- specifically so a slow
+cell doesn't look identical to a hung one.
 
 Output is a markdown table with -i as rows and -w as columns, each cell
 colored by volume (log-scale quartile of the completed results, green=low to
@@ -462,7 +465,7 @@ def main():
     print()
     print("\n".join(lines))
     print()
-    print(f"{CRASH_MARK} = thread-creation limit hit. "
+    print(f"{CRASH_MARK} = Crashed. "
           f"{TIMEOUT_MARK} = Timeout. "
           f"{ROW_PLATEAU_MARK} = Plateau -- increasing -w had no effect. "
           f"{COL_PLATEAU_MARK} = Plateau -- decreasing -i had no effect. "

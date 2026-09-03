@@ -275,7 +275,7 @@ Routes the worker to one of several next states based on weighted probabilities.
 
 ## event:end
 
-Terminates the worker. No fields other than `name` and `type` are permitted. The worker thread exits cleanly after reaching this state.
+Terminates the worker. No fields other than `name` and `type` are permitted. The worker exits cleanly after reaching this state.
 
 | Field | Description | Required? |
 | --- | --- | --- |

@@ -250,7 +250,7 @@ presets/configs/ecommerce_furniture.json`.
 | 1 | 🟩 178 (0.2s) | 🟩 993 (0.3s) | 🟨 4,917 (0.4s) | 🟧 18,733 (0.8s) | 🟧 47,621 (1.7s) | 🟥 185,879 (6.0s) | 🟥 215,094 (7.0s) | ↔️ |
 | 3 (default) | 🟩 184 (0.2s) | 🟩 928 (0.3s) | 🟨 4,873 (0.4s) | 🟧 18,798 (0.8s) | 🟧 47,311 (1.7s) | 🟧 70,810 (2.4s) | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
 no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
 seconds for that cell's own run -- not shown for skipped/plateau cells, which
 were never actually run.

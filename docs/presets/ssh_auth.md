@@ -112,7 +112,7 @@ presets/configs/ssh_auth.json`.
 | 1 | 🟩 157 (0.2s) | 🟩 760 (0.2s) | 🟨 3,711 (0.3s) | 🟧 14,458 (0.6s) | 🟧 35,777 (1.0s) | 🟧 53,291 (1.5s) | ↔️ | ↔️ |
 | 10 (default) | 🟩 146 (0.2s) | 🟩 663 (0.2s) | 🟨 3,442 (0.2s) | 🟨 5,522 (0.3s) | ↔️ | ↔️ | ↔️ | ↔️ |
 
-💥 = thread-creation limit hit. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
 no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
 seconds for that cell's own run -- not shown for skipped/plateau cells, which
 were never actually run.
