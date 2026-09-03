@@ -13,11 +13,6 @@ from ieg.core import DataDriver
 logger = logging.getLogger('ieg')
 
 DEFAULT_CONCURRENCY = 100
-
-# -w bounds a plain admitted-session counter (ieg/core.py's arrival_process),
-# not OS threads. This is a sanity bound against fat-fingered input and
-# genuinely unbounded memory growth for a config whose natural ceiling is
-# absurdly high, not a measured hardware limit.
 MAX_WORKERS = 1000000
 
 def validate_concurrency(value):
