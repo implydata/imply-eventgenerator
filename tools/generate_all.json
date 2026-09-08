@@ -464,6 +464,14 @@
           "observed_mean_rows_per_day": 97130,
           "test_window_days": 7,
           "tested_on": "2026-08-27"
+        },
+        "medium": {
+          "i": "0.025",
+          "w": 4900,
+          "observed_max_rows_per_day": 2963164,
+          "observed_mean_rows_per_day": 2960726,
+          "test_window_days": 7,
+          "tested_on": "2026-09-08"
         }
       }
     },
@@ -488,6 +496,14 @@
           "observed_mean_rows_per_day": 97473,
           "test_window_days": 7,
           "tested_on": "2026-08-27"
+        },
+        "medium": {
+          "i": "0.03",
+          "w": 7000,
+          "observed_max_rows_per_day": 2969014,
+          "observed_mean_rows_per_day": 2966826,
+          "test_window_days": 3,
+          "tested_on": "2026-09-08"
         }
       }
     },
