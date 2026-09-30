@@ -1,47 +1,53 @@
 # Value distributions and cardinality
 
-> Building a new config? See [How to build a config](./how-to-build-a-config.md) for the design process. This page is the distribution type reference.
+> Building a new config? See [How to build a config](./how-to-build-a-config.md)
+> for the design process. This page is the distribution type reference.
 
-Distribution JSON objects define the distribution pattern to follow when creating synthetic data.
+Distribution JSON objects define the distribution pattern to follow when
+creating synthetic data.
 
-They appear in emitter `dimensions` lists, and in `cardinality_distribution` fields - including `event:start:timer` and `event:intermediate:timer` states.
+They appear in emitter `dimensions` lists, and in `cardinality_distribution`
+fields - including `event:start:timer` and `event:intermediate:timer` states.
 
-| Field | Use | [`generator:timestamp`](./dimensions/generator/timestamp.md) | [`generator:string`](./dimensions/generator/string.md) | [`generator:int`](./dimensions/generator/int.md) | [`generator:float`](./dimensions/generator/float.md) | [`generator:ipaddress`](./dimensions/generator/ipaddress.md) |
-| --- | --- | --- | --- | --- | --- | --- |
-| `distribution` | Determines how the values for the dimension are generated. | Y | | Y | Y | Y |
-| `length_distribution` | Determines the length of the generated value of the dimension. | | Y | | | |
-| `cardinality_distribution` | When `cardinality` for a dimension is not 0, enables skewing the selection of values from the generated list of possible values. | Y | Y | Y | Y | Y |
+| Field                      | Use                                                                                                                              | [`generator:timestamp`](./dimensions/generator/timestamp.md) | [`generator:string`](./dimensions/generator/string.md) | [`generator:int`](./dimensions/generator/int.md) | [`generator:float`](./dimensions/generator/float.md) | [`generator:ipaddress`](./dimensions/generator/ipaddress.md) |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------ | ------------------------------------------------ | ---------------------------------------------------- | ------------------------------------------------------------ |
+| `distribution`             | Determines how the values for the dimension are generated.                                                                       | Y                                                            |                                                        | Y                                                | Y                                                    | Y                                                            |
+| `length_distribution`      | Determines the length of the generated value of the dimension.                                                                   |                                                              | Y                                                      |                                                  |                                                      |                                                              |
+| `cardinality_distribution` | When `cardinality` for a dimension is not 0, enables skewing the selection of values from the generated list of possible values. | Y                                                            | Y                                                      | Y                                                | Y                                                    | Y                                                            |
 
 ## Distribution types
 
 Specify the cardinality type in the `type` field.
 
-* [`constant`](#constant) generates a single specific value.
-* [`uniform`](#uniform) creates a flat distribution.
-* [`exponential`](#exponential) for an exponential distribution.
-* [`normal`](#normal) for a normal ("bell curve") distribution.
-* [`gmm_temporal`](#gmm_temporal) for time-of-day and day-of-week modulated rates using a Gaussian Mixture Model.
+- [`constant`](#constant) generates a single specific value.
+- [`uniform`](#uniform) creates a flat distribution.
+- [`exponential`](#exponential) for an exponential distribution.
+- [`normal`](#normal) for a normal ("bell curve") distribution.
+- [`gmm_temporal`](#gmm_temporal) for time-of-day and day-of-week modulated
+  rates using a Gaussian Mixture Model.
 
 ### `constant`
 
 The `constant` distribution generates the same single value.
 
-| Field | Description | Possible values | Required? | Default |
-| --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `constant` | Yes | |
-| `value` | The constant value to output. | Integer | Yes | |
+| Field   | Description                      | Possible values | Required? | Default |
+| ------- | -------------------------------- | --------------- | --------- | ------- |
+| `type`  | The data type for the dimension. | `constant`      | Yes       |         |
+| `value` | The constant value to output.    | Integer         | Yes       |         |
 
-Both `uniform` and `normal` distributions are common for `cardinality_distributions`, while `constant` is less useful.
+Both `uniform` and `normal` distributions are common for
+`cardinality_distributions`, while `constant` is less useful.
 
 ### `uniform`
 
-The `uniform` distribution generates values uniformly between `min` and `max`, inclusive.
+The `uniform` distribution generates values uniformly between `min` and `max`,
+inclusive.
 
-| Field | Description | Possible values | Required? | Default |
-| --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `uniform` | Yes | |
-| `min` | Smallest possible value, inclusive. | Integer | Yes | |
-| `max` | Largest possible value, inclusive. | Integer | Yes | |
+| Field  | Description                         | Possible values | Required? | Default |
+| ------ | ----------------------------------- | --------------- | --------- | ------- |
+| `type` | The data type for the dimension.    | `uniform`       | Yes       |         |
+| `min`  | Smallest possible value, inclusive. | Integer         | Yes       |         |
+| `max`  | Largest possible value, inclusive.  | Integer         | Yes       |         |
 
 Shape for `min: 0, max: 10`:
 
@@ -56,14 +62,17 @@ xychart-beta
 
 ### `exponential`
 
-To generate values following an exponential distribution around the mean, use `exponential`.
+To generate values following an exponential distribution around the mean, use
+`exponential`.
 
-| Field | Description | Possible values | Required? | Default |
-| --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `exponential` | Yes | |
-| `mean` | The resulting average value of the distribution. | Integer | Yes | |
+| Field  | Description                                      | Possible values | Required? | Default |
+| ------ | ------------------------------------------------ | --------------- | --------- | ------- |
+| `type` | The data type for the dimension.                 | `exponential`   | Yes       |         |
+| `mean` | The resulting average value of the distribution. | Integer         | Yes       |         |
 
-The data generator rounds down values that exceed the length of any list. Exercise special caution when using `exponential` in a `cardinality_distribution` as this may produce a distorted distribution.
+The data generator rounds down values that exceed the length of any list.
+Exercise special caution when using `exponential` in a
+`cardinality_distribution` as this may produce a distorted distribution.
 
 Shape for `mean: 5`:
 
@@ -78,15 +87,17 @@ xychart-beta
 
 ### `normal`
 
-Normal distributions generate values with a normal (i.e., bell-shaped) distribution.
+Normal distributions generate values with a normal (i.e., bell-shaped)
+distribution.
 
-When used in `cardinality_distribution` on a timer state, negative values generated by the normal distribution are forced to zero.
+When used in `cardinality_distribution` on a timer state, negative values
+generated by the normal distribution are forced to zero.
 
-| Field | Description | Possible values | Required? | Default |
-| --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `normal` | Yes | |
-| `mean` | The resulting average value of the distribution. | Integer | Yes | |
-| `stddev` | The standard deviation of the distribution. | Integer | Yes | |
+| Field    | Description                                      | Possible values | Required? | Default |
+| -------- | ------------------------------------------------ | --------------- | --------- | ------- |
+| `type`   | The data type for the dimension.                 | `normal`        | Yes       |         |
+| `mean`   | The resulting average value of the distribution. | Integer         | Yes       |         |
+| `stddev` | The standard deviation of the distribution.      | Integer         | Yes       |         |
 
 Shape for `mean: 50, stddev: 10`:
 
@@ -101,27 +112,36 @@ xychart-beta
 
 ### `gmm_temporal`
 
-A Gaussian Mixture Model temporal distribution that modulates an exponential interarrival time based on time of day and day of week. Use this to simulate realistic traffic patterns such as peak business hours, evening browsing, and quieter weekends.
+A Gaussian Mixture Model temporal distribution that modulates an exponential
+interarrival time based on time of day and day of week. Use this to simulate
+realistic traffic patterns such as peak business hours, evening browsing, and
+quieter weekends.
 
-Each day profile is an array of Gaussian components. The `utc_hour` field is the mean (μ) and `sigma` is the standard deviation (σ) of each Gaussian component.
+Each day profile is an array of Gaussian components. The `utc_hour` field is the
+mean (μ) and `sigma` is the standard deviation (σ) of each Gaussian component.
 
-| Field | Description | Possible values | Required? | Default |
-| --- | --- | --- | --- | --- |
-| `type` | The distribution type. | `gmm_temporal` | Yes | |
-| `mean` | The base average interarrival time in seconds. | Number | Yes | |
-| `days` | Day-of-week profiles, keyed by ISO weekday number (1=Monday, 7=Sunday). | Object | Yes | |
+| Field  | Description                                                             | Possible values | Required? | Default |
+| ------ | ----------------------------------------------------------------------- | --------------- | --------- | ------- |
+| `type` | The distribution type.                                                  | `gmm_temporal`  | Yes       |         |
+| `mean` | The base average interarrival time in seconds.                          | Number          | Yes       |         |
+| `days` | Day-of-week profiles, keyed by ISO weekday number (1=Monday, 7=Sunday). | Object          | Yes       |         |
 
 Each day profile is an array of component objects:
 
-| Field | Description | Possible values | Required? | Default |
-| --- | --- | --- | --- | --- |
-| `utc_hour` | The peak hour in UTC (μ). Fractional hours are supported. | 0.0–24.0 | Yes | |
-| `sigma` | The width of the peak in hours (σ). | Number > 0 | Yes | |
-| `weight` | The amplitude of this peak. | Number > 0 | Yes | |
+| Field      | Description                                               | Possible values | Required? | Default |
+| ---------- | --------------------------------------------------------- | --------------- | --------- | ------- |
+| `utc_hour` | The peak hour in UTC (μ). Fractional hours are supported. | 0.0–24.0        | Yes       |         |
+| `sigma`    | The width of the peak in hours (σ).                       | Number > 0      | Yes       |         |
+| `weight`   | The amplitude of this peak.                               | Number > 0      | Yes       |         |
 
-**Day-of-week lookup**: You only need to define days where the profile changes. The generator looks up the current ISO weekday number and walks backwards (with wraparound) to find the nearest defined day. For example, if you define `"1"` and `"6"`, then Monday through Friday use the `"1"` profile, and Saturday and Sunday use the `"6"` profile.
+**Day-of-week lookup**: You only need to define days where the profile changes.
+The generator looks up the current ISO weekday number and walks backwards (with
+wraparound) to find the nearest defined day. For example, if you define `"1"`
+and `"6"`, then Monday through Friday use the `"1"` profile, and Saturday and
+Sunday use the `"6"` profile.
 
-**Example**: An e-commerce traffic pattern with a midday peak and an evening bump on weekdays, and a shifted, broader pattern on weekends:
+**Example**: An e-commerce traffic pattern with a midday peak and an evening
+bump on weekdays, and a shifted, broader pattern on weekends:
 
 ```json
 {
@@ -154,9 +174,13 @@ For the same pattern every day, define a single day key:
 }
 ```
 
-> **Note**: `gmm_temporal` is only supported in `cardinality_distribution` on `event:start:timer` and `event:intermediate:timer` states. It is not supported for dimension value or cardinality distributions.
+> **Note**: `gmm_temporal` is only supported in `cardinality_distribution` on
+> `event:start:timer` and `event:intermediate:timer` states. It is not supported
+> for dimension value or cardinality distributions.
 
-The rate multiplier (the factor the base `mean` interarrival time is divided by) for the weekday profile shown above — a midday peak at `utc_hour: 12` and a smaller evening bump at `utc_hour: 20.5`:
+The rate multiplier (the factor the base `mean` interarrival time is divided by)
+for the weekday profile shown above — a midday peak at `utc_hour: 12` and a
+smaller evening bump at `utc_hour: 20.5`:
 
 ```mermaid
 %%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
@@ -169,12 +193,15 @@ xychart-beta
 
 ## Cardinality
 
-Use `cardinality` in an [emitter's](./emitters.md) list of `dimensions` to define the length of the set of possible values.
+Use `cardinality` in an [emitter's](./emitters.md) list of `dimensions` to
+define the length of the set of possible values.
 
 The generator creates a list of values with length `cardinality`.
 
-* If `cardinality` is zero, there are no constraints on the number of values in the list.
-* When `cardinality` is > 0, `cardinality_distribution` is required, informing the data generator how to select items from the list.
+- If `cardinality` is zero, there are no constraints on the number of values in
+  the list.
+- When `cardinality` is > 0, `cardinality_distribution` is required, informing
+  the data generator how to select items from the list.
 
 In this example, a `generator:string` dimension has no `cardinality` constraint.
 
@@ -188,7 +215,10 @@ In this example, a `generator:string` dimension has no `cardinality` constraint.
 }
 ```
 
-In this example, `cardinality` of 5 requires that there only be a maximum of 5 distinct values for this dimension.  From this list of unique values, there is a `uniform` `cardinality_distribution` selecting (zero-indexed) values from that list.
+In this example, `cardinality` of 5 requires that there only be a maximum of 5
+distinct values for this dimension. From this list of unique values, there is a
+`uniform` `cardinality_distribution` selecting (zero-indexed) values from that
+list.
 
 ```json
 {

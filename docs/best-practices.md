@@ -1,6 +1,7 @@
 # Configuration Best Practices
 
-This guide provides best practices for creating maintainable, efficient, and realistic generator configurations.
+This guide provides best practices for creating maintainable, efficient, and
+realistic generator configurations.
 
 ## Table of Contents
 
@@ -28,7 +29,8 @@ python3 generator.py -c myconfig.json -n 1000 -s "2024-01-01T00:00:00" > test.js
 python3 generator.py -c myconfig.json -t "2024-01-01T00:00:00" | kafka-producer ...
 ```
 
-See [Testing with Synthetic Clock](patterns.md#testing-with-synthetic-clock) for details.
+See [Testing with Synthetic Clock](patterns.md#testing-with-synthetic-clock) for
+details.
 
 ### Iterative Development Process
 
@@ -98,20 +100,25 @@ Use naming to indicate scope:
 
 Use these prefixes consistently:
 
-| Prefix | State type | Purpose |
-| --- | --- | --- |
-| `setup_*` | `activity` | Sets variables only, no record emitted |
-| `emit_*` | `activity` | Emits a record (with or without setting variables) |
-| `route_*` | `gateway:exclusive` | Probabilistic routing decision |
+| Prefix    | State type                 | Purpose                                                  |
+| --------- | -------------------------- | -------------------------------------------------------- |
+| `setup_*` | `activity`                 | Sets variables only, no record emitted                   |
+| `emit_*`  | `activity`                 | Emits a record (with or without setting variables)       |
+| `route_*` | `gateway:exclusive`        | Probabilistic routing decision                           |
 | `pause_*` | `event:intermediate:timer` | Clock advance — queue wait, processing delay, dwell time |
 
-The `event:start:timer` is named after the arrival event (`session_start`, `ticket_arrives`). The `event:end` is named after the termination (`session_end`, `ticket_closed`).
+The `event:start:timer` is named after the arrival event (`session_start`,
+`ticket_arrives`). The `event:end` is named after the termination
+(`session_end`, `ticket_closed`).
 
-See [how-to-build-a-config.md](./how-to-build-a-config.md) for naming applied to a full worked example.
+See [how-to-build-a-config.md](./how-to-build-a-config.md) for naming applied to
+a full worked example.
 
 ### Emitters
 
-Name emitters after the log or record type they produce: `vpc_flow_log`, `apache_access_log`, `api_request`. Avoid generic names like `emitter1` or `record`.
+Name emitters after the log or record type they produce: `vpc_flow_log`,
+`apache_access_log`, `api_request`. Avoid generic names like `emitter1` or
+`record`.
 
 ## Configuration Organization
 
@@ -135,28 +142,39 @@ Add comments to explain non-obvious logic:
 
 ### Preset docs
 
-Each preset has a companion doc at `docs/presets/<name>.md`. Every preset doc must follow the standard structure described in [CLAUDE.md](../CLAUDE.md):
+Each preset has a companion doc at `docs/presets/<name>.md`. Every preset doc
+must follow the standard structure described in [CLAUDE.md](../CLAUDE.md):
 
 1. Title + one-paragraph description
 2. **Quick start** — copy-paste commands covering common output formats
 3. **Templates** — table of available `--template` values and their output
 4. **Output fields** — table of emitted fields and descriptions
-5. Preset-specific sections (product categories, session routing, per-Actor flow diagrams, etc.)
-6. **Volume** — empirical `-w` ceiling, scaling chart, and cross-`-w`/`-i` grid (see [CLAUDE.md](../CLAUDE.md) for the exact structure; run `tools/bench_config_workers.py` and `tools/bench_grid.py` to generate)
+5. Preset-specific sections (product categories, session routing, per-Actor flow
+   diagrams, etc.)
+6. **Volume** — empirical `-w` ceiling, scaling chart, and cross-`-w`/`-i` grid
+   (see [CLAUDE.md](../CLAUDE.md) for the exact structure; run
+   `tools/bench_config_workers.py` and `tools/bench_grid.py` to generate)
 
 Config JSON files live in `presets/configs/`.
 
 ## When to Use Optional Emitters
 
-`gateway:exclusive` and `event:intermediate:timer` states cannot have an emitter — the validator rejects it. This is by design: routing and time-passing are separate concerns from record emission.
+`gateway:exclusive` and `event:intermediate:timer` states cannot have an emitter
+— the validator rejects it. This is by design: routing and time-passing are
+separate concerns from record emission.
 
-For `activity` states, the `emitter` field is optional. A `setup_*` activity that only sets variables omits it; an `emit_*` activity always includes it.
+For `activity` states, the `emitter` field is optional. A `setup_*` activity
+that only sets variables omits it; an `emit_*` activity always includes it.
 
 ## Variable Design
 
 ### Cardinality Control
 
-Use explicit value lists or bounded ranges to control cardinality. A field like `var_account_id` drawn from `uniform(1, 1000000000)` will produce a unique value on every record — almost always wrong. Prefer a `generator:enum` with a realistic fixed set, or a `generator:int` with `cardinality` set to the number of distinct values you want.
+Use explicit value lists or bounded ranges to control cardinality. A field like
+`var_account_id` drawn from `uniform(1, 1000000000)` will produce a unique value
+on every record — almost always wrong. Prefer a `generator:enum` with a
+realistic fixed set, or a `generator:int` with `cardinality` set to the number
+of distinct values you want.
 
 ### Timestamp Variables
 
@@ -169,7 +187,8 @@ Use `generator:clock` for timestamps:
 }
 ```
 
-**Captures current simulation time** - works with both synthetic and real-time clocks.
+**Captures current simulation time** - works with both synthetic and real-time
+clocks.
 
 ### IP Address Variables
 
@@ -329,7 +348,9 @@ Use Setup→Timer→Emit for time-windowed data:
 
 **Problem**: `var_start == var_end` (zero duration)
 
-See [Start→Activity→Emit Pattern](patterns.md#startactivityemit-pattern-flow-duration) for details.
+See
+[Start→Activity→Emit Pattern](patterns.md#startactivityemit-pattern-flow-duration)
+for details.
 
 ## Testing and Validation
 
@@ -401,7 +422,20 @@ jq -r '.request_id' sample.json | sort | uniq | wc -l
 
 ### Volume (`-w` and `-i`)
 
-`-w` and `-i` together determine throughput via Little's Law — see the [README's Volume section](../README.md#volume) for the concept. The best-practice question for config authoring: **what are you modeling, and does the resulting concurrency ceiling — `(average session duration) / (start interval)` — seem right for that?** A PBX with a ceiling of ~9 concurrent calls, or an e-commerce site with a ceiling of ~2,000 concurrent shoppers, should each feel plausible for the real system being described. If a config's ceiling comes out oddly tiny or huge, that's usually a sign the durations or interval you picked don't actually reflect the real system yet — not something to shrug off. And `-i` is the primary lever for *volume*: reaching for `-w` first when you want more data is a common wrong instinct, since raising it past the ceiling has no effect. See Step 10 of [how-to-build-a-config.md](how-to-build-a-config.md) for measuring a preset's own ceiling once it's built.
+`-w` and `-i` together determine throughput via Little's Law — see the
+[README's Volume section](../README.md#volume) for the concept. The
+best-practice question for config authoring: **what are you modeling, and does
+the resulting concurrency ceiling —
+`(average session duration) / (start interval)` — seem right for that?** A PBX
+with a ceiling of ~9 concurrent calls, or an e-commerce site with a ceiling of
+~2,000 concurrent shoppers, should each feel plausible for the real system being
+described. If a config's ceiling comes out oddly tiny or huge, that's usually a
+sign the durations or interval you picked don't actually reflect the real system
+yet — not something to shrug off. And `-i` is the primary lever for _volume_:
+reaching for `-w` first when you want more data is a common wrong instinct,
+since raising it past the ceiling has no effect. See Step 10 of
+[how-to-build-a-config.md](how-to-build-a-config.md) for measuring a preset's
+own ceiling once it's built.
 
 ### Cardinality Impact
 
@@ -552,7 +586,8 @@ See [patterns.md](patterns.md#startactivityemit-pattern-flow-duration)
 }
 ```
 
-✅ **Solution**: Ensure probabilities sum to exactly 1.0. `--validate` will catch this as an error.
+✅ **Solution**: Ensure probabilities sum to exactly 1.0. `--validate` will
+catch this as an error.
 
 ## Summary Checklist
 
@@ -572,7 +607,8 @@ When creating a new configuration:
 
 For related information, see:
 
-- [How to build a config](how-to-build-a-config.md) — step-by-step guide from concept to tested config
+- [How to build a config](how-to-build-a-config.md) — step-by-step guide from
+  concept to tested config
 - [Common Patterns](patterns.md) — state machine patterns and techniques
 - [States](states.md) — state type reference with field tables
 - [Generators](dimensions/generator.md) — all generator types

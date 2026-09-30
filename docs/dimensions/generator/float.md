@@ -1,26 +1,33 @@
 # Synthetic floating point numbers
 
-When a dimension's type is [`generator:float`](../generator.md), random floating point numbers are created.
+When a dimension's type is [`generator:float`](../generator.md), random floating
+point numbers are created.
 
-| Field | Description | Possible values | Required? | Default |
-| --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `generator:float` | Yes | |
-| `name` | The unique name for the dimension. | String | Yes | |
-| `cardinality` | Indicates the number of unique values for this dimension. Use zero for unconstrained cardinality. | Integer | Yes | |
-| `cardinality_distribution` | Skews the cardinality selection of the generated values. | A [distribution](../../distributions.md) object. | Yes, if `cardinality` not 0. | |
-| `percent_missing` | The stochastic frequency for omitting this dimension from records (inclusive). | Integer between 0 and 100. | No. | 0 |
-| `percent_nulls` | The stochastic frequency (inclusive) for generating null values. | Integer between 0 and 100. | No. | 0 |
-| `distribution` | Specifies the distribution of the numbers generated. | A [distribution](../../distributions.md) object. | Yes. | |
-| `precision` | The number of digits after the decimal. | Integer | No. | Full precision. |
+| Field                      | Description                                                                                       | Possible values                                  | Required?                    | Default         |
+| -------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ---------------------------- | --------------- |
+| `type`                     | The data type for the dimension.                                                                  | `generator:float`                                | Yes                          |                 |
+| `name`                     | The unique name for the dimension.                                                                | String                                           | Yes                          |                 |
+| `cardinality`              | Indicates the number of unique values for this dimension. Use zero for unconstrained cardinality. | Integer                                          | Yes                          |                 |
+| `cardinality_distribution` | Skews the cardinality selection of the generated values.                                          | A [distribution](../../distributions.md) object. | Yes, if `cardinality` not 0. |                 |
+| `percent_missing`          | The stochastic frequency for omitting this dimension from records (inclusive).                    | Integer between 0 and 100.                       | No.                          | 0               |
+| `percent_nulls`            | The stochastic frequency (inclusive) for generating null values.                                  | Integer between 0 and 100.                       | No.                          | 0               |
+| `distribution`             | Specifies the distribution of the numbers generated.                                              | A [distribution](../../distributions.md) object. | Yes.                         |                 |
+| `precision`                | The number of digits after the decimal.                                                           | Integer                                          | No.                          | Full precision. |
 
-In this example, `session_start` spawns workers on a uniform 1000–25000 second interval. Each worker pauses for the same distribution before emitting a record via `example_event_1`, cycling continuously.
+In this example, `session_start` spawns workers on a uniform 1000–25000 second
+interval. Each worker pauses for the same distribution before emitting a record
+via `example_event_1`, cycling continuously.
 
 The emitter `example_event_1` produces the following dimensions:
 
-* `service` is a `generator:enum` dimension, selecting one of the `values` using a `normal` `cardinality_distribution` [distribution](../../distributions.md) object, causing withdrawals to appear more than deposits.
-* `account_id` is a synthetic string of numbers with a constant length of 16.
-* `amt` is a float with an `exponential` distribution that has a mean value of `50000`.
-* `result` is another `generator:enum` dimension indicating whether the transaction was successful or not.
+- `service` is a `generator:enum` dimension, selecting one of the `values` using
+  a `normal` `cardinality_distribution` [distribution](../../distributions.md)
+  object, causing withdrawals to appear more than deposits.
+- `account_id` is a synthetic string of numbers with a constant length of 16.
+- `amt` is a float with an `exponential` distribution that has a mean value of
+  `50000`.
+- `result` is another `generator:enum` dimension indicating whether the
+  transaction was successful or not.
 
 ```json
 {
@@ -78,7 +85,8 @@ The emitter `example_event_1` produces the following dimensions:
 }
 ```
 
-Save the configuration above as `example.json` and use the following command to create 10 records with one worker:
+Save the configuration above as `example.json` and use the following command to
+create 10 records with one worker:
 
 ```bash
 python3 src/generator.py -f example.json -n 10 -w 1

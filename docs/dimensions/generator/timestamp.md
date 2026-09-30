@@ -1,22 +1,30 @@
 # Synthetic timestamps
 
-When a dimension's type is [`generator:timestamp`](../generator.md), an ISO format datetime is produced.
+When a dimension's type is [`generator:timestamp`](../generator.md), an ISO
+format datetime is produced.
 
-| Field | Description | Possible values | Required? | Default |
-| --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `generator:timestamp` | Yes | |
-| `name` | The unique name for the dimension. | String | Yes | |
-| `cardinality` | Indicates the number of unique values for this dimension. Use zero for unconstrained cardinality. | Integer | Yes | |
-| `cardinality_distribution` | Skews the cardinality selection of the generated values. | A [distribution](../../distributions.md) object. | Yes, if `cardinality` not 0. | |
-| `percent_missing` | The stochastic frequency for omitting this dimension from records (inclusive). | Integer between 0 and 100. | No. | 0 |
-| `percent_nulls` | The stochastic frequency (inclusive) for generating null values. | Integer between 0 and 100. | No. | 0 |
-| `distribution` | Describes the distribution of timestamp values the driver generates, with the dates given in ISO format. | A [distribution](../../distributions.md) object. | Yes | |
+| Field                      | Description                                                                                              | Possible values                                  | Required?                    | Default |
+| -------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ---------------------------- | ------- |
+| `type`                     | The data type for the dimension.                                                                         | `generator:timestamp`                            | Yes                          |         |
+| `name`                     | The unique name for the dimension.                                                                       | String                                           | Yes                          |         |
+| `cardinality`              | Indicates the number of unique values for this dimension. Use zero for unconstrained cardinality.        | Integer                                          | Yes                          |         |
+| `cardinality_distribution` | Skews the cardinality selection of the generated values.                                                 | A [distribution](../../distributions.md) object. | Yes, if `cardinality` not 0. |         |
+| `percent_missing`          | The stochastic frequency for omitting this dimension from records (inclusive).                           | Integer between 0 and 100.                       | No.                          | 0       |
+| `percent_nulls`            | The stochastic frequency (inclusive) for generating null values.                                         | Integer between 0 and 100.                       | No.                          | 0       |
+| `distribution`             | Describes the distribution of timestamp values the driver generates, with the dates given in ISO format. | A [distribution](../../distributions.md) object. | Yes                          |         |
 
-In this example, `session_start` spawns a new worker every second. A `gateway:exclusive` routes 80% to `example_event_1` and 20% to `example_event_2`, each preceded by a 0.1-second timer, cycling continuously.
+In this example, `session_start` spawns a new worker every second. A
+`gateway:exclusive` routes 80% to `example_event_1` and 20% to
+`example_event_2`, each preceded by a 0.1-second timer, cycling continuously.
 
-The emitter for `state_1` is `example_event_1`. This emits a simple [`generator:string`](./string.md) as `emitter_number`, and `generator:timestamp` in the range between 1st January 2020 at 3pm and 1st January 2020 at 8pm. `percent_nulls` adds a 25% chance that the value is null.
+The emitter for `state_1` is `example_event_1`. This emits a simple
+[`generator:string`](./string.md) as `emitter_number`, and `generator:timestamp`
+in the range between 1st January 2020 at 3pm and 1st January 2020 at 8pm.
+`percent_nulls` adds a 25% chance that the value is null.
 
-The emitter for `state_2` is `example_event_2` which also emits a simple string containing the emitter number. The `generator:timestamp` for these events lie between 1st and 2nd of January 1920.
+The emitter for `state_2` is `example_event_2` which also emits a simple string
+containing the emitter number. The `generator:timestamp` for these events lie
+between 1st and 2nd of January 1920.
 
 ```json
 {
@@ -109,7 +117,8 @@ The emitter for `state_2` is `example_event_2` which also emits a simple string 
 }
 ```
 
-Since the JSON above contains an inline `target`, you can save the JSON above as `example.json` and run it with the following command.
+Since the JSON above contains an inline `target`, you can save the JSON above as
+`example.json` and run it with the following command.
 
 ```bash
 python3 src/generator.py -f example.json -n 15 -w 2 -s "2009-05-21:08:00:10"

@@ -1,18 +1,20 @@
 # List
 
-Use `generator:list` to produce an array of values. The generator samples a length from `length_distribution`, then picks that many elements from `elements` using `selection_distribution` as an index.
+Use `generator:list` to produce an array of values. The generator samples a
+length from `length_distribution`, then picks that many elements from `elements`
+using `selection_distribution` as an index.
 
-| Field | Required? | Description |
-| --- | --- | --- |
-| `type` | Yes | `generator:list` |
-| `name` | Yes | Field name in the output record. |
-| `length_distribution` | Yes | [Distribution](../../distributions.md) controlling how many elements the list contains. |
-| `selection_distribution` | Yes | [Distribution](../../distributions.md) that picks an index into `elements` for each slot. |
-| `elements` | Yes | List of dimension definitions to draw from. |
-| `cardinality` | No | Number of unique list values to produce. `0` for unconstrained. Default `0`. |
-| `cardinality_distribution` | Yes, if `cardinality` > 0 | [Distribution](../../distributions.md) that selects which pre-generated list to reuse. |
-| `percent_missing` | No | Frequency (0–100) for omitting the field entirely. Default `0`. |
-| `percent_nulls` | No | Frequency (0–100) for emitting `null` instead. Default `0`. |
+| Field                      | Required?                 | Description                                                                               |
+| -------------------------- | ------------------------- | ----------------------------------------------------------------------------------------- |
+| `type`                     | Yes                       | `generator:list`                                                                          |
+| `name`                     | Yes                       | Field name in the output record.                                                          |
+| `length_distribution`      | Yes                       | [Distribution](../../distributions.md) controlling how many elements the list contains.   |
+| `selection_distribution`   | Yes                       | [Distribution](../../distributions.md) that picks an index into `elements` for each slot. |
+| `elements`                 | Yes                       | List of dimension definitions to draw from.                                               |
+| `cardinality`              | No                        | Number of unique list values to produce. `0` for unconstrained. Default `0`.              |
+| `cardinality_distribution` | Yes, if `cardinality` > 0 | [Distribution](../../distributions.md) that selects which pre-generated list to reuse.    |
+| `percent_missing`          | No                        | Frequency (0–100) for omitting the field entirely. Default `0`.                           |
+| `percent_nulls`            | No                        | Frequency (0–100) for emitting `null` instead. Default `0`.                               |
 
 ```json
 {

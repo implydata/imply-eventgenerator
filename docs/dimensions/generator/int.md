@@ -1,24 +1,33 @@
 # Synthetic integers
 
-When a dimension's type is [`generator:int`](../generator.md), a random integer is created.
+When a dimension's type is [`generator:int`](../generator.md), a random integer
+is created.
 
-| Field | Description | Possible values | Required? | Default |
-| --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `generator:int` | Yes | |
-| `name` | The unique name for the dimension. | String | Yes | |
-| `cardinality` | Indicates the number of unique values for this dimension. Use zero for unconstrained cardinality. | Integer | Yes | |
-| `cardinality_distribution` | Skews the cardinality selection of the generated values. | A [distribution](../../distributions.md) object. | Yes, if `cardinality` not 0. | |
-| `percent_missing` | The stochastic frequency for omitting this dimension from records (inclusive). | Integer between 0 and 100. | No. | 0 |
-| `percent_nulls` | The stochastic frequency (inclusive) for generating null values. | Integer between 0 and 100. | No. | 0 |
-| `distribution` | Specifies the distribution of the numbers generated, with each rounded to the nearest integer value. | A [distribution](../../distributions.md) object. | Yes. | |
+| Field                      | Description                                                                                          | Possible values                                  | Required?                    | Default |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ---------------------------- | ------- |
+| `type`                     | The data type for the dimension.                                                                     | `generator:int`                                  | Yes                          |         |
+| `name`                     | The unique name for the dimension.                                                                   | String                                           | Yes                          |         |
+| `cardinality`              | Indicates the number of unique values for this dimension. Use zero for unconstrained cardinality.    | Integer                                          | Yes                          |         |
+| `cardinality_distribution` | Skews the cardinality selection of the generated values.                                             | A [distribution](../../distributions.md) object. | Yes, if `cardinality` not 0. |         |
+| `percent_missing`          | The stochastic frequency for omitting this dimension from records (inclusive).                       | Integer between 0 and 100.                       | No.                          | 0       |
+| `percent_nulls`            | The stochastic frequency (inclusive) for generating null values.                                     | Integer between 0 and 100.                       | No.                          | 0       |
+| `distribution`             | Specifies the distribution of the numbers generated, with each rounded to the nearest integer value. | A [distribution](../../distributions.md) object. | Yes.                         |         |
 
-In this example, `session_start` spawns a new worker every 3600 seconds. Each worker pauses for a uniform delay of 5–10 seconds then emits a record via `example_event_1`, cycling continuously.
+In this example, `session_start` spawns a new worker every 3600 seconds. Each
+worker pauses for a uniform delay of 5–10 seconds then emits a record via
+`example_event_1`, cycling continuously.
 
 The emitter `example_event_1` produces the following dimensions:
 
-* `user` is a `generator:enum` dimension, selecting one of the `values` using a `uniform` `cardinality_distribution` [distribution](../../distributions.md) object.
-* `whiteboard_pen_delta` - the change in the number of whiteboard pens each person owns - is a `generator:int` selected using a `normal` `distribution` with a `mean` of 0 and standard deviation (`stddev`) of 4.
-* `cups_of_coffee_consumed` is an int generated using an `exponential` `distribution`, meaning that - on average - 25 cups of coffee are consumed, but the distribution is exponential.
+- `user` is a `generator:enum` dimension, selecting one of the `values` using a
+  `uniform` `cardinality_distribution` [distribution](../../distributions.md)
+  object.
+- `whiteboard_pen_delta` - the change in the number of whiteboard pens each
+  person owns - is a `generator:int` selected using a `normal` `distribution`
+  with a `mean` of 0 and standard deviation (`stddev`) of 4.
+- `cups_of_coffee_consumed` is an int generated using an `exponential`
+  `distribution`, meaning that - on average - 25 cups of coffee are consumed,
+  but the distribution is exponential.
 
 ```json
 {
@@ -68,7 +77,8 @@ The emitter `example_event_1` produces the following dimensions:
 }
 ```
 
-Save the configuration above as `example.json` and use the following command to create 10 records with one worker:
+Save the configuration above as `example.json` and use the following command to
+create 10 records with one worker:
 
 ```bash
 python3 src/generator.py -f example.json -n 10 -w 1
