@@ -14,7 +14,7 @@
     {
       "name": "zscaler_web_log",
       "dimensions": [
-        {"name": "datetime", "type": "clock"},
+        {"name": "datetime", "type": "generator:clock"},
         {"name": "ClientIP", "type": "variable", "variable": "var_clientip"},
         {"name": "action", "type": "variable", "variable": "var_action"},
         {"name": "appclass", "type": "variable", "variable": "var_appclass"},
@@ -70,13 +70,13 @@
       "_comment": "Session-constant attributes: same user/device/location for every transaction in this session",
       "variables": [
         {
-          "name": "var_clientpublicip", "type": "enum",
+          "name": "var_clientpublicip", "type": "generator:enum",
           "values": ["203.0.113.10", "203.0.113.11", "198.51.100.20", "198.51.100.21"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3},
           "_comment": "Corporate egress breakout IPs (RFC 5737 documentation ranges)"
         },
         {
-          "name": "var_department", "type": "enum",
+          "name": "var_department", "type": "generator:enum",
           "values": [
             "Engineering", "Sales", "Finance", "Marketing", "Human Resources",
             "IT", "Legal", "Operations"
@@ -84,7 +84,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
         },
         {
-          "name": "var_devicehostname", "type": "enum",
+          "name": "var_devicehostname", "type": "generator:enum",
           "values": [
             "WKS-0001", "WKS-0002", "WKS-0003", "WKS-0004", "WKS-0005",
             "WKS-0006", "WKS-0007", "WKS-0008", "WKS-0009", "WKS-0010",
@@ -96,7 +96,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 29}
         },
         {
-          "name": "var_deviceowner", "type": "enum",
+          "name": "var_deviceowner", "type": "generator:enum",
           "values": [
             "Amara Patel", "Ben Nguyen", "Carla Garcia", "Declan O'Connor",
             "Ewa Kowalski", "Felix Martin", "Gabriela Silva", "Hugo Jansen",
@@ -110,7 +110,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 29}
         },
         {
-          "name": "var_location", "type": "enum",
+          "name": "var_location", "type": "generator:enum",
           "values": [
             "New York HQ", "London Office", "Austin Office", "Singapore Office",
             "Remote - US", "Remote - EMEA"
@@ -118,7 +118,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 5}
         },
         {
-          "name": "var_user", "type": "enum",
+          "name": "var_user", "type": "generator:enum",
           "values": [
             "a.patel", "b.nguyen", "c.garcia", "d.oconnor", "e.kowalski",
             "f.martin", "g.silva", "h.jansen", "i.rossi", "j.mueller",
@@ -131,7 +131,7 @@
           "_comment": "Skewed: a handful of heavy browsers account for a disproportionate share of sessions"
         },
         {
-          "name": "var_clientip", "type": "ipaddress",
+          "name": "var_clientip", "type": "generator:ipaddress",
           "cardinality": 200,
           "distribution": {
             "type": "uniform",
@@ -154,34 +154,34 @@
       "name": "reset_transaction", "type": "activity",
       "_comment": "Reset per-transaction fields to their default/benign values every loop iteration, so a threat or DLP flag from a previous transaction cannot leak into this one",
       "variables": [
-        {"name": "var_action", "type": "string:static", "value": "Allowed"},
-        {"name": "var_bwthrottle", "type": "string:static", "value": "NO"},
-        {"name": "var_contenttype", "type": "string:static", "value": "text/html"},
-        {"name": "var_dlpdictionaries", "type": "string:static", "value": "None"},
-        {"name": "var_dlpengine", "type": "string:static", "value": "None"},
-        {"name": "var_fileclass", "type": "string:static", "value": "-"},
-        {"name": "var_filename", "type": "string:static", "value": "-"},
-        {"name": "var_filetype", "type": "string:static", "value": "-"},
-        {"name": "var_md5", "type": "string:static", "value": "-"},
-        {"name": "var_reason", "type": "string:static", "value": "Allowed"},
-        {"name": "var_requestmethod", "type": "string:static", "value": "GET"},
-        {"name": "var_threatcategory", "type": "string:static", "value": "None"},
-        {"name": "var_threatclass", "type": "string:static", "value": "None"},
-        {"name": "var_threatname", "type": "string:static", "value": "None"},
-        {"name": "var_unscannabletype", "type": "string:static", "value": "None"},
-        {"name": "var_status", "type": "int:static", "value": 200},
+        {"name": "var_action", "type": "static", "value": "Allowed"},
+        {"name": "var_bwthrottle", "type": "static", "value": "NO"},
+        {"name": "var_contenttype", "type": "static", "value": "text/html"},
+        {"name": "var_dlpdictionaries", "type": "static", "value": "None"},
+        {"name": "var_dlpengine", "type": "static", "value": "None"},
+        {"name": "var_fileclass", "type": "static", "value": "-"},
+        {"name": "var_filename", "type": "static", "value": "-"},
+        {"name": "var_filetype", "type": "static", "value": "-"},
+        {"name": "var_md5", "type": "static", "value": "-"},
+        {"name": "var_reason", "type": "static", "value": "Allowed"},
+        {"name": "var_requestmethod", "type": "static", "value": "GET"},
+        {"name": "var_status", "type": "static", "value": 200},
+        {"name": "var_threatcategory", "type": "static", "value": "None"},
+        {"name": "var_threatclass", "type": "static", "value": "None"},
+        {"name": "var_threatname", "type": "static", "value": "None"},
+        {"name": "var_unscannabletype", "type": "static", "value": "None"},
         {
-          "name": "var_protocol", "type": "enum",
+          "name": "var_protocol", "type": "generator:enum",
           "values": ["HTTPS", "HTTP"],
           "cardinality_distribution": {"type": "exponential", "mean": 0.15}
         },
         {
-          "name": "var_refererurl", "type": "enum",
+          "name": "var_refererurl", "type": "generator:enum",
           "values": ["-", "-", "-", "https://www.google.com/", "https://www.bing.com/"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
         },
         {
-          "name": "var_useragent", "type": "enum",
+          "name": "var_useragent", "type": "generator:enum",
           "values": [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128.0 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/128.0 Safari/537.36",
@@ -192,7 +192,7 @@
           "cardinality_distribution": {"type": "exponential", "mean": 1}
         },
         {
-          "name": "var_pagerisk", "type": "int",
+          "name": "var_pagerisk", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -224,14 +224,14 @@
       "name": "emit_office365", "type": "activity",
       "_comment": "Microsoft 365 webmail/collaboration traffic",
       "variables": [
-        {"name": "var_appclass", "type": "string:static", "value": "Enterprise Collaboration and Storage"},
-        {"name": "var_appname", "type": "string:static", "value": "Microsoft Office 365"},
-        {"name": "var_hostname", "type": "string:static", "value": "outlook.office365.com"},
-        {"name": "var_urlcategory", "type": "string:static", "value": "Information Technology"},
-        {"name": "var_urlclass", "type": "string:static", "value": "Productivity Tools"},
-        {"name": "var_urlsupercategory", "type": "string:static", "value": "Business Use"},
+        {"name": "var_appclass", "type": "static", "value": "Enterprise Collaboration and Storage"},
+        {"name": "var_appname", "type": "static", "value": "Microsoft Office 365"},
+        {"name": "var_hostname", "type": "static", "value": "outlook.office365.com"},
+        {"name": "var_urlcategory", "type": "static", "value": "Information Technology"},
+        {"name": "var_urlclass", "type": "static", "value": "Productivity Tools"},
+        {"name": "var_urlsupercategory", "type": "static", "value": "Business Use"},
         {
-          "name": "var_url", "type": "enum",
+          "name": "var_url", "type": "generator:enum",
           "values": [
             "/owa/", "/owa/#path=/mail/inbox", "/owa/#path=/calendar",
             "/owa/#path=/mail/sentitems", "/api/v2.0/me/messages"
@@ -239,7 +239,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
         },
         {
-          "name": "var_clienttranstime", "type": "int",
+          "name": "var_clienttranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -248,7 +248,7 @@
           }
         },
         {
-          "name": "var_requestsize", "type": "int",
+          "name": "var_requestsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -257,7 +257,7 @@
           }
         },
         {
-          "name": "var_responsesize", "type": "int",
+          "name": "var_responsesize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -266,7 +266,7 @@
           }
         },
         {
-          "name": "var_servertranstime", "type": "int",
+          "name": "var_servertranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -275,7 +275,7 @@
           }
         },
         {
-          "name": "var_transactionsize", "type": "int",
+          "name": "var_transactionsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -284,7 +284,7 @@
           }
         },
         {
-          "name": "var_serverip", "type": "ipaddress",
+          "name": "var_serverip", "type": "generator:ipaddress",
           "cardinality": 3,
           "distribution": {
             "type": "uniform",
@@ -301,14 +301,14 @@
       "name": "emit_salesforce", "type": "activity",
       "_comment": "Salesforce CRM traffic",
       "variables": [
-        {"name": "var_appclass", "type": "string:static", "value": "Enterprise Collaboration and Storage"},
-        {"name": "var_appname", "type": "string:static", "value": "Salesforce"},
-        {"name": "var_hostname", "type": "string:static", "value": "mycompany.my.salesforce.com"},
-        {"name": "var_urlcategory", "type": "string:static", "value": "Business and Economy"},
-        {"name": "var_urlclass", "type": "string:static", "value": "Productivity Tools"},
-        {"name": "var_urlsupercategory", "type": "string:static", "value": "Business Use"},
+        {"name": "var_appclass", "type": "static", "value": "Enterprise Collaboration and Storage"},
+        {"name": "var_appname", "type": "static", "value": "Salesforce"},
+        {"name": "var_hostname", "type": "static", "value": "mycompany.my.salesforce.com"},
+        {"name": "var_urlcategory", "type": "static", "value": "Business and Economy"},
+        {"name": "var_urlclass", "type": "static", "value": "Productivity Tools"},
+        {"name": "var_urlsupercategory", "type": "static", "value": "Business Use"},
         {
-          "name": "var_url", "type": "enum",
+          "name": "var_url", "type": "generator:enum",
           "values": [
             "/home/home.jsp", "/lightning/o/Opportunity/list",
             "/lightning/o/Account/list", "/services/data/v60.0/query"
@@ -316,7 +316,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_clienttranstime", "type": "int",
+          "name": "var_clienttranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -325,7 +325,7 @@
           }
         },
         {
-          "name": "var_requestsize", "type": "int",
+          "name": "var_requestsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -334,7 +334,7 @@
           }
         },
         {
-          "name": "var_responsesize", "type": "int",
+          "name": "var_responsesize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -343,7 +343,7 @@
           }
         },
         {
-          "name": "var_servertranstime", "type": "int",
+          "name": "var_servertranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -352,7 +352,7 @@
           }
         },
         {
-          "name": "var_transactionsize", "type": "int",
+          "name": "var_transactionsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -361,7 +361,7 @@
           }
         },
         {
-          "name": "var_serverip", "type": "ipaddress",
+          "name": "var_serverip", "type": "generator:ipaddress",
           "cardinality": 2,
           "distribution": {
             "type": "uniform",
@@ -378,14 +378,14 @@
       "name": "emit_slack", "type": "activity",
       "_comment": "Slack messaging traffic",
       "variables": [
-        {"name": "var_appclass", "type": "string:static", "value": "Enterprise Collaboration and Storage"},
-        {"name": "var_appname", "type": "string:static", "value": "Slack"},
-        {"name": "var_hostname", "type": "string:static", "value": "mycompany.slack.com"},
-        {"name": "var_urlcategory", "type": "string:static", "value": "Instant Messaging"},
-        {"name": "var_urlclass", "type": "string:static", "value": "Productivity Tools"},
-        {"name": "var_urlsupercategory", "type": "string:static", "value": "Business Use"},
+        {"name": "var_appclass", "type": "static", "value": "Enterprise Collaboration and Storage"},
+        {"name": "var_appname", "type": "static", "value": "Slack"},
+        {"name": "var_hostname", "type": "static", "value": "mycompany.slack.com"},
+        {"name": "var_urlcategory", "type": "static", "value": "Instant Messaging"},
+        {"name": "var_urlclass", "type": "static", "value": "Productivity Tools"},
+        {"name": "var_urlsupercategory", "type": "static", "value": "Business Use"},
         {
-          "name": "var_url", "type": "enum",
+          "name": "var_url", "type": "generator:enum",
           "values": [
             "/messages/general", "/messages/random",
             "/api/conversations.history", "/api/chat.postMessage"
@@ -393,7 +393,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_clienttranstime", "type": "int",
+          "name": "var_clienttranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -402,7 +402,7 @@
           }
         },
         {
-          "name": "var_requestsize", "type": "int",
+          "name": "var_requestsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -411,7 +411,7 @@
           }
         },
         {
-          "name": "var_responsesize", "type": "int",
+          "name": "var_responsesize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -420,7 +420,7 @@
           }
         },
         {
-          "name": "var_servertranstime", "type": "int",
+          "name": "var_servertranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -429,7 +429,7 @@
           }
         },
         {
-          "name": "var_transactionsize", "type": "int",
+          "name": "var_transactionsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -438,7 +438,7 @@
           }
         },
         {
-          "name": "var_serverip", "type": "ipaddress",
+          "name": "var_serverip", "type": "generator:ipaddress",
           "cardinality": 2,
           "distribution": {
             "type": "uniform",
@@ -455,14 +455,14 @@
       "name": "emit_search", "type": "activity",
       "_comment": "Search engine traffic",
       "variables": [
-        {"name": "var_appclass", "type": "string:static", "value": "General Browsing"},
-        {"name": "var_appname", "type": "string:static", "value": "Google Search"},
-        {"name": "var_hostname", "type": "string:static", "value": "www.google.com"},
-        {"name": "var_urlcategory", "type": "string:static", "value": "Search Engines and Portals"},
-        {"name": "var_urlclass", "type": "string:static", "value": "Reference"},
-        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {"name": "var_appclass", "type": "static", "value": "General Browsing"},
+        {"name": "var_appname", "type": "static", "value": "Google Search"},
+        {"name": "var_hostname", "type": "static", "value": "www.google.com"},
+        {"name": "var_urlcategory", "type": "static", "value": "Search Engines and Portals"},
+        {"name": "var_urlclass", "type": "static", "value": "Reference"},
+        {"name": "var_urlsupercategory", "type": "static", "value": "General Surfing"},
         {
-          "name": "var_url", "type": "enum",
+          "name": "var_url", "type": "generator:enum",
           "values": [
             "/search?q=quarterly+report+template",
             "/search?q=how+to+configure+vpn",
@@ -472,7 +472,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_clienttranstime", "type": "int",
+          "name": "var_clienttranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -481,7 +481,7 @@
           }
         },
         {
-          "name": "var_requestsize", "type": "int",
+          "name": "var_requestsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -490,7 +490,7 @@
           }
         },
         {
-          "name": "var_responsesize", "type": "int",
+          "name": "var_responsesize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -499,7 +499,7 @@
           }
         },
         {
-          "name": "var_servertranstime", "type": "int",
+          "name": "var_servertranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -508,7 +508,7 @@
           }
         },
         {
-          "name": "var_transactionsize", "type": "int",
+          "name": "var_transactionsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -517,7 +517,7 @@
           }
         },
         {
-          "name": "var_serverip", "type": "ipaddress",
+          "name": "var_serverip", "type": "generator:ipaddress",
           "cardinality": 3,
           "distribution": {
             "type": "uniform",
@@ -534,23 +534,23 @@
       "name": "emit_news", "type": "activity",
       "_comment": "News and reference sites",
       "variables": [
-        {"name": "var_appclass", "type": "string:static", "value": "General Browsing"},
-        {"name": "var_appname", "type": "string:static", "value": "Web Browsing"},
-        {"name": "var_urlcategory", "type": "string:static", "value": "News and Media"},
-        {"name": "var_urlclass", "type": "string:static", "value": "Reference"},
-        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {"name": "var_appclass", "type": "static", "value": "General Browsing"},
+        {"name": "var_appname", "type": "static", "value": "Web Browsing"},
+        {"name": "var_urlcategory", "type": "static", "value": "News and Media"},
+        {"name": "var_urlclass", "type": "static", "value": "Reference"},
+        {"name": "var_urlsupercategory", "type": "static", "value": "General Surfing"},
         {
-          "name": "var_hostname", "type": "enum",
+          "name": "var_hostname", "type": "generator:enum",
           "values": ["www.reuters.com", "www.bbc.com", "en.wikipedia.org"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "name": "var_url", "type": "enum",
+          "name": "var_url", "type": "generator:enum",
           "values": ["/business/", "/technology/", "/world/", "/wiki/Main_Page"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_clienttranstime", "type": "int",
+          "name": "var_clienttranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -559,7 +559,7 @@
           }
         },
         {
-          "name": "var_requestsize", "type": "int",
+          "name": "var_requestsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -568,7 +568,7 @@
           }
         },
         {
-          "name": "var_responsesize", "type": "int",
+          "name": "var_responsesize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -577,7 +577,7 @@
           }
         },
         {
-          "name": "var_servertranstime", "type": "int",
+          "name": "var_servertranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -586,7 +586,7 @@
           }
         },
         {
-          "name": "var_transactionsize", "type": "int",
+          "name": "var_transactionsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -595,7 +595,7 @@
           }
         },
         {
-          "name": "var_serverip", "type": "ipaddress",
+          "name": "var_serverip", "type": "generator:ipaddress",
           "cardinality": 6,
           "distribution": {
             "type": "uniform",
@@ -612,23 +612,23 @@
       "name": "emit_social", "type": "activity",
       "_comment": "Social networking traffic (allowed, monitored)",
       "variables": [
-        {"name": "var_appclass", "type": "string:static", "value": "Social Networking"},
-        {"name": "var_appname", "type": "string:static", "value": "Social Networking"},
-        {"name": "var_urlcategory", "type": "string:static", "value": "Social Networking"},
-        {"name": "var_urlclass", "type": "string:static", "value": "Social"},
-        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {"name": "var_appclass", "type": "static", "value": "Social Networking"},
+        {"name": "var_appname", "type": "static", "value": "Social Networking"},
+        {"name": "var_urlcategory", "type": "static", "value": "Social Networking"},
+        {"name": "var_urlclass", "type": "static", "value": "Social"},
+        {"name": "var_urlsupercategory", "type": "static", "value": "General Surfing"},
         {
-          "name": "var_hostname", "type": "enum",
+          "name": "var_hostname", "type": "generator:enum",
           "values": ["www.linkedin.com", "www.facebook.com", "www.instagram.com"],
           "cardinality_distribution": {"type": "exponential", "mean": 0.5}
         },
         {
-          "name": "var_url", "type": "enum",
+          "name": "var_url", "type": "generator:enum",
           "values": ["/feed/", "/messaging/", "/in/profile", "/groups/"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_clienttranstime", "type": "int",
+          "name": "var_clienttranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -637,7 +637,7 @@
           }
         },
         {
-          "name": "var_requestsize", "type": "int",
+          "name": "var_requestsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -646,7 +646,7 @@
           }
         },
         {
-          "name": "var_responsesize", "type": "int",
+          "name": "var_responsesize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -655,7 +655,7 @@
           }
         },
         {
-          "name": "var_servertranstime", "type": "int",
+          "name": "var_servertranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -664,7 +664,7 @@
           }
         },
         {
-          "name": "var_transactionsize", "type": "int",
+          "name": "var_transactionsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -673,7 +673,7 @@
           }
         },
         {
-          "name": "var_serverip", "type": "ipaddress",
+          "name": "var_serverip", "type": "generator:ipaddress",
           "cardinality": 6,
           "distribution": {
             "type": "uniform",
@@ -690,19 +690,19 @@
       "name": "emit_streaming", "type": "activity",
       "_comment": "Streaming media traffic - occasionally bandwidth-throttled by policy",
       "variables": [
-        {"name": "var_appclass", "type": "string:static", "value": "Streaming Media"},
-        {"name": "var_appname", "type": "string:static", "value": "YouTube"},
-        {"name": "var_hostname", "type": "string:static", "value": "www.youtube.com"},
-        {"name": "var_urlcategory", "type": "string:static", "value": "Streaming Media"},
-        {"name": "var_urlclass", "type": "string:static", "value": "Streaming Media"},
-        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {"name": "var_appclass", "type": "static", "value": "Streaming Media"},
+        {"name": "var_appname", "type": "static", "value": "YouTube"},
+        {"name": "var_hostname", "type": "static", "value": "www.youtube.com"},
+        {"name": "var_urlcategory", "type": "static", "value": "Streaming Media"},
+        {"name": "var_urlclass", "type": "static", "value": "Streaming Media"},
+        {"name": "var_urlsupercategory", "type": "static", "value": "General Surfing"},
         {
-          "name": "var_bwthrottle", "type": "enum",
+          "name": "var_bwthrottle", "type": "generator:enum",
           "values": ["NO", "NO", "NO", "YES"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_url", "type": "enum",
+          "name": "var_url", "type": "generator:enum",
           "values": [
             "/watch?v=training-video", "/watch?v=all-hands-recording",
             "/playlist?list=team-updates"
@@ -710,7 +710,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "name": "var_clienttranstime", "type": "int",
+          "name": "var_clienttranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -719,7 +719,7 @@
           }
         },
         {
-          "name": "var_requestsize", "type": "int",
+          "name": "var_requestsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -728,7 +728,7 @@
           }
         },
         {
-          "name": "var_responsesize", "type": "int",
+          "name": "var_responsesize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -737,7 +737,7 @@
           }
         },
         {
-          "name": "var_servertranstime", "type": "int",
+          "name": "var_servertranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -746,7 +746,7 @@
           }
         },
         {
-          "name": "var_transactionsize", "type": "int",
+          "name": "var_transactionsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -755,7 +755,7 @@
           }
         },
         {
-          "name": "var_serverip", "type": "ipaddress",
+          "name": "var_serverip", "type": "generator:ipaddress",
           "cardinality": 4,
           "distribution": {
             "type": "uniform",
@@ -772,19 +772,19 @@
       "name": "emit_storage_normal", "type": "activity",
       "_comment": "Cloud file storage traffic - normal, no DLP hit",
       "variables": [
-        {"name": "var_appclass", "type": "string:static", "value": "Enterprise Collaboration and Storage"},
-        {"name": "var_appname", "type": "string:static", "value": "Dropbox"},
-        {"name": "var_hostname", "type": "string:static", "value": "www.dropbox.com"},
-        {"name": "var_urlcategory", "type": "string:static", "value": "Online Storage and Backup"},
-        {"name": "var_urlclass", "type": "string:static", "value": "File Sharing"},
-        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {"name": "var_appclass", "type": "static", "value": "Enterprise Collaboration and Storage"},
+        {"name": "var_appname", "type": "static", "value": "Dropbox"},
+        {"name": "var_hostname", "type": "static", "value": "www.dropbox.com"},
+        {"name": "var_urlcategory", "type": "static", "value": "Online Storage and Backup"},
+        {"name": "var_urlclass", "type": "static", "value": "File Sharing"},
+        {"name": "var_urlsupercategory", "type": "static", "value": "General Surfing"},
         {
-          "name": "var_url", "type": "enum",
+          "name": "var_url", "type": "generator:enum",
           "values": ["/home", "/shared", "/personal", "/preview/team-folder"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_clienttranstime", "type": "int",
+          "name": "var_clienttranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -793,7 +793,7 @@
           }
         },
         {
-          "name": "var_requestsize", "type": "int",
+          "name": "var_requestsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -802,7 +802,7 @@
           }
         },
         {
-          "name": "var_responsesize", "type": "int",
+          "name": "var_responsesize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -811,7 +811,7 @@
           }
         },
         {
-          "name": "var_servertranstime", "type": "int",
+          "name": "var_servertranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -820,7 +820,7 @@
           }
         },
         {
-          "name": "var_transactionsize", "type": "int",
+          "name": "var_transactionsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -829,7 +829,7 @@
           }
         },
         {
-          "name": "var_serverip", "type": "ipaddress",
+          "name": "var_serverip", "type": "generator:ipaddress",
           "cardinality": 3,
           "distribution": {
             "type": "uniform",
@@ -846,23 +846,23 @@
       "name": "emit_storage_dlp", "type": "activity",
       "_comment": "Cloud file storage traffic - flagged and blocked by outbound DLP policy",
       "variables": [
-        {"name": "var_action", "type": "string:static", "value": "Blocked"},
-        {"name": "var_appclass", "type": "string:static", "value": "Enterprise Collaboration and Storage"},
-        {"name": "var_appname", "type": "string:static", "value": "Dropbox"},
-        {"name": "var_dlpengine", "type": "string:static", "value": "Outbound Content Compliance"},
-        {"name": "var_hostname", "type": "string:static", "value": "www.dropbox.com"},
-        {"name": "var_reason", "type": "string:static", "value": "DLP Policy Violation"},
-        {"name": "var_url", "type": "string:static", "value": "/upload"},
-        {"name": "var_urlcategory", "type": "string:static", "value": "Online Storage and Backup"},
-        {"name": "var_urlclass", "type": "string:static", "value": "File Sharing"},
-        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {"name": "var_action", "type": "static", "value": "Blocked"},
+        {"name": "var_appclass", "type": "static", "value": "Enterprise Collaboration and Storage"},
+        {"name": "var_appname", "type": "static", "value": "Dropbox"},
+        {"name": "var_dlpengine", "type": "static", "value": "Outbound Content Compliance"},
+        {"name": "var_hostname", "type": "static", "value": "www.dropbox.com"},
+        {"name": "var_reason", "type": "static", "value": "DLP Policy Violation"},
+        {"name": "var_url", "type": "static", "value": "/upload"},
+        {"name": "var_urlcategory", "type": "static", "value": "Online Storage and Backup"},
+        {"name": "var_urlclass", "type": "static", "value": "File Sharing"},
+        {"name": "var_urlsupercategory", "type": "static", "value": "General Surfing"},
         {
-          "name": "var_dlpdictionaries", "type": "enum",
+          "name": "var_dlpdictionaries", "type": "generator:enum",
           "values": ["PII", "Financial Data", "Source Code", "Confidential Data"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_filename", "type": "enum",
+          "name": "var_filename", "type": "generator:enum",
           "values": [
             "Q3_Financial_Report.xlsx", "Customer_List_Export.csv",
             "Employee_Records.xlsx", "Source_Code_Archive.zip"
@@ -870,7 +870,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_clienttranstime", "type": "int",
+          "name": "var_clienttranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -879,7 +879,7 @@
           }
         },
         {
-          "name": "var_requestsize", "type": "int",
+          "name": "var_requestsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -888,7 +888,7 @@
           }
         },
         {
-          "name": "var_responsesize", "type": "int",
+          "name": "var_responsesize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -897,7 +897,7 @@
           }
         },
         {
-          "name": "var_servertranstime", "type": "int",
+          "name": "var_servertranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -906,7 +906,7 @@
           }
         },
         {
-          "name": "var_transactionsize", "type": "int",
+          "name": "var_transactionsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -915,7 +915,7 @@
           }
         },
         {
-          "name": "var_serverip", "type": "ipaddress",
+          "name": "var_serverip", "type": "generator:ipaddress",
           "cardinality": 3,
           "distribution": {
             "type": "uniform",
@@ -925,7 +925,7 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "name": "var_md5", "type": "string",
+          "name": "var_md5", "type": "generator:string",
           "chars": "0123456789abcdef",
           "cardinality": 0,
           "length_distribution": {"type": "constant", "value": 32}
@@ -938,13 +938,13 @@
       "name": "emit_generic", "type": "activity",
       "_comment": "Long-tail uncategorized browsing - each transaction visits a mostly-unique site",
       "variables": [
-        {"name": "var_appclass", "type": "string:static", "value": "General Browsing"},
-        {"name": "var_appname", "type": "string:static", "value": "Web Browsing"},
-        {"name": "var_urlcategory", "type": "string:static", "value": "Miscellaneous or Unknown"},
-        {"name": "var_urlclass", "type": "string:static", "value": "Uncategorized"},
-        {"name": "var_urlsupercategory", "type": "string:static", "value": "General Surfing"},
+        {"name": "var_appclass", "type": "static", "value": "General Browsing"},
+        {"name": "var_appname", "type": "static", "value": "Web Browsing"},
+        {"name": "var_urlcategory", "type": "static", "value": "Miscellaneous or Unknown"},
+        {"name": "var_urlclass", "type": "static", "value": "Uncategorized"},
+        {"name": "var_urlsupercategory", "type": "static", "value": "General Surfing"},
         {
-          "name": "var_clienttranstime", "type": "int",
+          "name": "var_clienttranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -953,7 +953,7 @@
           }
         },
         {
-          "name": "var_requestsize", "type": "int",
+          "name": "var_requestsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -962,7 +962,7 @@
           }
         },
         {
-          "name": "var_responsesize", "type": "int",
+          "name": "var_responsesize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -971,7 +971,7 @@
           }
         },
         {
-          "name": "var_servertranstime", "type": "int",
+          "name": "var_servertranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -980,7 +980,7 @@
           }
         },
         {
-          "name": "var_transactionsize", "type": "int",
+          "name": "var_transactionsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -989,7 +989,7 @@
           }
         },
         {
-          "name": "var_serverip", "type": "ipaddress",
+          "name": "var_serverip", "type": "generator:ipaddress",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -999,13 +999,13 @@
           "_comment": "Wide public range - a different edge server almost every time"
         },
         {
-          "name": "var_hostname", "type": "string",
+          "name": "var_hostname", "type": "generator:string",
           "chars": "abcdefghijklmnopqrstuvwxyz",
           "cardinality": 0,
           "length_distribution": {"type": "uniform", "min": 8, "max": 20}
         },
         {
-          "name": "var_url", "type": "string",
+          "name": "var_url", "type": "generator:string",
           "chars": "abcdefghijklmnopqrstuvwxyz0123456789/-_",
           "cardinality": 0,
           "length_distribution": {"type": "uniform", "min": 5, "max": 24}
@@ -1018,20 +1018,20 @@
       "name": "emit_malicious", "type": "activity",
       "_comment": "Phishing/malware destination - blocked by ZIA policy",
       "variables": [
-        {"name": "var_action", "type": "string:static", "value": "Blocked"},
-        {"name": "var_appclass", "type": "string:static", "value": "General Browsing"},
-        {"name": "var_appname", "type": "string:static", "value": "Web Browsing"},
-        {"name": "var_reason", "type": "string:static", "value": "Threat"},
-        {"name": "var_threatclass", "type": "string:static", "value": "Security Risk"},
-        {"name": "var_urlclass", "type": "string:static", "value": "Security Risk"},
-        {"name": "var_urlsupercategory", "type": "string:static", "value": "Security Risk"},
+        {"name": "var_action", "type": "static", "value": "Blocked"},
+        {"name": "var_appclass", "type": "static", "value": "General Browsing"},
+        {"name": "var_appname", "type": "static", "value": "Web Browsing"},
+        {"name": "var_reason", "type": "static", "value": "Threat"},
+        {"name": "var_threatclass", "type": "static", "value": "Security Risk"},
+        {"name": "var_urlclass", "type": "static", "value": "Security Risk"},
+        {"name": "var_urlsupercategory", "type": "static", "value": "Security Risk"},
         {
-          "name": "var_threatcategory", "type": "enum",
+          "name": "var_threatcategory", "type": "generator:enum",
           "values": ["Phishing", "Malware Sites", "Botnet Command and Control", "Spyware Callback"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_threatname", "type": "enum",
+          "name": "var_threatname", "type": "generator:enum",
           "values": [
             "Gen:Variant.Phishing.1", "Win32.Trojan.Agent",
             "JS.Redirector.Suspicious", "Botnet.C2.Generic"
@@ -1039,12 +1039,12 @@
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
         },
         {
-          "name": "var_urlcategory", "type": "enum",
+          "name": "var_urlcategory", "type": "generator:enum",
           "values": ["Phishing", "Malicious Content", "Newly Registered Domains"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
         },
         {
-          "name": "var_clienttranstime", "type": "int",
+          "name": "var_clienttranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1053,7 +1053,7 @@
           }
         },
         {
-          "name": "var_pagerisk", "type": "int",
+          "name": "var_pagerisk", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1062,7 +1062,7 @@
           }
         },
         {
-          "name": "var_requestsize", "type": "int",
+          "name": "var_requestsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1071,7 +1071,7 @@
           }
         },
         {
-          "name": "var_responsesize", "type": "int",
+          "name": "var_responsesize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1080,7 +1080,7 @@
           }
         },
         {
-          "name": "var_servertranstime", "type": "int",
+          "name": "var_servertranstime", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1089,7 +1089,7 @@
           }
         },
         {
-          "name": "var_transactionsize", "type": "int",
+          "name": "var_transactionsize", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1098,7 +1098,7 @@
           }
         },
         {
-          "name": "var_serverip", "type": "ipaddress",
+          "name": "var_serverip", "type": "generator:ipaddress",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -1107,13 +1107,13 @@
           }
         },
         {
-          "name": "var_hostname", "type": "string",
+          "name": "var_hostname", "type": "generator:string",
           "chars": "abcdefghijklmnopqrstuvwxyz0123456789-",
           "cardinality": 0,
           "length_distribution": {"type": "uniform", "min": 10, "max": 22}
         },
         {
-          "name": "var_url", "type": "string",
+          "name": "var_url", "type": "generator:string",
           "chars": "abcdefghijklmnopqrstuvwxyz0123456789/",
           "cardinality": 0,
           "length_distribution": {"type": "uniform", "min": 5, "max": 18}

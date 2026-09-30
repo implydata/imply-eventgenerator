@@ -19,7 +19,7 @@ import simpy.rt
 from jinja2 import Environment, Undefined, UndefinedError
 
 from ieg.dimensions import (
-    DimensionTimestampClock,
+    DimensionGeneratorClock,
     DimensionVariable,
     get_dimensions,
     get_variables,
@@ -340,7 +340,7 @@ class DataDriver:
             if isinstance(element, DimensionVariable):
                 record[element.name] = variables[element.variable_name]
             else:
-                is_clock = isinstance(element, DimensionTimestampClock)
+                is_clock = isinstance(element, DimensionGeneratorClock)
                 if is_clock or not element.is_missing():
                     record[element.name] = element.get_stochastic_value()
         return record

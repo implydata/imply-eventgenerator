@@ -55,10 +55,10 @@ In this example, `session_start` spawns a new worker every second. Each worker e
     {
       "name": "example_record_1",
       "dimensions": [
-        { "name": "time", "type": "clock" },
+        { "name": "time", "type": "generator:clock" },
         {
           "name": "enum_dim",
-          "type": "enum",
+          "type": "generator:enum",
           "values": ["A", "B", "C"],
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 2 }
         }

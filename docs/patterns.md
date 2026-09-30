@@ -32,8 +32,8 @@ This is one of the most important concepts for building efficient state machines
       "name": "setup_session",
       "type": "activity",
       "variables": [
-        {"name": "var_user_id", "type": "int", "cardinality": 0, "distribution": {"type": "uniform", "min": 1000, "max": 9999}},
-        {"name": "var_session_id", "type": "int", "cardinality": 0, "distribution": {"type": "uniform", "min": 100000, "max": 999999}}
+        {"name": "var_user_id", "type": "generator:int", "cardinality": 0, "distribution": {"type": "uniform", "min": 1000, "max": 9999}},
+        {"name": "var_session_id", "type": "generator:int", "cardinality": 0, "distribution": {"type": "uniform", "min": 100000, "max": 999999}}
       ],
       "next": "emit_page_view"
     },
@@ -42,7 +42,7 @@ This is one of the most important concepts for building efficient state machines
       "type": "activity",
       "emitter": "web_event",
       "variables": [
-        {"name": "var_page_name", "type": "enum", "values": ["home", "products", "checkout"],
+        {"name": "var_page_name", "type": "generator:enum", "values": ["home", "products", "checkout"],
          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}}
         // var_user_id and var_session_id automatically available here!
       ],
@@ -86,11 +86,11 @@ This is one of the most important concepts for building efficient state machines
       "name": "setup_connection",
       "type": "activity",
       "variables": [
-        {"name": "var_account_id", "type": "enum", "values": ["123456789012", "123456789013"],
+        {"name": "var_account_id", "type": "generator:enum", "values": ["123456789012", "123456789013"],
          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
-        {"name": "var_interface_id", "type": "enum", "values": ["eni-1a2b3c4d", "eni-5e6f7g8h"],
+        {"name": "var_interface_id", "type": "generator:enum", "values": ["eni-1a2b3c4d", "eni-5e6f7g8h"],
          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
-        {"name": "var_action", "type": "enum", "values": ["ACCEPT", "REJECT"],
+        {"name": "var_action", "type": "generator:enum", "values": ["ACCEPT", "REJECT"],
          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
       ],
       "next": "route_traffic_type"
@@ -107,9 +107,9 @@ This is one of the most important concepts for building efficient state machines
       "name": "setup_web_traffic",
       "type": "activity",
       "variables": [
-        {"name": "var_srcaddr", "type": "ipaddress", "distribution": {"type": "uniform", "min": 167772160, "max": 184549375}, "cardinality": 0},
-        {"name": "var_srcport", "type": "int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}, "cardinality": 0},
-        {"name": "var_dstport", "type": "int:static", "value": 443}
+        {"name": "var_srcaddr", "type": "generator:ipaddress", "distribution": {"type": "uniform", "min": 167772160, "max": 184549375}, "cardinality": 0},
+        {"name": "var_srcport", "type": "generator:int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}, "cardinality": 0},
+        {"name": "var_dstport", "type": "static", "value": 443}
         // var_account_id, var_interface_id, var_action all available here!
       ],
       "next": "web_traffic_emit"
@@ -154,10 +154,10 @@ This ensures that `var_start` and `var_end` have different values, creating real
       "name": "setup_web_syn",
       "type": "activity",
       "variables": [
-        {"name": "var_start", "type": "clock"},
-        {"name": "var_srcaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "10.0.0.0/16"}},
-        {"name": "var_dstaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "203.0.113.0/24"}},
-        {"name": "var_srcport", "type": "int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}},
+        {"name": "var_start", "type": "generator:clock"},
+        {"name": "var_srcaddr", "type": "generator:ipaddress", "distribution": {"type": "cidr", "value": "10.0.0.0/16"}},
+        {"name": "var_dstaddr", "type": "generator:ipaddress", "distribution": {"type": "cidr", "value": "203.0.113.0/24"}},
+        {"name": "var_srcport", "type": "generator:int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}},
         {"name": "var_dstport", "type": "constant", "value": 443}
       ],
       "next": "timer_web_syn"
@@ -172,9 +172,9 @@ This ensures that `var_start` and `var_end` have different values, creating real
       "name": "emit_web_syn",
       "type": "activity",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {"name": "var_packets", "type": "constant", "value": 3},
-        {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 180, "max": 240}}
+        {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 180, "max": 240}}
       ],
       "emitter": "vpc_flow_log",
       "next": "web_traffic_data_setup"
@@ -196,8 +196,8 @@ This ensures that `var_start` and `var_end` have different values, creating real
   "name": "flow_bad",
   "type": "activity",
   "variables": [
-    {"name": "var_start", "type": "clock"},
-    {"name": "var_end", "type": "clock"}
+    {"name": "var_start", "type": "generator:clock"},
+    {"name": "var_end", "type": "generator:clock"}
     // Both sampled at the same instant — start == end (unrealistic)
   ],
   "emitter": "flow_record"
@@ -223,7 +223,7 @@ A data-transfer state using the setup+timer+emit pattern:
   "name": "setup_web_data",
   "type": "activity",
   "variables": [
-    {"name": "var_start", "type": "clock"}
+    {"name": "var_start", "type": "generator:clock"}
   ],
   "next": "timer_web_data"
 },
@@ -237,9 +237,9 @@ A data-transfer state using the setup+timer+emit pattern:
   "name": "emit_web_data",
   "type": "activity",
   "variables": [
-    {"name": "var_end", "type": "clock"},
-    {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
-    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}}
+    {"name": "var_end", "type": "generator:clock"},
+    {"name": "var_packets", "type": "generator:int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
+    {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}}
   ],
   "emitter": "vpc_flow_log",
   "next": "route_web_data_continue"
@@ -298,9 +298,9 @@ This pattern builds on [Variable Persistence](#variable-persistence-across-state
       "type": "activity",
       "emitter": "access_log",
       "variables": [
-        {"name": "var_account_id", "type": "enum", "values": ["account-1", "account-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
-        {"name": "var_region", "type": "enum", "values": ["us-east-1", "us-west-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
-        {"name": "var_url", "type": "enum", "values": ["/home", "/products"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
+        {"name": "var_account_id", "type": "generator:enum", "values": ["account-1", "account-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_region", "type": "generator:enum", "values": ["us-east-1", "us-west-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_url", "type": "generator:enum", "values": ["/home", "/products"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
       ],
       "next": "session_end"
     },
@@ -309,9 +309,9 @@ This pattern builds on [Variable Persistence](#variable-persistence-across-state
       "type": "activity",
       "emitter": "api_log",
       "variables": [
-        {"name": "var_account_id", "type": "enum", "values": ["account-1", "account-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
-        {"name": "var_region", "type": "enum", "values": ["us-east-1", "us-west-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
-        {"name": "var_endpoint", "type": "enum", "values": ["/api/v1/users", "/api/v1/orders"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
+        {"name": "var_account_id", "type": "generator:enum", "values": ["account-1", "account-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_region", "type": "generator:enum", "values": ["us-east-1", "us-west-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_endpoint", "type": "generator:enum", "values": ["/api/v1/users", "/api/v1/orders"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
       ],
       "next": "session_end"
     }
@@ -330,8 +330,8 @@ This pattern builds on [Variable Persistence](#variable-persistence-across-state
       "name": "setup_session",
       "type": "activity",
       "variables": [
-        {"name": "var_account_id", "type": "enum", "values": ["account-1", "account-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
-        {"name": "var_region", "type": "enum", "values": ["us-east-1", "us-west-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
+        {"name": "var_account_id", "type": "generator:enum", "values": ["account-1", "account-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}},
+        {"name": "var_region", "type": "generator:enum", "values": ["us-east-1", "us-west-2"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
       ],
       "next": "route_traffic"
     },
@@ -348,7 +348,7 @@ This pattern builds on [Variable Persistence](#variable-persistence-across-state
       "type": "activity",
       "emitter": "access_log",
       "variables": [
-        {"name": "var_url", "type": "enum", "values": ["/home", "/products"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
+        {"name": "var_url", "type": "generator:enum", "values": ["/home", "/products"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
       ],
       "next": "session_end"
     },
@@ -357,7 +357,7 @@ This pattern builds on [Variable Persistence](#variable-persistence-across-state
       "type": "activity",
       "emitter": "api_log",
       "variables": [
-        {"name": "var_endpoint", "type": "enum", "values": ["/api/v1/users", "/api/v1/orders"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
+        {"name": "var_endpoint", "type": "generator:enum", "values": ["/api/v1/users", "/api/v1/orders"], "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}}
       ],
       "next": "session_end"
     }
@@ -378,13 +378,13 @@ The VPC Flow Logs configuration has multiple traffic patterns (web, API, databas
   "variables": [
     {
       "name": "var_account_id",
-      "type": "enum",
+      "type": "generator:enum",
       "values": ["123456789012", "123456789013", "123456789014"],
       "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}
     },
     {
       "name": "var_interface_id",
-      "type": "enum",
+      "type": "generator:enum",
       "values": [
         "eni-0a1b2c3d4e5f60001", "eni-0a1b2c3d4e5f60002",
         "eni-0a1b2c3d4e5f60003", "eni-0a1b2c3d4e5f60004",
@@ -395,7 +395,7 @@ The VPC Flow Logs configuration has multiple traffic patterns (web, API, databas
     },
     {
       "name": "var_action",
-      "type": "enum",
+      "type": "generator:enum",
       "values": ["ACCEPT", "REJECT"],
       "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
     }
@@ -433,7 +433,7 @@ In AWS VPC Flow Logs, the Elastic Network Interface (ENI) is the network observe
 {
   "name": "initial",
   "variables": [
-    {"name": "var_interface_id", "type": "enum", "values": ["eni-001", "eni-002"]}
+    {"name": "var_interface_id", "type": "generator:enum", "values": ["eni-001", "eni-002"]}
   ]
 }
 ```
@@ -446,8 +446,8 @@ In AWS VPC Flow Logs, the Elastic Network Interface (ENI) is the network observe
 {
   "name": "web_traffic_syn",
   "variables": [
-    {"name": "var_interface_id", "type": "enum", "values": ["eni-001", "eni-002"]},
-    {"name": "var_start", "type": "clock"}
+    {"name": "var_interface_id", "type": "generator:enum", "values": ["eni-001", "eni-002"]},
+    {"name": "var_start", "type": "generator:clock"}
   ]
 }
 ```
@@ -527,9 +527,9 @@ Real-world connections often generate multiple observation records over time. Ex
       "name": "connection_setup",
       "type": "activity",
       "variables": [
-        {"name": "var_srcaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "10.0.0.0/16"}},
-        {"name": "var_dstaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "203.0.113.0/24"}},
-        {"name": "var_srcport", "type": "int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}},
+        {"name": "var_srcaddr", "type": "generator:ipaddress", "distribution": {"type": "cidr", "value": "10.0.0.0/16"}},
+        {"name": "var_dstaddr", "type": "generator:ipaddress", "distribution": {"type": "cidr", "value": "203.0.113.0/24"}},
+        {"name": "var_srcport", "type": "generator:int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}},
         {"name": "var_dstport", "type": "constant", "value": 443}
       ],
       "next": "setup_flow_record"
@@ -538,7 +538,7 @@ Real-world connections often generate multiple observation records over time. Ex
       "name": "setup_flow_record",
       "type": "activity",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "timer_flow_record"
     },
@@ -552,9 +552,9 @@ Real-world connections often generate multiple observation records over time. Ex
       "name": "emit_flow_record",
       "type": "activity",
       "variables": [
-        {"name": "var_end", "type": "clock"},
-        {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 100, "max": 10000}},
-        {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 10000, "max": 1000000}}
+        {"name": "var_end", "type": "generator:clock"},
+        {"name": "var_packets", "type": "generator:int", "distribution": {"type": "uniform", "min": 100, "max": 10000}},
+        {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 10000, "max": 1000000}}
       ],
       "emitter": "flow_log",
       "next": "route_flow_continue"
@@ -594,7 +594,7 @@ From the actual VPC Flow Logs configuration, the data transfer state shows how m
   "name": "setup_web_data",
   "type": "activity",
   "variables": [
-    {"name": "var_start", "type": "clock"}
+    {"name": "var_start", "type": "generator:clock"}
   ],
   "next": "timer_web_data"
 },
@@ -608,9 +608,9 @@ From the actual VPC Flow Logs configuration, the data transfer state shows how m
   "name": "emit_web_data",
   "type": "activity",
   "variables": [
-    {"name": "var_end", "type": "clock"},
-    {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
-    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}}
+    {"name": "var_end", "type": "generator:clock"},
+    {"name": "var_packets", "type": "generator:int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
+    {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}}
   ],
   "emitter": "vpc_flow_log",
   "next": "route_web_data"
@@ -689,8 +689,8 @@ Make long-running connections less likely by using a separate `gateway:exclusive
   "type": "activity",
   "emitter": "session_event",
   "variables": [
-    {"name": "var_event_type", "type": "string:static", "value": "pageview"},
-    {"name": "var_page_url", "type": "enum", "values": ["/home", "/products", "/checkout"],
+    {"name": "var_event_type", "type": "static", "value": "pageview"},
+    {"name": "var_page_url", "type": "generator:enum", "values": ["/home", "/products", "/checkout"],
      "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}}
   ],
   "next": "route_after_pageview"
@@ -709,8 +709,8 @@ Make long-running connections less likely by using a separate `gateway:exclusive
   "type": "activity",
   "emitter": "session_event",
   "variables": [
-    {"name": "var_event_type", "type": "string:static", "value": "click"},
-    {"name": "var_button_id", "type": "enum", "values": ["add_to_cart", "buy_now", "learn_more"],
+    {"name": "var_event_type", "type": "static", "value": "click"},
+    {"name": "var_button_id", "type": "generator:enum", "values": ["add_to_cart", "buy_now", "learn_more"],
      "cardinality_distribution": {"type": "uniform", "min": 0, "max": 2}}
   ],
   "next": "route_after_click"
@@ -782,11 +782,11 @@ Each TCP phase uses the setup+timer+emit pattern: a `setup_*` activity captures 
       "name": "setup_tcp_connection",
       "type": "activity",
       "variables": [
-        {"name": "var_srcaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "10.0.0.0/16"}},
-        {"name": "var_dstaddr", "type": "ipaddress", "distribution": {"type": "cidr", "value": "203.0.113.0/24"}},
-        {"name": "var_srcport", "type": "int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}},
+        {"name": "var_srcaddr", "type": "generator:ipaddress", "distribution": {"type": "cidr", "value": "10.0.0.0/16"}},
+        {"name": "var_dstaddr", "type": "generator:ipaddress", "distribution": {"type": "cidr", "value": "203.0.113.0/24"}},
+        {"name": "var_srcport", "type": "generator:int", "distribution": {"type": "uniform", "min": 1024, "max": 65535}},
         {"name": "var_dstport", "type": "constant", "value": 443},
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "timer_tcp_syn"
     },
@@ -800,9 +800,9 @@ Each TCP phase uses the setup+timer+emit pattern: a `setup_*` activity captures 
       "name": "emit_tcp_syn",
       "type": "activity",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {"name": "var_packets", "type": "constant", "value": 3},
-        {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 180, "max": 240}}
+        {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 180, "max": 240}}
       ],
       "emitter": "tcp_flow",
       "next": "route_tcp_syn"
@@ -819,7 +819,7 @@ Each TCP phase uses the setup+timer+emit pattern: a `setup_*` activity captures 
       "name": "setup_tcp_data",
       "type": "activity",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "timer_tcp_data"
     },
@@ -833,9 +833,9 @@ Each TCP phase uses the setup+timer+emit pattern: a `setup_*` activity captures 
       "name": "emit_tcp_data",
       "type": "activity",
       "variables": [
-        {"name": "var_end", "type": "clock"},
-        {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
-        {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}}
+        {"name": "var_end", "type": "generator:clock"},
+        {"name": "var_packets", "type": "generator:int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
+        {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}}
       ],
       "emitter": "tcp_flow",
       "next": "route_tcp_data"
@@ -852,7 +852,7 @@ Each TCP phase uses the setup+timer+emit pattern: a `setup_*` activity captures 
       "name": "setup_tcp_fin",
       "type": "activity",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "timer_tcp_fin"
     },
@@ -866,9 +866,9 @@ Each TCP phase uses the setup+timer+emit pattern: a `setup_*` activity captures 
       "name": "emit_tcp_fin",
       "type": "activity",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {"name": "var_packets", "type": "constant", "value": 2},
-        {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 120, "max": 180}}
+        {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 120, "max": 180}}
       ],
       "emitter": "tcp_flow",
       "next": "end"
@@ -877,7 +877,7 @@ Each TCP phase uses the setup+timer+emit pattern: a `setup_*` activity captures 
       "name": "setup_tcp_rst",
       "type": "activity",
       "variables": [
-        {"name": "var_start", "type": "clock"}
+        {"name": "var_start", "type": "generator:clock"}
       ],
       "next": "timer_tcp_rst"
     },
@@ -891,9 +891,9 @@ Each TCP phase uses the setup+timer+emit pattern: a `setup_*` activity captures 
       "name": "emit_tcp_rst",
       "type": "activity",
       "variables": [
-        {"name": "var_end", "type": "clock"},
+        {"name": "var_end", "type": "generator:clock"},
         {"name": "var_packets", "type": "constant", "value": 1},
-        {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 54, "max": 66}}
+        {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 54, "max": 66}}
       ],
       "emitter": "tcp_flow",
       "next": "end"
@@ -943,7 +943,7 @@ The VPC Flow Logs configuration uses the setup+timer+emit pattern for each TCP p
   "name": "setup_web_syn",
   "type": "activity",
   "variables": [
-    {"name": "var_start", "type": "clock"}
+    {"name": "var_start", "type": "generator:clock"}
   ],
   "next": "timer_web_syn"
 },
@@ -957,9 +957,9 @@ The VPC Flow Logs configuration uses the setup+timer+emit pattern for each TCP p
   "name": "emit_web_syn",
   "type": "activity",
   "variables": [
-    {"name": "var_end", "type": "clock"},
+    {"name": "var_end", "type": "generator:clock"},
     {"name": "var_packets", "type": "constant", "value": 3},
-    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 180, "max": 240}}
+    {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 180, "max": 240}}
   ],
   "emitter": "vpc_flow_log",
   "next": "setup_web_data"
@@ -968,7 +968,7 @@ The VPC Flow Logs configuration uses the setup+timer+emit pattern for each TCP p
   "name": "setup_web_data",
   "type": "activity",
   "variables": [
-    {"name": "var_start", "type": "clock"}
+    {"name": "var_start", "type": "generator:clock"}
   ],
   "next": "timer_web_data"
 },
@@ -982,9 +982,9 @@ The VPC Flow Logs configuration uses the setup+timer+emit pattern for each TCP p
   "name": "emit_web_data",
   "type": "activity",
   "variables": [
-    {"name": "var_end", "type": "clock"},
-    {"name": "var_packets", "type": "int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
-    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}}
+    {"name": "var_end", "type": "generator:clock"},
+    {"name": "var_packets", "type": "generator:int", "distribution": {"type": "uniform", "min": 50, "max": 500}},
+    {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 5000, "max": 500000}}
   ],
   "emitter": "vpc_flow_log",
   "next": "route_web_data"
@@ -1001,7 +1001,7 @@ The VPC Flow Logs configuration uses the setup+timer+emit pattern for each TCP p
   "name": "setup_web_fin",
   "type": "activity",
   "variables": [
-    {"name": "var_start", "type": "clock"}
+    {"name": "var_start", "type": "generator:clock"}
   ],
   "next": "timer_web_fin"
 },
@@ -1015,9 +1015,9 @@ The VPC Flow Logs configuration uses the setup+timer+emit pattern for each TCP p
   "name": "emit_web_fin",
   "type": "activity",
   "variables": [
-    {"name": "var_end", "type": "clock"},
+    {"name": "var_end", "type": "generator:clock"},
     {"name": "var_packets", "type": "constant", "value": 2},
-    {"name": "var_bytes", "type": "int", "distribution": {"type": "uniform", "min": 120, "max": 180}}
+    {"name": "var_bytes", "type": "generator:int", "distribution": {"type": "uniform", "min": 120, "max": 180}}
   ],
   "emitter": "vpc_flow_log",
   "next": "end"

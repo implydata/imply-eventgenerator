@@ -85,8 +85,8 @@ MEAN_FIELD_BY_TYPE = {
 def find_clock_field(config):
     """Locate the emitter output field that carries the simulated clock timestamp.
 
-    Checks emitter dimensions for type='clock' first, then falls back to tracing
-    state variables of type='clock' through to their emitter dimension references.
+    Checks emitter dimensions for type='generator:clock' first, then falls back to tracing
+    state variables of type='generator:clock' through to their emitter dimension references.
 
     Returns (field_name, candidates):
       - (name, [])           — unique match
@@ -97,17 +97,17 @@ def find_clock_field(config):
     direct = []
     for emitter in config.get("emitters", []):
         for dim in emitter.get("dimensions", []):
-            if dim.get("type") == "clock" and dim["name"] not in direct:
+            if dim.get("type") == "generator:clock" and dim["name"] not in direct:
                 direct.append(dim["name"])
     if direct:
         return (direct[0], []) if len(direct) == 1 else (None, direct)
 
-    # Method 2: variable of type='clock' referenced by an emitter dimension
+    # Method 2: variable of type='generator:clock' referenced by an emitter dimension
     clock_vars = {
         var["name"]
         for state in config.get("states", [])
         for var in state.get("variables", [])
-        if var.get("type") == "clock"
+        if var.get("type") == "generator:clock"
     }
     if clock_vars:
         via_var = []

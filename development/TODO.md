@@ -2,15 +2,12 @@
 
 ## Break down the `202604-looping` branch
 
-1. Port the three dimension kinds, the `docs/dimensions/` tree, and the
-   static-value hoisting to main. See
-   [TODO-dimension-kinds.md](TODO-dimension-kinds.md).
-2. Port the state class hierarchy and per-state doc pages to main. See
+1. Port the state class hierarchy and per-state doc pages to main. See
    [TODO-state-classes.md](TODO-state-classes.md).
-3. Tag `202604-looping` as `archive/202604-looping` and push the tag.
-4. Start a subprocess branch from main with only the subprocess material. See
+2. Tag `202604-looping` as `archive/202604-looping` and push the tag.
+3. Start a subprocess branch from main with only the subprocess material. See
    [TODO-subprocess-branch.md](TODO-subprocess-branch.md).
-5. Delete `202604-looping` locally and on origin.
+4. Delete `202604-looping` locally and on origin.
 
 ## Engine
 
@@ -22,6 +19,8 @@
 - Stop `--template` silently mis-rendering configs with more than one emitter.
   One template is applied to every emitter's records, and fields missing from a
   record render as blanks instead of raising an error.
+- Make `percent_nulls` work or remove it. Every generator page documents it,
+  but `create_record` never applies it, so no dimension type ever emits `null`.
 - Design a top-level `constants` block for repeated literal values, such as the
   IP address range written out three times in `ecommerce_furniture`.
 

@@ -43,7 +43,7 @@ The `presets/` folder contains ready-to-use configs with [embedded output templa
 
 - [States](docs/states.md) — all five state types and their fields
 - [Emitters](docs/emitters.md) — record output configuration
-- [Field generators](docs/field-generators.md) — all field generator types
+- [Generators](docs/dimensions/generator.md) — all generator types
 - [Distributions](docs/distributions.md) — uniform, exponential, normal, gmm_temporal
 - [Templates](docs/templates.md) — Jinja2 output templates
 - [Schedules](docs/schedules.md) — time-of-day traffic variation
@@ -94,7 +94,7 @@ The [generator configuration](docs/generator-config.md) is a JSON document passe
 ```
 
 - A list of [`states`](docs/states.md) that each worker traverses. The first state controls interarrival pacing; subsequent states set variables, emit records, route between paths, and terminate.
-- A list of [`emitters`](docs/emitters.md) that define output record shape. Each dimension uses a [field generator](docs/field-generators.md) to produce values, controlled by [distributions](docs/distributions.md).
+- A list of [`emitters`](docs/emitters.md) that define output record shape. Each dimension is a [static](docs/dimensions/static.md) value, a [variable](docs/dimensions/variable.md), or a [generator](docs/dimensions/generator.md) whose values are controlled by [distributions](docs/distributions.md).
 
 For the full design process, see [how to build a config](docs/how-to-build-a-config.md).
 

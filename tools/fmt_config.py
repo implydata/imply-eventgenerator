@@ -40,7 +40,7 @@ STATE_FIELD_ORDER = {
 
 # Canonical field order for variable / dimension objects.
 VAR_FIELD_ORDER = [
-    'name', 'type', 'variable',
+    'name', 'type', 'variable', 'value',
     'values', 'chars',
     'cardinality', 'length_distribution', 'distribution', 'cardinality_distribution',
     '_comment',
@@ -55,22 +55,21 @@ DIST_FIELD_ORDER = [
 INDENT = '  '
 
 # Canonical dimension type ordering.
-# clock first (it's always the record timestamp); variable/string:static early
-# (they're pure references/constants); generative types in rough complexity order.
+# generator:clock first (it's always the record timestamp); static/variable early
+# (they're pure constants/references); generators in rough complexity order.
 _DIM_TYPE_RANK = {t: i for i, t in enumerate([
-    'clock',
-    'string:static',
-    'int:static',
+    'generator:clock',
+    'static',
     'variable',
-    'enum',
-    'int',
-    'float',
-    'ipaddress',
-    'string',
-    'counter',
-    'timestamp',
-    'object',
-    'list',
+    'generator:enum',
+    'generator:int',
+    'generator:float',
+    'generator:ipaddress',
+    'generator:string',
+    'generator:counter',
+    'generator:timestamp',
+    'generator:object',
+    'generator:list',
 ])}
 
 
@@ -225,7 +224,7 @@ def fmt(value, depth: int = 0, key: str = None) -> str:
             return _inline(value)
         # variable/dimension objects → single line if they fit, else type+name open line
         if _is_variable_or_dimension(value):
-            if value.get('type') in ('variable', 'clock', 'string:static', 'int:static') or _fits_one_line(value):
+            if value.get('type') in ('variable', 'static', 'generator:clock') or _fits_one_line(value):
                 return _inline(value)
             # name and type share the opening line; remaining fields expand below
             type_name = (

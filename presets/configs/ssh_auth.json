@@ -12,7 +12,7 @@
     {
       "name": "ssh_log",
       "dimensions": [
-        {"name": "time", "type": "clock"},
+        {"name": "time", "type": "generator:clock"},
         {"name": "action", "type": "variable", "variable": "var_action"},
         {"name": "hostname", "type": "variable", "variable": "var_hostname"},
         {"name": "line_type", "type": "variable", "variable": "var_line_type"},
@@ -33,17 +33,17 @@
       "name": "setup_session", "type": "activity",
       "variables": [
         {
-          "name": "var_hostname", "type": "enum",
+          "name": "var_hostname", "type": "generator:enum",
           "values": ["web01", "web02", "db01", "app01", "bastion"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 4}
         },
         {
-          "name": "var_user", "type": "enum",
+          "name": "var_user", "type": "generator:enum",
           "values": ["root", "admin", "deploy", "ubuntu", "ec2-user", "git", "jenkins", "ansible"],
           "cardinality_distribution": {"type": "uniform", "min": 0, "max": 7}
         },
         {
-          "name": "var_pid", "type": "int",
+          "name": "var_pid", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -52,7 +52,7 @@
           }
         },
         {
-          "name": "var_src_port", "type": "int",
+          "name": "var_src_port", "type": "generator:int",
           "cardinality": 0,
           "distribution": {
             "type": "uniform",
@@ -61,7 +61,7 @@
           }
         },
         {
-          "name": "var_src_ip", "type": "ipaddress",
+          "name": "var_src_ip", "type": "generator:ipaddress",
           "cardinality": 200,
           "distribution": {
             "type": "uniform",
@@ -88,8 +88,8 @@
     {
       "name": "emit_failed_password", "type": "activity",
       "variables": [
-        {"name": "var_action", "type": "string:static", "value": "Failed password"},
-        {"name": "var_line_type", "type": "string:static", "value": "auth"}
+        {"name": "var_action", "type": "static", "value": "Failed password"},
+        {"name": "var_line_type", "type": "static", "value": "auth"}
       ],
       "emitter": "ssh_log",
       "next": "route_failed_password"
@@ -110,8 +110,8 @@
     {
       "name": "emit_accepted", "type": "activity",
       "variables": [
-        {"name": "var_action", "type": "string:static", "value": "Accepted password"},
-        {"name": "var_line_type", "type": "string:static", "value": "auth"}
+        {"name": "var_action", "type": "static", "value": "Accepted password"},
+        {"name": "var_line_type", "type": "static", "value": "auth"}
       ],
       "emitter": "ssh_log",
       "next": "pause_session_opened"
@@ -124,8 +124,8 @@
     {
       "name": "emit_session_opened", "type": "activity",
       "variables": [
-        {"name": "var_action", "type": "string:static", "value": "session opened"},
-        {"name": "var_line_type", "type": "string:static", "value": "session"}
+        {"name": "var_action", "type": "static", "value": "session opened"},
+        {"name": "var_line_type", "type": "static", "value": "session"}
       ],
       "emitter": "ssh_log",
       "next": "pause_session_closed"
@@ -138,8 +138,7 @@
     {
       "name": "emit_session_closed", "type": "activity",
       "variables": [
-        {"name": "var_action", "type": "string:static", "value": "session closed"},
-        {"name": "var_line_type", "type": "string:static", "value": "session"}
+        {"name": "var_action", "type": "static", "value": "session closed"}
       ],
       "emitter": "ssh_log",
       "next": "session_end"

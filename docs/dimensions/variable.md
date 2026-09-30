@@ -2,7 +2,7 @@
 
 Use `variable` in an emitter's `dimensions` list to output the current value of a worker variable that was set by an earlier activity state.
 
-**Context restriction**: `variable` is only valid in emitter `dimensions`. Using it in a state's `variables` list (where field generators are used to *set* variables) causes a validation error.
+**Context restriction**: `variable` is only valid in emitter `dimensions`. Using it in a state's `variables` list (where `static` and generator dimensions *set* variables) causes a validation error.
 
 **Runtime error**: if the referenced variable has not been set by the time the emitter runs, the generator raises a `KeyError`. This is not always caught by `--validate` — if the execution path can reach the emitter before the activity that sets the variable, the error will only appear at runtime. Always set variables in a `setup_*` activity that runs before any emit state that references them.
 
@@ -16,7 +16,7 @@ In the following example, `session_start` spawns a new worker every 0.2 seconds.
 
 Both activities use the `click` emitter, which contains:
 
-* An `enum` dimension to randomly output a request URL.
+* A `generator:enum` dimension to randomly output a request URL.
 * The value of the `var_client_ip` variable, output as the `client_ip` field.
 * The value of the `var_account_code` variable, output as the `account_code` field.
 
@@ -36,14 +36,14 @@ Both activities use the `click` emitter, which contains:
       "variables": [
         {
           "name": "var_client_ip",
-          "type": "ipaddress",
+          "type": "generator:ipaddress",
           "cardinality": 5,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 5 },
           "distribution": { "type": "uniform", "min": 184549376, "max": 2127008767 }
         },
         {
           "name": "var_account_code",
-          "type": "string",
+          "type": "generator:string",
           "length_distribution": { "type": "constant", "value": 5 },
           "cardinality": 0,
           "chars": "ABC123"
@@ -80,12 +80,12 @@ Both activities use the `click` emitter, which contains:
     {
       "name": "click",
       "dimensions": [
-        { "name": "time", "type": "clock" },
+        { "name": "time", "type": "generator:clock" },
         { "name": "client_ip", "type": "variable", "variable": "var_client_ip" },
         { "name": "account_code", "type": "variable", "variable": "var_account_code" },
         {
           "name": "request",
-          "type": "enum",
+          "type": "generator:enum",
           "values": [
             "GET /api/articles",
             "GET /api/articles/42",

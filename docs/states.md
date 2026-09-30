@@ -119,7 +119,7 @@ An activity is where work happens: variables are evaluated and, optionally, a re
 | `name` | Unique name for this state. | Yes |
 | `type` | Must be `"activity"`. | Yes |
 | `_comment` | Optional annotation. | No |
-| `variables` | A list of [field generators](./field-generators.md) whose values are stored for later use. Evaluated before the record is emitted. | No |
+| `variables` | A list of [static](./dimensions/static.md) and [generator](./dimensions/generator.md) dimensions whose values are stored for later use. Evaluated before the record is emitted. | No |
 | `emitter` | The [emitter](./emitters.md) to use. If omitted, no record is emitted. | No |
 | `next` | Name of the next state (a string, not a transitions list). Route to an `event:end` state to terminate. | Yes |
 
@@ -142,13 +142,13 @@ There is no type distinction between these two patterns — both use `"type": "a
   "variables": [
     {
       "name": "var_user_id",
-      "type": "int",
+      "type": "generator:int",
       "cardinality": 0,
       "distribution": { "type": "uniform", "min": 1, "max": 10000 }
     },
     {
       "name": "var_start",
-      "type": "clock"
+      "type": "generator:clock"
     }
   ],
   "next": "route_session"
@@ -163,10 +163,10 @@ There is no type distinction between these two patterns — both use `"type": "a
   "type": "activity",
   "_comment": "Capture end time and stats, then emit the completed flow record",
   "variables": [
-    { "name": "var_end", "type": "clock" },
+    { "name": "var_end", "type": "generator:clock" },
     {
       "name": "var_bytes",
-      "type": "int",
+      "type": "generator:int",
       "cardinality": 0,
       "distribution": { "type": "uniform", "min": 500, "max": 50000 }
     }
@@ -187,7 +187,7 @@ flowchart LR
     C["<b>emit_*</b><br/>activity"] -->|"captures var_end, emits record"| D(["<b>session_end</b><br/>event:end"])
 ```
 
-1. A `setup_*` activity captures `var_start` via a `clock` field generator.
+1. A `setup_*` activity captures `var_start` via a `generator:clock` dimension.
 2. An `event:intermediate:timer` advances the clock by the flow duration.
 3. An `emit_*` activity captures `var_end` and emits the record.
 
@@ -198,10 +198,10 @@ flowchart LR
     "type": "activity",
     "_comment": "Capture start time and connection attributes before the flow runs",
     "variables": [
-      { "name": "var_start", "type": "clock" },
+      { "name": "var_start", "type": "generator:clock" },
       {
         "name": "var_dstport",
-        "type": "enum",
+        "type": "generator:enum",
         "values": [80, 443],
         "cardinality_distribution": { "type": "uniform", "min": 0, "max": 1 }
       }
@@ -220,10 +220,10 @@ flowchart LR
     "type": "activity",
     "_comment": "Capture end time and packet stats, then emit the flow record",
     "variables": [
-      { "name": "var_end", "type": "clock" },
+      { "name": "var_end", "type": "generator:clock" },
       {
         "name": "var_packets",
-        "type": "int",
+        "type": "generator:int",
         "cardinality": 0,
         "distribution": { "type": "uniform", "min": 50, "max": 500 }
       }
@@ -324,10 +324,10 @@ flowchart TD
       "type": "activity",
       "_comment": "Capture connection attributes and start timestamp",
       "variables": [
-        { "name": "var_start", "type": "clock" },
+        { "name": "var_start", "type": "generator:clock" },
         {
           "name": "var_srcport",
-          "type": "int",
+          "type": "generator:int",
           "cardinality": 0,
           "distribution": { "type": "uniform", "min": 49152, "max": 65535 }
         }
@@ -354,7 +354,7 @@ flowchart TD
       "type": "activity",
       "_comment": "Emit the completed web flow record",
       "variables": [
-        { "name": "var_end", "type": "clock" }
+        { "name": "var_end", "type": "generator:clock" }
       ],
       "emitter": "flow_record",
       "next": "connection_end"
@@ -371,7 +371,7 @@ flowchart TD
       "type": "activity",
       "_comment": "Emit the completed SSH flow record",
       "variables": [
-        { "name": "var_end", "type": "clock" }
+        { "name": "var_end", "type": "generator:clock" }
       ],
       "emitter": "flow_record",
       "next": "connection_end"
@@ -428,7 +428,7 @@ It does **not** catch ordering issues — a variable referenced in an emitter mi
 ## See Also
 
 - [How to build a config](how-to-build-a-config.md) — step-by-step design guide
-- [Field generators](field-generators.md) — all field generator types for use in `variables`
+- [Generators](dimensions/generator.md) — all generator types for use in `variables`
 - [Distributions](distributions.md) — distribution types for `cardinality_distribution`
 - [Common patterns](patterns.md) — variable persistence, multi-record sessions, flow duration
 - [Best practices](best-practices.md) — naming conventions and pitfalls
