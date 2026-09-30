@@ -92,7 +92,7 @@ Two state types call a child config:
   the branch, so a byte-diff couldn't verify it. Find the cause as part of the
   port.
 - The branch's subprocess code is thread-based. It has to be rewritten as simpy
-  generators on top of the state classes from PR 2.
+  generators on top of the `StateBase` subclasses in `ieg/states.py`.
 - `fmt_config.py` sorts every `variables` block by type and then by name. Once a
   template can read another variable in the same block, that reordering can
   break evaluation order. Either stop sorting `variables` blocks, or have

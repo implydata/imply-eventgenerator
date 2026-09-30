@@ -2,12 +2,10 @@
 
 ## Break down the `202604-looping` branch
 
-1. Port the state class hierarchy and per-state doc pages to main. See
-   [TODO-state-classes.md](TODO-state-classes.md).
-2. Tag `202604-looping` as `archive/202604-looping` and push the tag.
-3. Start a subprocess branch from main with only the subprocess material. See
+1. Tag `202604-looping` as `archive/202604-looping` and push the tag.
+2. Start a subprocess branch from main with only the subprocess material. See
    [TODO-subprocess-branch.md](TODO-subprocess-branch.md).
-4. Delete `202604-looping` locally and on origin.
+3. Delete `202604-looping` locally and on origin.
 
 ## Engine
 
