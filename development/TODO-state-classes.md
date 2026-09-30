@@ -37,6 +37,12 @@ type, and document each type on its own page.
 
 ## Verification
 
-Run a seeded byte-diff of every preset before and after, as described in
-[TODO-dimension-kinds.md](TODO-dimension-kinds.md#verification). It should be
-identical.
+Run a seeded byte-diff of every preset before and after. It should be identical.
+
+- Command:
+  `python generator.py -c presets/configs/<name>.json -r PT6H -s "2024-01-01T00:00:00" --seed 42 2>/dev/null | md5`.
+  The simpy engine is deterministic at the default `-w`, and PT6H exercises
+  every Actor type, including rare paths like the ecommerce bot and hacker.
+- If only the key order differs, compare the parsed records as well. The
+  formatter's dimension sort can change the output key order without changing
+  any value.

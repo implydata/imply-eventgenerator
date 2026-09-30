@@ -1,24 +1,35 @@
 # Worker variables
 
-Use `variable` in an emitter's `dimensions` list to output the current value of a worker variable that was set by an earlier activity state.
+Use `variable` in an emitter's `dimensions` list to output the current value of
+a worker variable that was set by an earlier activity state.
 
-**Context restriction**: `variable` is only valid in emitter `dimensions`. Using it in a state's `variables` list (where field generators are used to *set* variables) causes a validation error.
+**Context restriction**: `variable` is only valid in emitter `dimensions`. Using
+it in a state's `variables` list (where `static` and generator dimensions _set_
+variables) causes a validation error.
 
-**Runtime error**: if the referenced variable has not been set by the time the emitter runs, the generator raises a `KeyError`. This is not always caught by `--validate` — if the execution path can reach the emitter before the activity that sets the variable, the error will only appear at runtime. Always set variables in a `setup_*` activity that runs before any emit state that references them.
+**Runtime error**: if the referenced variable has not been set by the time the
+emitter runs, the generator raises a `KeyError`. This is not always caught by
+`--validate`—if the execution path can reach the emitter before the activity
+that sets the variable, the error only appears at runtime. Always set variables
+in a `setup_*` activity that runs before any emit state that references them.
 
-| Field | Description | Possible values | Required? | Default |
-| --- | --- | --- | --- | --- |
-| `type` | The data type for the dimension. | `variable` | Yes | |
-| `name` | The unique name for the dimension. | String | Yes | |
-| `variable` | The name of a worker variable set in an activity state's `variables` list. | String | Yes | |
+| Field      | Description                                                                | Possible values | Required? | Default |
+| ---------- | -------------------------------------------------------------------------- | --------------- | --------- | ------- |
+| `type`     | The data type for the dimension.                                           | `variable`      | Yes       |         |
+| `name`     | The unique name for the dimension.                                         | String          | Yes       |         |
+| `variable` | The name of a worker variable set in an activity state's `variables` list. | String          | Yes       |         |
 
-In the following example, `session_start` spawns a new worker every 0.2 seconds. A `setup_session` activity sets `var_client_ip` and `var_account_code` once per session and emits an initial click. A `gateway:exclusive` then routes 70% of the time to another click (after a 1-second pause) and 30% to `session_end`.
+In the following example, `session_start` spawns a new worker every 0.2 seconds.
+A `setup_session` activity sets `var_client_ip` and `var_account_code` once per
+session and emits an initial click. A `gateway:exclusive` then routes 70% of the
+time to another click (after a 1-second pause) and 30% to `session_end`.
 
 Both activities use the `click` emitter, which contains:
 
-* An `enum` dimension to randomly output a request URL.
-* The value of the `var_client_ip` variable, output as the `client_ip` field.
-* The value of the `var_account_code` variable, output as the `account_code` field.
+- A `generator:enum` dimension to randomly output a request URL.
+- The value of the `var_client_ip` variable, output as the `client_ip` field.
+- The value of the `var_account_code` variable, output as the `account_code`
+  field.
 
 ```json
 {
@@ -36,14 +47,14 @@ Both activities use the `click` emitter, which contains:
       "variables": [
         {
           "name": "var_client_ip",
-          "type": "ipaddress",
+          "type": "generator:ipaddress",
           "cardinality": 5,
           "cardinality_distribution": { "type": "uniform", "min": 0, "max": 5 },
           "distribution": { "type": "uniform", "min": 184549376, "max": 2127008767 }
         },
         {
           "name": "var_account_code",
-          "type": "string",
+          "type": "generator:string",
           "length_distribution": { "type": "constant", "value": 5 },
           "cardinality": 0,
           "chars": "ABC123"
@@ -80,12 +91,12 @@ Both activities use the `click` emitter, which contains:
     {
       "name": "click",
       "dimensions": [
-        { "name": "time", "type": "clock" },
+        { "name": "time", "type": "generator:clock" },
         { "name": "client_ip", "type": "variable", "variable": "var_client_ip" },
         { "name": "account_code", "type": "variable", "variable": "var_account_code" },
         {
           "name": "request",
-          "type": "enum",
+          "type": "generator:enum",
           "values": [
             "GET /api/articles",
             "GET /api/articles/42",
@@ -106,15 +117,15 @@ Both activities use the `click` emitter, which contains:
 }
 ```
 
-Save the JSON above as `example.json` and run it with the following command.
+Save the preceding JSON as `example.json` and run it with the following command.
 
 ```bash
 python generator.py -c example.json -n 15 -w 2 -s "2009-05-21T08:00:10"
 ```
 
-* `-n 15` specifies a maximum of 15 records.
-* `-w 2` sets a maximum of 2 workers.
-* `-s` instructs the data generator to use a simulated clock.
+- `-n 15` specifies a maximum of 15 records.
+- `-w 2` sets a maximum of 2 workers.
+- `-s` instructs the data generator to use a simulated clock.
 
 Here is an example of the output:
 

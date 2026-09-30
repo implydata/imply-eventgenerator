@@ -40,10 +40,14 @@ DEFAULT_SHOW_FAILURES = 5
 
 def build_generator_cmd(config, template, start, seed, n, duration):
     cmd = [
-        sys.executable, "generator.py",
-        "-c", config,
-        "--template", template,
-        "-s", start,
+        sys.executable,
+        "generator.py",
+        "-c",
+        config,
+        "--template",
+        template,
+        "-s",
+        start,
         f"--seed={seed}",
     ]
     cmd += ["-n", str(n)] if n else ["-r", duration]
@@ -55,23 +59,45 @@ def main():
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("-c", "--config", required=True, help="Generator config JSON")
-    parser.add_argument("--template", required=True,
-                         help="Template name to validate (e.g. ocsf:network_activity)")
-    parser.add_argument("-s", "--start", default=DEFAULT_START,
-                         help=f"Synthetic clock start (default: {DEFAULT_START})")
+    parser.add_argument(
+        "--template",
+        required=True,
+        help="Template name to validate (e.g. ocsf:network_activity)",
+    )
+    parser.add_argument(
+        "-s",
+        "--start",
+        default=DEFAULT_START,
+        help=f"Synthetic clock start (default: {DEFAULT_START})",
+    )
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
-    parser.add_argument("--version", default=DEFAULT_VERSION,
-                         help=f"OCSF schema version (default: {DEFAULT_VERSION})")
-    parser.add_argument("--show-failures", type=int, default=DEFAULT_SHOW_FAILURES,
-                         help="Number of distinct failures to print (default: %(default)s)")
+    parser.add_argument(
+        "--version",
+        default=DEFAULT_VERSION,
+        help=f"OCSF schema version (default: {DEFAULT_VERSION})",
+    )
+    parser.add_argument(
+        "--show-failures",
+        type=int,
+        default=DEFAULT_SHOW_FAILURES,
+        help="Number of distinct failures to print (default: %(default)s)",
+    )
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-n", type=int, default=None, help="Number of records to generate")
-    group.add_argument("-r", "--duration", default=None,
-                        help=f"Simulated duration, e.g. PT6H (default: {DEFAULT_DURATION})")
+    group.add_argument(
+        "-n", type=int, default=None, help="Number of records to generate"
+    )
+    group.add_argument(
+        "-r",
+        "--duration",
+        default=None,
+        help=f"Simulated duration, e.g. PT6H (default: {DEFAULT_DURATION})",
+    )
     args = parser.parse_args()
     duration = args.duration or DEFAULT_DURATION
 
-    cmd = build_generator_cmd(args.config, args.template, args.start, args.seed, args.n, duration)
+    cmd = build_generator_cmd(
+        args.config, args.template, args.start, args.seed, args.n, duration
+    )
     err.print(f"[dim]$ {' '.join(cmd)}[/dim]")
 
     ocsf_schema = OcsfJsonSchemaEmbedded(get_ocsf_schema(version=args.version))
@@ -95,7 +121,9 @@ def main():
             failures_by_key[key] = [0, example]
         failures_by_key[key][0] += 1
 
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
     for line in proc.stdout:
         line = line.strip()
         if not line:
@@ -109,13 +137,23 @@ def main():
 
         class_uid = event.get("class_uid")
         if class_uid is None:
-            record_failure(None, "record has no class_uid field — cannot select an OCSF schema", [], event)
+            record_failure(
+                None,
+                "record has no class_uid field — cannot select an OCSF schema",
+                [],
+                event,
+            )
             continue
 
         try:
             errors = list(validator_for(class_uid).iter_errors(event))
         except Exception as e:
-            record_failure(class_uid, f"could not load schema for class_uid {class_uid}: {e}", [], event)
+            record_failure(
+                class_uid,
+                f"could not load schema for class_uid {class_uid}: {e}",
+                [],
+                event,
+            )
             continue
 
         if errors:
@@ -135,9 +173,13 @@ def main():
     err.print(f"[{color}]total={total} passed={passed} failed={failed}[/{color}]")
 
     if failures_by_key:
-        err.print(f"\n[red]--- distinct failures (showing up to {args.show_failures}) ---[/red]")
+        err.print(
+            f"\n[red]--- distinct failures (showing up to {args.show_failures}) ---[/red]"
+        )
         ranked = sorted(failures_by_key.items(), key=lambda kv: -kv[1][0])
-        for (class_uid, message, path), (count, example) in ranked[: args.show_failures]:
+        for (class_uid, message, path), (count, example) in ranked[
+            : args.show_failures
+        ]:
             err.print(f"  x{count}  [class_uid={class_uid}] {message}  at {list(path)}")
 
     sys.exit(0 if failed == 0 else 1)

@@ -142,8 +142,8 @@ class Task:
     template: str
     template_slug: str
     day: date
-    hour: int | None      # None when the partition covers the whole day
-    runtime: str             # ISO 8601 duration passed to generator.py -r
+    hour: int | None  # None when the partition covers the whole day
+    runtime: str  # ISO 8601 duration passed to generator.py -r
     ext: str
     m: int
     schedule: str | None
@@ -160,12 +160,13 @@ class Result:
     gz_bytes: int = 0
     wall_s: float = 0.0
     detail: str = ""
-    fatal: bool = False      # credentials problem — abort the run, don't retry
+    fatal: bool = False  # credentials problem — abort the run, don't retry
 
 
 # ---------------------------------------------------------------------------
 # Naming
 # ---------------------------------------------------------------------------
+
 
 def slugify(name: str) -> str:
     """Make a template name safe for an object key
@@ -189,8 +190,14 @@ def infer_extension(template_name: str, template_def: dict) -> str:
     return "log"
 
 
-def build_key(prefix: str, task_profile: str, template_slug: str, day: date,
-              hour: int | None, ext: str) -> str:
+def build_key(
+    prefix: str,
+    task_profile: str,
+    template_slug: str,
+    day: date,
+    hour: int | None,
+    ext: str,
+) -> str:
     stamp = day.strftime("%Y%m%d") + ("" if hour is None else f"T{hour:02d}")
     parts = [
         task_profile,
@@ -217,9 +224,15 @@ def build_key(prefix: str, task_profile: str, template_slug: str, day: date,
 # A run must abort on these: once an SSO token expires mid-run, every remaining
 # partition would burn CPU generating data that can never be uploaded.
 AUTH_ERROR_CODES = {
-    "ExpiredToken", "ExpiredTokenException", "InvalidAccessKeyId",
-    "InvalidClientTokenId", "RequestExpired", "SignatureDoesNotMatch",
-    "InvalidToken", "AccessDenied", "AccessDeniedException",
+    "ExpiredToken",
+    "ExpiredTokenException",
+    "InvalidAccessKeyId",
+    "InvalidClientTokenId",
+    "RequestExpired",
+    "SignatureDoesNotMatch",
+    "InvalidToken",
+    "AccessDenied",
+    "AccessDeniedException",
     "UnrecognizedClientException",
 }
 
@@ -234,6 +247,7 @@ def is_auth_error(exc) -> bool:
         SSOError,
         TokenRetrievalError,
     )
+
     cred_errors = (NoCredentialsError, ProfileNotFound, SSOError, TokenRetrievalError)
     if isinstance(exc, cred_errors):
         return True
@@ -259,19 +273,30 @@ def sso_login(profile) -> bool:
 
 def login_hint(profile) -> str:
     suffix = f" --profile {profile}" if profile else ""
-    return (f"Log in with:\n    aws sso login{suffix}\n"
-            f"or let the tool do it by adding --sso-login.")
+    return (
+        f"Log in with:\n    aws sso login{suffix}\n"
+        f"or let the tool do it by adding --sso-login."
+    )
 
 
 # ---------------------------------------------------------------------------
 # Sinks
 # ---------------------------------------------------------------------------
 
+
 class S3Sink:
     """Uploads each partition as a single S3 object."""
 
-    def __init__(self, bucket, storage_class=None, sse=None, kms_key=None, acl=None,
-                 profile=None, region=None):
+    def __init__(
+        self,
+        bucket,
+        storage_class=None,
+        sse=None,
+        kms_key=None,
+        acl=None,
+        profile=None,
+        region=None,
+    ):
         try:
             import boto3
             from botocore.config import Config
@@ -297,7 +322,7 @@ class S3Sink:
             "s3",
             config=Config(
                 retries={"max_attempts": 10, "mode": "adaptive"},
-                max_pool_connections=64
+                max_pool_connections=64,
             ),
         )
         self.extra_args = {}
@@ -332,16 +357,16 @@ class S3Sink:
                 if attempt == 1 and allow_login and sso_login(self.profile):
                     # Rebuild clients so they pick up the freshly cached SSO token.
                     self._session = self._session.__class__(
-                        profile_name=self.profile,
-                        region_name=self._session.region_name
+                        profile_name=self.profile, region_name=self._session.region_name
                     )
                     from botocore.config import Config
+
                     self._client = self._session.client(
                         "s3",
                         config=Config(
                             retries={"max_attempts": 10, "mode": "adaptive"},
-                            max_pool_connections=64
-                        )
+                            max_pool_connections=64,
+                        ),
                     )
                     continue
                 raise SystemExit(
@@ -364,6 +389,7 @@ class S3Sink:
 
     def exists(self, key):
         from botocore.exceptions import ClientError
+
         try:
             self._client.head_object(Bucket=self.bucket, Key=key)
             return True
@@ -414,6 +440,7 @@ CONTENT_TYPES = {"json": "application/x-ndjson", "csv": "text/csv", "log": "text
 # Planning
 # ---------------------------------------------------------------------------
 
+
 def iter_days(start: date, end: date):
     """Yield every day from start to end, inclusive."""
     day = start
@@ -444,8 +471,16 @@ def load_profiles(only, exclude):
     return profiles
 
 
-def build_tasks(profiles, days, template_filter, prefix, seed_base, m_override,
-                no_schedule, split_hours):
+def build_tasks(
+    profiles,
+    days,
+    template_filter,
+    prefix,
+    seed_base,
+    m_override,
+    no_schedule,
+    split_hours,
+):
     tasks = []
     unknown = []
     for profile, (config_path, templates) in sorted(profiles.items()):
@@ -497,8 +532,10 @@ def build_tasks(profiles, days, template_filter, prefix, seed_base, m_override,
 def summarise_plan(tasks, sink, n_days, split_hours):
     """Print the plan: partitions and estimated volume per profile."""
     window = "1 object/day" if split_hours == 24 else f"{24 // split_hours} objects/day"
-    table = Table(title=f"Plan — {len(tasks)} partitions over {n_days} days "
-                        f"({window}) -> {sink.describe()}")
+    table = Table(
+        title=f"Plan — {len(tasks)} partitions over {n_days} days "
+        f"({window}) -> {sink.describe()}"
+    )
     table.add_column("profile")
     table.add_column("tmpl", justify="right")
     table.add_column("parts", justify="right")
@@ -532,8 +569,14 @@ def summarise_plan(tasks, sink, n_days, split_hours):
         )
     table.add_section()
     table.add_row(
-        "TOTAL", "", str(len(tasks)), f"{total_rows:,}", human_bytes(total_raw),
-        human_bytes(total_raw / 10), "", "",
+        "TOTAL",
+        "",
+        str(len(tasks)),
+        f"{total_rows:,}",
+        human_bytes(total_raw),
+        human_bytes(total_raw / 10),
+        "",
+        "",
     )
     err.print(table)
     err.print(
@@ -555,18 +598,25 @@ def human_bytes(n):
 # Execution
 # ---------------------------------------------------------------------------
 
+
 def run_task(task: Task, sink, compresslevel, timeout, stop: threading.Event) -> Result:
     """Generate one day of one template and upload it as a single gzipped object."""
     if stop.is_set():
         return Result(task, "cancelled")
 
     cmd = [
-        sys.executable, str(GENERATOR),
-        "-c", task.config,
-        "-t", task.template,
-        "-m", str(task.m),
-        "-r", task.runtime,
-        "-s", f"{task.day.isoformat()}T{(task.hour or 0):02d}:00:00",
+        sys.executable,
+        str(GENERATOR),
+        "-c",
+        task.config,
+        "-t",
+        task.template,
+        "-m",
+        str(task.m),
+        "-r",
+        task.runtime,
+        "-s",
+        f"{task.day.isoformat()}T{(task.hour or 0):02d}:00:00",
     ]
     if task.schedule:
         cmd += ["--schedule", task.schedule]
@@ -577,8 +627,10 @@ def run_task(task: Task, sink, compresslevel, timeout, stop: threading.Event) ->
     rows = raw_bytes = 0
     killed = False
 
-    with tempfile.TemporaryFile() as errfile, \
-            tempfile.SpooledTemporaryFile(max_size=SPOOL_MAX, mode="w+b") as spool:
+    with (
+        tempfile.TemporaryFile() as errfile,
+        tempfile.SpooledTemporaryFile(max_size=SPOOL_MAX, mode="w+b") as spool,
+    ):
         # mtime=0 keeps the gzip header byte-stable for identical input.
         gz = gzip.GzipFile(
             filename="", mode="wb", fileobj=spool, compresslevel=compresslevel, mtime=0
@@ -606,31 +658,51 @@ def run_task(task: Task, sink, compresslevel, timeout, stop: threading.Event) ->
         if killed:
             status = "cancelled" if stop.is_set() else "timeout"
             return Result(
-                task, status, rows, raw_bytes,
+                task,
+                status,
+                rows,
+                raw_bytes,
                 wall_s=time.time() - started,
-                detail=f"killed after {time.time() - started:.0f}s"
+                detail=f"killed after {time.time() - started:.0f}s",
             )
         if rc != 0:
             errfile.seek(0)
             tail = errfile.read()[-2000:].decode("utf-8", "replace").strip()
             return Result(
-                task, "failed", rows, raw_bytes, wall_s=time.time() - started,
-                detail=f"generator exit {rc}: {tail}"
+                task,
+                "failed",
+                rows,
+                raw_bytes,
+                wall_s=time.time() - started,
+                detail=f"generator exit {rc}: {tail}",
             )
         if rows == 0:
             errfile.seek(0)
             tail = errfile.read()[-2000:].decode("utf-8", "replace").strip()
-            return Result(task, "empty", 0, 0, wall_s=time.time() - started,
-                          detail=f"generator produced no records: {tail}")
+            return Result(
+                task,
+                "empty",
+                0,
+                0,
+                wall_s=time.time() - started,
+                detail=f"generator produced no records: {tail}",
+            )
 
         gz_bytes = spool.tell()
         spool.seek(0)
         try:
             sink.put(task.key, spool, CONTENT_TYPES.get(task.ext, "text/plain"))
         except Exception as e:
-            return Result(task, "upload_failed", rows, raw_bytes, gz_bytes,
-                          time.time() - started, f"{type(e).__name__}: {e}",
-                          fatal=is_auth_error(e))
+            return Result(
+                task,
+                "upload_failed",
+                rows,
+                raw_bytes,
+                gz_bytes,
+                time.time() - started,
+                f"{type(e).__name__}: {e}",
+                fatal=is_auth_error(e),
+            )
 
     return Result(task, "ok", rows, raw_bytes, gz_bytes, time.time() - started)
 
@@ -658,6 +730,7 @@ def load_manifest(path):
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def parse_day(value):
     try:
         # .date() strips any time/tz component immediately, so the naive
@@ -677,76 +750,102 @@ def main(argv=None):
     dest.add_argument("--bucket", help="Destination S3 bucket")
     dest.add_argument(
         "--local-dir",
-        help="Write the partition tree to a local directory instead of S3"
+        help="Write the partition tree to a local directory instead of S3",
     )
 
     p.add_argument(
-        "--prefix", default="",
-        help="Key prefix within the bucket (default: bucket root)"
+        "--prefix",
+        default="",
+        help="Key prefix within the bucket (default: bucket root)",
     )
     p.add_argument(
-        "--start", type=parse_day, required=True,
-        help="First day to generate (YYYY-MM-DD)"
+        "--start",
+        type=parse_day,
+        required=True,
+        help="First day to generate (YYYY-MM-DD)",
     )
     p.add_argument(
-        "--end", type=parse_day, required=True,
-        help="Last day to generate, inclusive (YYYY-MM-DD)"
+        "--end",
+        type=parse_day,
+        required=True,
+        help="Last day to generate, inclusive (YYYY-MM-DD)",
     )
 
     p.add_argument(
-        "--profile", action="append", default=[],
-        help="Only this profile (config basename); repeatable. Default: all configs."
+        "--profile",
+        action="append",
+        default=[],
+        help="Only this profile (config basename); repeatable. Default: all configs.",
     )
     p.add_argument(
-        "--exclude-profile", action="append", default=[],
-        help="Skip this profile; repeatable"
+        "--exclude-profile",
+        action="append",
+        default=[],
+        help="Skip this profile; repeatable",
     )
     p.add_argument(
-        "--template", action="append", default=[],
+        "--template",
+        action="append",
+        default=[],
         help="Only this template name; repeatable. Default: every template "
-             "in each config."
+        "in each config.",
     )
 
     p.add_argument(
-        "--jobs", type=int, default=DEFAULT_JOBS,
-        help=f"Parallel generator processes (default: {DEFAULT_JOBS} — cores minus 2)"
+        "--jobs",
+        type=int,
+        default=DEFAULT_JOBS,
+        help=f"Parallel generator processes (default: {DEFAULT_JOBS} — cores minus 2)",
     )
     p.add_argument(
-        "-m", "--concurrency", type=int, default=None,
-        help="Override -m for every profile. Default: each profile's measured ceiling."
+        "-m",
+        "--concurrency",
+        type=int,
+        default=None,
+        help="Override -m for every profile. Default: each profile's measured ceiling.",
     )
     p.add_argument(
-        "--split-hours", type=int, default=24, choices=[1, 2, 3, 4, 6, 8, 12, 24],
+        "--split-hours",
+        type=int,
+        default=24,
+        choices=[1, 2, 3, 4, 6, 8, 12, 24],
         help="Split each day into objects of this many hours (default: 24, one object "
-             "per day). Smaller values give finer parallelism and smaller objects, at "
-             "the cost of a worker ramp-up and truncated sessions at every boundary."
+        "per day). Smaller values give finer parallelism and smaller objects, at "
+        "the cost of a worker ramp-up and truncated sessions at every boundary.",
     )
     p.add_argument(
-        "--no-schedule", action="store_true",
-        help="Ignore per-profile schedules (raises ecommerce volume by ~1.5x)"
+        "--no-schedule",
+        action="store_true",
+        help="Ignore per-profile schedules (raises ecommerce volume by ~1.5x)",
     )
     p.add_argument(
-        "--seed-base", type=int, default=None,
+        "--seed-base",
+        type=int,
+        default=None,
         help="Derive each day's --seed as seed-base + day ordinal. Note: --seed is "
-             "not reliably reproducible for the ecommerce configs."
+        "not reliably reproducible for the ecommerce configs.",
     )
 
     p.add_argument(
-        "--compresslevel", type=int, default=DEFAULT_COMPRESSLEVEL,
-        help=f"gzip level 1-9 (default: {DEFAULT_COMPRESSLEVEL})"
+        "--compresslevel",
+        type=int,
+        default=DEFAULT_COMPRESSLEVEL,
+        help=f"gzip level 1-9 (default: {DEFAULT_COMPRESSLEVEL})",
     )
     p.add_argument(
-        "--aws-profile", default=os.environ.get("AWS_PROFILE"),
+        "--aws-profile",
+        default=os.environ.get("AWS_PROFILE"),
         help="AWS profile to authenticate with, including SSO profiles from "
-             "~/.aws/config. Defaults to $AWS_PROFILE, then the default profile. "
-             "Not to be confused with --profile, which selects a generator config."
+        "~/.aws/config. Defaults to $AWS_PROFILE, then the default profile. "
+        "Not to be confused with --profile, which selects a generator config.",
     )
     p.add_argument(
         "--region", default=None, help="AWS region (default: the profile's region)"
     )
     p.add_argument(
-        "--sso-login", action="store_true",
-        help="Run `aws sso login` automatically if credentials are expired or missing"
+        "--sso-login",
+        action="store_true",
+        help="Run `aws sso login` automatically if credentials are expired or missing",
     )
     p.add_argument(
         "--storage-class", default=None, help="S3 storage class (e.g. STANDARD_IA)"
@@ -760,25 +859,31 @@ def main(argv=None):
     )
 
     p.add_argument(
-        "--manifest", default=DEFAULT_MANIFEST,
-        help=f"JSONL run log, also used for resume (default: {DEFAULT_MANIFEST})"
+        "--manifest",
+        default=DEFAULT_MANIFEST,
+        help=f"JSONL run log, also used for resume (default: {DEFAULT_MANIFEST})",
     )
     p.add_argument(
-        "--overwrite", action="store_true",
-        help="Regenerate partitions already in the manifest"
+        "--overwrite",
+        action="store_true",
+        help="Regenerate partitions already in the manifest",
     )
     p.add_argument(
-        "--check-remote", action="store_true",
+        "--check-remote",
+        action="store_true",
         help="Also skip partitions that already exist at the destination "
-             "(one HEAD per partition)"
+        "(one HEAD per partition)",
     )
     p.add_argument(
-        "--task-timeout", type=int, default=0,
-        help="Kill a single partition after N seconds (default: 0, no limit)"
+        "--task-timeout",
+        type=int,
+        default=0,
+        help="Kill a single partition after N seconds (default: 0, no limit)",
     )
     p.add_argument(
-        "--dry-run", action="store_true",
-        help="Print the plan and exit without generating"
+        "--dry-run",
+        action="store_true",
+        help="Print the plan and exit without generating",
     )
 
     args = p.parse_args(argv)
@@ -797,16 +902,32 @@ def main(argv=None):
         return 1
 
     tasks = build_tasks(
-        profiles, days, set(args.template), args.prefix,
-        args.seed_base, args.concurrency, args.no_schedule, args.split_hours,
+        profiles,
+        days,
+        set(args.template),
+        args.prefix,
+        args.seed_base,
+        args.concurrency,
+        args.no_schedule,
+        args.split_hours,
     )
     if not tasks:
         err.print("[red]no partitions to generate — check --profile / --template[/red]")
         return 1
 
-    sink = LocalSink(args.local_dir) if args.local_dir else S3Sink(
-        args.bucket, args.storage_class, args.sse, args.kms_key_id, args.acl,
-        profile=args.aws_profile, region=args.region)
+    sink = (
+        LocalSink(args.local_dir)
+        if args.local_dir
+        else S3Sink(
+            args.bucket,
+            args.storage_class,
+            args.sse,
+            args.kms_key_id,
+            args.acl,
+            profile=args.aws_profile,
+            region=args.region,
+        )
+    )
 
     summarise_plan(tasks, sink, len(days), args.split_hours)
     err.print(f"[dim]example key: {tasks[0].key}[/dim]")
@@ -818,8 +939,10 @@ def main(argv=None):
     if isinstance(sink, S3Sink):
         identity = sink.check_credentials(allow_login=args.sso_login)
         if identity:
-            err.print(f"[green]authenticated[/green] as {identity}"
-                      + (f" (profile {args.aws_profile})" if args.aws_profile else ""))
+            err.print(
+                f"[green]authenticated[/green] as {identity}"
+                + (f" (profile {args.aws_profile})" if args.aws_profile else "")
+            )
     sink.preflight()
 
     skipped = 0
@@ -897,8 +1020,12 @@ def main(argv=None):
         with progress:
             bar = progress.add_task("partitions", total=len(tasks), status="")
             with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-                futures = {pool.submit(run_task, t, sink, args.compresslevel,
-                                       args.task_timeout, stop): t for t in tasks}
+                futures = {
+                    pool.submit(
+                        run_task, t, sink, args.compresslevel, args.task_timeout, stop
+                    ): t
+                    for t in tasks
+                }
                 try:
                     for fut in as_completed(futures):
                         result = fut.result()
@@ -928,15 +1055,17 @@ def main(argv=None):
                                     "[cyan]re-run the same command afterwards; the "
                                     "manifest resumes from here[/cyan]"
                                 )
-                        gz_h = human_bytes(totals['gz'])
+                        gz_h = human_bytes(totals["gz"])
                         status = f"{gz_h} gz | {totals['rows']:,} rows"
                         if failures:
                             status += f" | [red]{len(failures)} failed[/red]"
                         progress.update(bar, advance=1, status=status)
                 except KeyboardInterrupt:
                     stop.set()
-                    err.print("[yellow]interrupted — finishing in-flight partitions, "
-                              "re-run the same command to resume[/yellow]")
+                    err.print(
+                        "[yellow]interrupted — finishing in-flight partitions, "
+                        "re-run the same command to resume[/yellow]"
+                    )
                     for fut in futures:
                         fut.cancel()
                     raise
