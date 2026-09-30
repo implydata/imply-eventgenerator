@@ -44,7 +44,8 @@ The reference docs in `docs/` are the authoritative source for what the engine s
 
 | Doc | Covers |
 | --- | --- |
-| `states.md` | State type field reference |
+| `states.md` | Index of state types, and behaviour shared across them |
+| `states/<type>.md` | Per-type detail — one file per state type |
 | `emitters.md` | Emitter structure and dimension fields |
 | `distributions.md` | Distribution types and parameters |
 | `dimensions/static.md` | The `static` dimension type |
@@ -55,6 +56,7 @@ The reference docs in `docs/` are the authoritative source for what the engine s
 | `schedules.md` | Schedule format and multiplier semantics |
 
 - If a code change adds or modifies a state type, distribution type, emitter option, or dimension type, update the relevant doc in the same pass — not as a follow-up.
+- `states.md` is an index page; the per-type detail lives in `states/`. When a new state type is added, create `states/<type>.md` **and** add a row to the `states.md` table.
 - `dimensions/generator.md` is an index page; the per-type detail lives in `dimensions/generator/`. When a new generator type is added, create `dimensions/generator/<type>.md` **and** add a row to `dimensions/generator.md`.
 - If asked to write a config that uses a distribution or dimension type not present in `docs/`, **stop and flag it** rather than writing JSON and hoping it works.
 - If a change alters a preset's output volume or session timing, re-profile it and update its entries in `tools/generate_all.json` and its doc's **Volume** section. A seeded byte-diff (`--seed` with `-s`) of the preset's output before and after the change shows whether re-profiling is needed.
