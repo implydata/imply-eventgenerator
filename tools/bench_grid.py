@@ -88,7 +88,9 @@ _current_proc = [None]
 def _kill_current_and_exit(signum, frame):
     proc = _current_proc[0]
     if proc is not None and proc.poll() is None:
-        logger.warning("Received termination signal -- killing in-flight generator.py process")
+        logger.warning(
+            "Received termination signal -- killing in-flight generator.py process"
+        )
         proc.kill()
     sys.exit(1)
 
@@ -118,7 +120,9 @@ BASE_I_VALUES = [0.01, 0.1, 1.0]
 TIERS = ["🟩", "🟨", "🟧", "🟥"]
 CRASH_MARK = "💥"
 TIMEOUT_MARK = "⏱️"
-ROW_PLATEAU_MARK = "↔️"  # skipped -- flat going across (-w): this row's own ascent already plateaued
+ROW_PLATEAU_MARK = (
+    "↔️"  # skipped -- flat going across (-w): this row's own ascent already plateaued
+)
 COL_PLATEAU_MARK = "↕️"  # skipped -- flat going down (-i): this column already plateaued from an earlier row
 
 
@@ -127,7 +131,7 @@ def log_space(lo, hi, n):
     if n <= 1:
         return [lo]
     ratio = (hi / lo) ** (1 / (n - 1))
-    return [lo * (ratio ** k) for k in range(n)]
+    return [lo * (ratio**k) for k in range(n)]
 
 
 def linear_space(lo, hi, n):
@@ -215,13 +219,22 @@ def make_heartbeat(label, throttle=10.0):
     state = {"last": None}
 
     def heartbeat(elapsed, rows_so_far):
-        if state["last"] is None or elapsed < state["last"] or elapsed - state["last"] >= throttle:
+        if (
+            state["last"] is None
+            or elapsed < state["last"]
+            or elapsed - state["last"] >= throttle
+        ):
             state["last"] = elapsed
-            logger.info(f"{label}  ... still running, {rows_so_far:,} rows so far ({elapsed:.0f}s)")
+            logger.info(
+                f"{label}  ... still running, {rows_so_far:,} rows so far ({elapsed:.0f}s)"
+            )
+
     return heartbeat
 
 
-def run_cell(config_path, w, i, duration_str, start_str, seed, cell_timeout, on_heartbeat=None):
+def run_cell(
+    config_path, w, i, duration_str, start_str, seed, cell_timeout, on_heartbeat=None
+):
     """Run one generator.py invocation. Drains stdout in a background thread while
     polling for completion -- without this, a cell whose output exceeds the OS pipe
     buffer (easily happens here: outputs regularly exceed 100k lines) would deadlock
@@ -231,16 +244,23 @@ def run_cell(config_path, w, i, duration_str, start_str, seed, cell_timeout, on_
     Returns (rows, status, elapsed) where status is 'ok', 'crashed', or 'timeout'.
     """
     cmd = [
-        sys.executable, "-u", "generator.py",
-        "-c", config_path,
-        "-r", duration_str,
-        "-s", start_str,
+        sys.executable,
+        "-u",
+        "generator.py",
+        "-c",
+        config_path,
+        "-r",
+        duration_str,
+        "-s",
+        start_str,
         f"--seed={seed}",
         f"-w={w}",
         f"-i={i}",
     ]
     t0 = time.perf_counter()
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, bufsize=1)
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, bufsize=1
+    )
     _current_proc[0] = proc
 
     row_count = [0]
@@ -294,38 +314,83 @@ def get_config_mean_interval(config_path):
     type with no single central-tendency field (e.g. 'uniform')."""
     with open(config_path) as f:
         config = json.load(f)
-    timer_state = next((s for s in config.get("states", []) if s.get("type") == "event:start:timer"), None)
+    timer_state = next(
+        (s for s in config.get("states", []) if s.get("type") == "event:start:timer"),
+        None,
+    )
     if timer_state is None:
         return None
     dist = timer_state.get("cardinality_distribution", {})
-    field = {"constant": "value", "exponential": "mean", "normal": "mean", "gmm_temporal": "mean"}.get(dist.get("type"))
+    field = {
+        "constant": "value",
+        "exponential": "mean",
+        "normal": "mean",
+        "gmm_temporal": "mean",
+    }.get(dist.get("type"))
     return dist.get(field) if field else None
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("-c", "--config", required=True, help="Path to generator config JSON")
-    parser.add_argument("--w-values", type=parse_float_list, default=DEFAULT_W_VALUES,
-                        help=f"Comma-separated -w grid. Default: {','.join(map(str, DEFAULT_W_VALUES))}")
-    parser.add_argument("--i-values", type=parse_float_list, default=None,
-                        help=f"Comma-separated -i grid. Default: {','.join(map(str, BASE_I_VALUES))}, "
-                             f"plus the config's own event:start:timer mean.")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "-c", "--config", required=True, help="Path to generator config JSON"
+    )
+    parser.add_argument(
+        "--w-values",
+        type=parse_float_list,
+        default=DEFAULT_W_VALUES,
+        help=f"Comma-separated -w grid. Default: {','.join(map(str, DEFAULT_W_VALUES))}",
+    )
+    parser.add_argument(
+        "--i-values",
+        type=parse_float_list,
+        default=None,
+        help=f"Comma-separated -i grid. Default: {','.join(map(str, BASE_I_VALUES))}, "
+        f"plus the config's own event:start:timer mean.",
+    )
     parser.add_argument("--plateau-threshold", type=float, default=PLATEAU_THRESHOLD)
-    parser.add_argument("--cell-timeout", type=float, default=DEFAULT_CELL_TIMEOUT,
-                        help=f"Per-cell wall-clock budget in seconds. Default: {DEFAULT_CELL_TIMEOUT}")
-    parser.add_argument("--duration", default=DEFAULT_DURATION, help=f"Simulated window. Default: {DEFAULT_DURATION}")
-    parser.add_argument("--start", default=DEFAULT_START, help=f"Simulated start time. Default: {DEFAULT_START}")
-    parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help=f"Random seed. Default: {DEFAULT_SEED}")
+    parser.add_argument(
+        "--cell-timeout",
+        type=float,
+        default=DEFAULT_CELL_TIMEOUT,
+        help=f"Per-cell wall-clock budget in seconds. Default: {DEFAULT_CELL_TIMEOUT}",
+    )
+    parser.add_argument(
+        "--duration",
+        default=DEFAULT_DURATION,
+        help=f"Simulated window. Default: {DEFAULT_DURATION}",
+    )
+    parser.add_argument(
+        "--start",
+        default=DEFAULT_START,
+        help=f"Simulated start time. Default: {DEFAULT_START}",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=DEFAULT_SEED,
+        help=f"Random seed. Default: {DEFAULT_SEED}",
+    )
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s", datefmt="%H:%M:%S", stream=sys.stderr)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s  %(message)s",
+        datefmt="%H:%M:%S",
+        stream=sys.stderr,
+    )
 
-    w_values = sorted(set(round(w) for w in args.w_values))
+    w_values = sorted({round(w) for w in args.w_values})
     config_mean = get_config_mean_interval(args.config)
     if args.i_values is None:
         if config_mean is None:
-            logger.warning("Could not read the config's own event:start:timer mean -- "
-                             "defaulting -i grid to %s only.", BASE_I_VALUES)
+            logger.warning(
+                "Could not read the config's own event:start:timer mean -- "
+                "defaulting -i grid to %s only.",
+                BASE_I_VALUES,
+            )
             i_values = sorted(BASE_I_VALUES)
         else:
             i_values = sorted(set(BASE_I_VALUES) | {config_mean})
@@ -370,18 +435,27 @@ def main():
                 # this number for a row-plateau cell, but the collapse_duplicates()
                 # pass below needs the true value to compare against other cells.
                 skip_value = prev_rows if stop_status is None else 0
-                cell_info[(w, i)] = (skip_value, "row-plateau" if stop_status is None else stop_status)
-                logger.info(f"[{task_n}/{total_cells}] {label}  skipped (row {stop_status or 'plateau'})")
+                cell_info[(w, i)] = (
+                    skip_value,
+                    "row-plateau" if stop_status is None else stop_status,
+                )
+                logger.info(
+                    f"[{task_n}/{total_cells}] {label}  skipped (row {stop_status or 'plateau'})"
+                )
                 continue
 
             confirmed = col_state[w]["confirmed"]
             if confirmed is not None:
                 cell_info[(w, i)] = (confirmed, "column-plateau")
-                logger.info(f"[{task_n}/{total_cells}] {label}  skipped (column plateau, {confirmed:,} rows)")
+                logger.info(
+                    f"[{task_n}/{total_cells}] {label}  skipped (column plateau, {confirmed:,} rows)"
+                )
                 # Feed the inferred value into the row's own bookkeeping too, so a
                 # row entirely covered by already-confirmed columns still triggers
                 # its own plateau stop instead of running out the rest for real.
-                row_streak = plateau_streak_step(prev_rows, confirmed, row_streak, args.plateau_threshold)
+                row_streak = plateau_streak_step(
+                    prev_rows, confirmed, row_streak, args.plateau_threshold
+                )
                 if row_streak >= 2:
                     stopped, stop_status = True, None
                 prev_rows = confirmed
@@ -389,34 +463,56 @@ def main():
 
             logger.info(f"[{task_n}/{total_cells}] {label}  running...")
             rows, status, elapsed = run_cell(
-                args.config, w, i, args.duration, args.start, args.seed,
-                args.cell_timeout, on_heartbeat=make_heartbeat(label),
+                args.config,
+                w,
+                i,
+                args.duration,
+                args.start,
+                args.seed,
+                args.cell_timeout,
+                on_heartbeat=make_heartbeat(label),
             )
             cell_info[(w, i)] = (rows, status)
             cell_elapsed[(w, i)] = elapsed
             ran += 1
-            status_text = {"ok": f"{rows:,} rows", "crashed": "CRASHED", "timeout": f"TIMED OUT ({rows:,} rows so far)"}[status]
-            logger.info(f"[{task_n}/{total_cells}] {label}  {status_text}  ({elapsed:.1f}s)")
+            status_text = {
+                "ok": f"{rows:,} rows",
+                "crashed": "CRASHED",
+                "timeout": f"TIMED OUT ({rows:,} rows so far)",
+            }[status]
+            logger.info(
+                f"[{task_n}/{total_cells}] {label}  {status_text}  ({elapsed:.1f}s)"
+            )
 
             if status in ("crashed", "timeout"):
                 stopped, stop_status = True, status
                 continue
 
-            row_streak = plateau_streak_step(prev_rows, rows, row_streak, args.plateau_threshold)
+            row_streak = plateau_streak_step(
+                prev_rows, rows, row_streak, args.plateau_threshold
+            )
             if row_streak >= 2:
                 stopped, stop_status = True, None
             prev_rows = rows
 
             cs = col_state[w]
-            cs["streak"] = plateau_streak_step(cs["prev"], rows, cs["streak"], args.plateau_threshold)
+            cs["streak"] = plateau_streak_step(
+                cs["prev"], rows, cs["streak"], args.plateau_threshold
+            )
             if cs["streak"] >= 2:
                 cs["confirmed"] = rows
             cs["prev"] = rows
 
-    logger.info(f"Ran {ran} of {total_cells} cells ({total_cells - ran} skipped by plateau/crash/timeout detection).")
+    logger.info(
+        f"Ran {ran} of {total_cells} cells ({total_cells - ran} skipped by plateau/crash/timeout detection)."
+    )
 
     # --- Color tiers from completed results (log-scale quartiles) ---
-    ok_rows = sorted(rows for (rows, status) in cell_info.values() if status in ("ok", "column-plateau") and rows > 0)
+    ok_rows = sorted(
+        rows
+        for (rows, status) in cell_info.values()
+        if status in ("ok", "column-plateau") and rows > 0
+    )
 
     def tier_for(rows):
         if not ok_rows or rows <= 0:
@@ -437,7 +533,7 @@ def main():
     # measurement-informed decision, not a presentation one.
     display = collapse_duplicates(cell_info, w_values, i_values)
 
-    header = ("| `-i` \\ `-w` | " + " | ".join(f"{w:,}" for w in w_values) + " |")
+    header = "| `-i` \\ `-w` | " + " | ".join(f"{w:,}" for w in w_values) + " |"
     sep = "| :--- | " + " | ".join(":---" for _ in w_values) + " |"
     lines = [header, sep]
     for i in i_values:
@@ -456,21 +552,27 @@ def main():
                 secs = cell_elapsed.get((w, i))
                 suffix = f" ({secs:.1f}s)" if secs is not None else ""
                 cells.append(f"{tier_for(rows)} {rows:,}{suffix}")
-        row_label = fmt_i(i) + (" (default)" if config_mean is not None and i == config_mean else "")
+        row_label = fmt_i(i) + (
+            " (default)" if config_mean is not None and i == config_mean else ""
+        )
         lines.append(f"| {row_label} | " + " | ".join(cells) + " |")
 
     print()
-    print(f"Grid: {len(w_values)} × {len(i_values)} = {total_cells} cells ({ran} run, {total_cells - ran} skipped), "
-          f"`--seed {args.seed}`, {args.duration} simulated window, {args.cell_timeout:.0f}s per-cell timeout.")
+    print(
+        f"Grid: {len(w_values)} × {len(i_values)} = {total_cells} cells ({ran} run, {total_cells - ran} skipped), "
+        f"`--seed {args.seed}`, {args.duration} simulated window, {args.cell_timeout:.0f}s per-cell timeout."
+    )
     print()
     print("\n".join(lines))
     print()
-    print(f"{CRASH_MARK} = Crashed. "
-          f"{TIMEOUT_MARK} = Timeout. "
-          f"{ROW_PLATEAU_MARK} = Plateau -- increasing -w had no effect. "
-          f"{COL_PLATEAU_MARK} = Plateau -- decreasing -i had no effect. "
-          f"(Ns) = wall-clock seconds for that cell's own run -- not shown for "
-          f"skipped/plateau cells, which were never actually run.")
+    print(
+        f"{CRASH_MARK} = Crashed. "
+        f"{TIMEOUT_MARK} = Timeout. "
+        f"{ROW_PLATEAU_MARK} = Plateau -- increasing -w had no effect. "
+        f"{COL_PLATEAU_MARK} = Plateau -- decreasing -i had no effect. "
+        f"(Ns) = wall-clock seconds for that cell's own run -- not shown for "
+        f"skipped/plateau cells, which were never actually run."
+    )
 
 
 if __name__ == "__main__":

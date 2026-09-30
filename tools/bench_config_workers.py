@@ -58,7 +58,9 @@ DEFAULT_SEED = 42
 DEFAULT_START = "2024-01-01T00:00:00"
 DEFAULT_DURATION = "PT6H"
 PLATEAU_THRESHOLD = 0.10
-DEFAULT_MAX_M = 10_000  # matches generator.py's own -w hard cap (MAX_WORKERS) — kept as an
+DEFAULT_MAX_M = (
+    10_000  # matches generator.py's own -w hard cap (MAX_WORKERS) — kept as an
+)
 # independent constant rather than imported, same as MEAN_FIELD_BY_TYPE below: this file
 # treats generator.py as an opaque subprocess, not a library. A discovery value beyond
 # this would just get rejected by generator.py's own CLI validation.
@@ -80,6 +82,7 @@ MEAN_FIELD_BY_TYPE = {
 # ---------------------------------------------------------------------------
 # Clock field detection
 # ---------------------------------------------------------------------------
+
 
 def find_clock_field(config):
     """Locate the emitter output field that carries the simulated clock timestamp.
@@ -130,7 +133,9 @@ def validate_start_interval(value):
     except ValueError:
         raise argparse.ArgumentTypeError("Start interval must be a number.")
     if fvalue < 0:
-        raise argparse.ArgumentTypeError("Start interval must be greater than or equal to 0.")
+        raise argparse.ArgumentTypeError(
+            "Start interval must be greater than or equal to 0."
+        )
     return fvalue
 
 
@@ -142,7 +147,8 @@ def get_start_interval_value(config):
     an unsupported distribution (e.g. 'uniform') or a missing start-timer state.
     """
     timer_state = next(
-        (s for s in config.get("states", []) if s.get("type") == "event:start:timer"), None
+        (s for s in config.get("states", []) if s.get("type") == "event:start:timer"),
+        None,
     )
     if timer_state is None:
         raise ValueError("Config has no event:start:timer state.")
@@ -163,15 +169,30 @@ def get_start_interval_value(config):
 # Subprocess runner — streams stdout, updates Rich progress from sim timestamps
 # ---------------------------------------------------------------------------
 
-def run_one(config_path, m, duration_str, start_str, seed,
-            clock_field, start_dt, end_dt,
-            progress, run_task, start_interval=None):
+
+def run_one(
+    config_path,
+    m,
+    duration_str,
+    start_str,
+    seed,
+    clock_field,
+    start_dt,
+    end_dt,
+    progress,
+    run_task,
+    start_interval=None,
+):
     """Run one generator invocation, streaming output for live progress."""
     cmd = [
-        sys.executable, "generator.py",
-        "-c", config_path,
-        "-r", duration_str,
-        "-s", start_str,
+        sys.executable,
+        "generator.py",
+        "-c",
+        config_path,
+        "-r",
+        duration_str,
+        "-s",
+        start_str,
         f"--seed={seed}",
         f"-w={m}",
     ]
@@ -182,8 +203,11 @@ def run_one(config_path, m, duration_str, start_str, seed,
     duration_secs = (end_dt - start_dt).total_seconds()
 
     with subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-        text=True, bufsize=1,
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        bufsize=1,
     ) as proc:
         assert proc.stdout is not None
         for raw in proc.stdout:
@@ -208,7 +232,9 @@ def run_one(config_path, m, duration_str, start_str, seed,
                             if sim_ts.tzinfo is None:
                                 sim_ts = sim_ts.replace(tzinfo=timezone.utc)
                             elapsed_sim = (sim_ts - start_dt).total_seconds()
-                            pct = max(0.0, min(100.0, elapsed_sim / duration_secs * 100))
+                            pct = max(
+                                0.0, min(100.0, elapsed_sim / duration_secs * 100)
+                            )
                             progress.update(run_task, completed=pct)
                 except Exception:
                     pass
@@ -224,6 +250,7 @@ def run_one(config_path, m, duration_str, start_str, seed,
 # ---------------------------------------------------------------------------
 # Plateau detection / sample-point generation
 # ---------------------------------------------------------------------------
+
 
 def is_plateau(prev_rows, curr_rows, threshold):
     """True if curr_rows is within `threshold` of prev_rows, in EITHER direction.
@@ -266,6 +293,7 @@ def log_spaced_integers(lo, hi, n):
 # Phase 1 + 1b: discovery + binary-search refinement → the -w ceiling
 # ---------------------------------------------------------------------------
 
+
 def find_ceiling(run_kwargs, args, progress, start_interval=None):
     """Discover and refine the -w ceiling at the given -i.
 
@@ -284,14 +312,20 @@ def find_ceiling(run_kwargs, args, progress, start_interval=None):
         progress.update(disc_task, description=f"[cyan]Phase 1 — discovery  -w {m:,}")
         run_task = progress.add_task(f"[dim]disc  -w {m:>8,}", total=100.0)
 
-        rows, elapsed = run_one(m=m, **run_kwargs, start_interval=start_interval,
-                                progress=progress, run_task=run_task)
+        rows, elapsed = run_one(
+            m=m,
+            **run_kwargs,
+            start_interval=start_interval,
+            progress=progress,
+            run_task=run_task,
+        )
         cache[m] = (rows, elapsed)
 
         plat = is_plateau(prev_rows, rows, args.plateau_threshold)
         suffix = "  [yellow]← plateau[/yellow]" if plat else ""
         progress.update(
-            run_task, completed=100.0,
+            run_task,
+            completed=100.0,
             description=f"disc  -w {m:>8,}  {rows:>10,} rows  {elapsed:.1f}s{suffix}",
         )
 
@@ -332,8 +366,13 @@ def find_ceiling(run_kwargs, args, progress, start_interval=None):
                 description=f"[cyan]Phase 1b — refining  [{lo:,} … {hi:,}]  trying {mid:,}",
             )
             run_task = progress.add_task(f"[dim]refine -w {mid:>8,}", total=100.0)
-            mid_rows, mid_elapsed = run_one(m=mid, **run_kwargs, start_interval=start_interval,
-                                            progress=progress, run_task=run_task)
+            mid_rows, mid_elapsed = run_one(
+                m=mid,
+                **run_kwargs,
+                start_interval=start_interval,
+                progress=progress,
+                run_task=run_task,
+            )
             cache[mid] = (mid_rows, mid_elapsed)
 
             if is_plateau(lo_rows, mid_rows, args.plateau_threshold):
@@ -345,7 +384,8 @@ def find_ceiling(run_kwargs, args, progress, start_interval=None):
                 lo_rows = mid_rows
                 suffix = ""
             progress.update(
-                run_task, completed=100.0,
+                run_task,
+                completed=100.0,
                 description=f"refine -w {mid:>8,}  {mid_rows:>10,} rows  {mid_elapsed:.1f}s{suffix}",
             )
 
@@ -361,7 +401,10 @@ def find_ceiling(run_kwargs, args, progress, start_interval=None):
 # Phase 2: sampling at a given set of -w points (reusing any cached runs)
 # ---------------------------------------------------------------------------
 
-def sample_at_points(run_kwargs, sample_points, cache, progress, plateau_m, start_interval=None):
+
+def sample_at_points(
+    run_kwargs, sample_points, cache, progress, plateau_m, start_interval=None
+):
     results = []
 
     sample_task = progress.add_task(
@@ -374,15 +417,22 @@ def sample_at_points(run_kwargs, sample_points, cache, progress, plateau_m, star
             rows, elapsed = cache[m]
             run_task = progress.add_task(f"[dim]sample-w {m:>8,}", total=100.0)
             progress.update(
-                run_task, completed=100.0,
+                run_task,
+                completed=100.0,
                 description=f"sample -w {m:>8,}  {rows:>10,} rows  (cached)",
             )
         else:
             run_task = progress.add_task(f"[dim]sample -w {m:>8,}", total=100.0)
-            rows, elapsed = run_one(m=m, **run_kwargs, start_interval=start_interval,
-                                    progress=progress, run_task=run_task)
+            rows, elapsed = run_one(
+                m=m,
+                **run_kwargs,
+                start_interval=start_interval,
+                progress=progress,
+                run_task=run_task,
+            )
             progress.update(
-                run_task, completed=100.0,
+                run_task,
+                completed=100.0,
                 description=f"sample -w {m:>8,}  {rows:>10,} rows  {elapsed:.1f}s",
             )
 
@@ -397,38 +447,78 @@ def sample_at_points(run_kwargs, sample_points, cache, progress, plateau_m, star
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s",
-                        datefmt="%H:%M:%S", stream=sys.stderr)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%H:%M:%S",
+        stream=sys.stderr,
+    )
 
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("-c", "--config", required=True,
-                        help="Path to generator config JSON")
-    parser.add_argument("-i", dest="start_interval", type=validate_start_interval, default=None,
-                        help="Override the event:start:timer state's interarrival period "
-                             "(seconds). Default: the config's own value.")
-    parser.add_argument("--duration", default=DEFAULT_DURATION,
-                        help=f"Simulated window (ISO 8601 duration). Default: {DEFAULT_DURATION}")
-    parser.add_argument("--start", default=DEFAULT_START,
-                        help=f"Simulated start time (ISO 8601). Default: {DEFAULT_START}")
-    parser.add_argument("--seed", type=int, default=DEFAULT_SEED,
-                        help=f"Random seed. Default: {DEFAULT_SEED}")
-    parser.add_argument("--start-m", type=int, default=1,
-                        help="Smallest -w value to test. Default: 1")
-    parser.add_argument("--max-m", type=int, default=DEFAULT_MAX_M,
-                        help=f"Upper bound on -w during discovery. Default: {DEFAULT_MAX_M:,}")
-    parser.add_argument("--plateau-threshold", type=float, default=PLATEAU_THRESHOLD,
-                        help=f"Row-growth fraction below which a step is plateau. Default: {PLATEAU_THRESHOLD}")
+    parser.add_argument(
+        "-c", "--config", required=True, help="Path to generator config JSON"
+    )
+    parser.add_argument(
+        "-i",
+        dest="start_interval",
+        type=validate_start_interval,
+        default=None,
+        help="Override the event:start:timer state's interarrival period "
+        "(seconds). Default: the config's own value.",
+    )
+    parser.add_argument(
+        "--duration",
+        default=DEFAULT_DURATION,
+        help=f"Simulated window (ISO 8601 duration). Default: {DEFAULT_DURATION}",
+    )
+    parser.add_argument(
+        "--start",
+        default=DEFAULT_START,
+        help=f"Simulated start time (ISO 8601). Default: {DEFAULT_START}",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=DEFAULT_SEED,
+        help=f"Random seed. Default: {DEFAULT_SEED}",
+    )
+    parser.add_argument(
+        "--start-m", type=int, default=1, help="Smallest -w value to test. Default: 1"
+    )
+    parser.add_argument(
+        "--max-m",
+        type=int,
+        default=DEFAULT_MAX_M,
+        help=f"Upper bound on -w during discovery. Default: {DEFAULT_MAX_M:,}",
+    )
+    parser.add_argument(
+        "--plateau-threshold",
+        type=float,
+        default=PLATEAU_THRESHOLD,
+        help=f"Row-growth fraction below which a step is plateau. Default: {PLATEAU_THRESHOLD}",
+    )
 
-    parser.add_argument("--samples", type=int, default=DEFAULT_SAMPLES,
-                        help=f"Points in the final table. Default: {DEFAULT_SAMPLES}")
-    parser.add_argument("--clock-field", default=None,
-                        help="JSON field name carrying the simulated clock timestamp "
-                             "(required if the config has multiple clock fields)")
-    parser.add_argument("--csv", action="store_true",
-                        help="Output raw CSV instead of the default markdown block")
+    parser.add_argument(
+        "--samples",
+        type=int,
+        default=DEFAULT_SAMPLES,
+        help=f"Points in the final table. Default: {DEFAULT_SAMPLES}",
+    )
+    parser.add_argument(
+        "--clock-field",
+        default=None,
+        help="JSON field name carrying the simulated clock timestamp "
+        "(required if the config has multiple clock fields)",
+    )
+    parser.add_argument(
+        "--csv",
+        action="store_true",
+        help="Output raw CSV instead of the default markdown block",
+    )
     args = parser.parse_args()
 
     # --- Load config and resolve clock field ---
@@ -458,7 +548,11 @@ def main():
 
     start_interval = args.start_interval
     if start_interval is not None:
-        logger.warning("Over-riding preset start mean %s with %s.", preset_default_i, start_interval)
+        logger.warning(
+            "Over-riding preset start mean %s with %s.",
+            preset_default_i,
+            start_interval,
+        )
     effective_i = start_interval if start_interval is not None else preset_default_i
 
     # --- Compute simulated time window ---
@@ -487,12 +581,20 @@ def main():
         console=Console(stderr=True),
         transient=False,
     ) as progress:
-        plateau_m, cache = find_ceiling(run_kwargs, args, progress, start_interval=start_interval)
+        plateau_m, cache = find_ceiling(
+            run_kwargs, args, progress, start_interval=start_interval
+        )
 
         max_sample = min(plateau_m * 2, args.max_m)
         sample_points = log_spaced_integers(args.start_m, max_sample, args.samples)
-        results = sample_at_points(run_kwargs, sample_points, cache, progress, plateau_m,
-                                   start_interval=start_interval)
+        results = sample_at_points(
+            run_kwargs,
+            sample_points,
+            cache,
+            progress,
+            plateau_m,
+            start_interval=start_interval,
+        )
 
     # ----------------------------------------------------------------
     # Output
@@ -506,27 +608,47 @@ def main():
 
     if args.csv:
         writer = csv.DictWriter(
-            sys.stdout, fieldnames=["w", "rows", "elapsed_s"], lineterminator="\n",
+            sys.stdout,
+            fieldnames=["w", "rows", "elapsed_s"],
+            lineterminator="\n",
         )
         writer.writeheader()
         for r in results:
-            writer.writerow({
-                "w": r["m"], "rows": r["rows"], "elapsed_s": f"{r['elapsed_s']:.1f}",
-            })
-        plateau_rows_str = f"{plateau_rows:,} rows at plateau" if plateau_rows is not None else "rows unknown"
+            writer.writerow(
+                {
+                    "w": r["m"],
+                    "rows": r["rows"],
+                    "elapsed_s": f"{r['elapsed_s']:.1f}",
+                }
+            )
+        plateau_rows_str = (
+            f"{plateau_rows:,} rows at plateau"
+            if plateau_rows is not None
+            else "rows unknown"
+        )
         err.print()
-        err.print("[bold]── Empirical summary ──────────────────────────────────────[/bold]")
-        err.print(f"  Empirical ceiling:  -w = [bold]{plateau_m:,}[/bold]  ({plateau_rows_str})")
+        err.print(
+            "[bold]── Empirical summary ──────────────────────────────────────[/bold]"
+        )
+        err.print(
+            f"  Empirical ceiling:  -w = [bold]{plateau_m:,}[/bold]  ({plateau_rows_str})"
+        )
         err.print(f"  Duration used:      {args.duration}  (seed={args.seed})")
         err.print(f"  To regenerate:      {regen_cmd}")
-        err.print("[bold]────────────────────────────────────────────────────────────[/bold]")
+        err.print(
+            "[bold]────────────────────────────────────────────────────────────[/bold]"
+        )
     else:
         config_name = os.path.splitext(os.path.basename(args.config))[0]
         y_max = nice_ceil(plateau_rows) if plateau_rows else 1000
 
         x_vals = [str(r["m"]) for r in results]
         y_vals = [str(r["rows"]) for r in results]
-        interval_desc = f"a start interval of {start_interval:g}" if start_interval is not None else "the preset's default start interval"
+        interval_desc = (
+            f"a start interval of {start_interval:g}"
+            if start_interval is not None
+            else "the preset's default start interval"
+        )
         # Little's Law (L = lambda*W) run in reverse: the empirical ceiling (L) and the
         # known start interval (1/lambda) together imply the average time a worker spends
         # busy per session (W) -- no separate measurement of the config's state machine
@@ -551,9 +673,9 @@ def main():
             f"```mermaid\n"
             f"%%{{init: {{'themeVariables': {{'xyChart': {{'plotColorPalette': '{PLOT_COLOR}'}}}}}}}}%%\n"
             f"xychart-beta\n"
-            f"    title \"{config_name} — rows vs -w ({args.duration}, seed={args.seed})\"\n"
-            f"    x-axis \"-w\" [{', '.join(x_vals)}]\n"
-            f"    y-axis \"Rows\" 0 --> {y_max}\n"
+            f'    title "{config_name} — rows vs -w ({args.duration}, seed={args.seed})"\n'
+            f'    x-axis "-w" [{", ".join(x_vals)}]\n'
+            f'    y-axis "Rows" 0 --> {y_max}\n'
             f"    line [{', '.join(y_vals)}]\n"
             f"```"
         )

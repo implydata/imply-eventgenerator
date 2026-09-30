@@ -21,11 +21,12 @@ from ieg.distributions import (
     validate_distribution_desc,
 )
 
-logger = logging.getLogger('ieg')
+logger = logging.getLogger("ieg")
 
 #
 # Classes for different types of emitter dimension
 #
+
 
 class DimensionGeneratorBase:
     """
@@ -49,28 +50,32 @@ class DimensionGeneratorBase:
         Raises:
             Exception: If 'cardinality' or 'cardinality_distribution' is missing when required.
         """
-        self.name = desc['name']
-        if 'percent_nulls' in desc:
-            self.percent_nulls = desc['percent_nulls'] / 100.0
+        self.name = desc["name"]
+        if "percent_nulls" in desc:
+            self.percent_nulls = desc["percent_nulls"] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc:
-            self.percent_missing = desc['percent_missing'] / 100.0
+        if "percent_missing" in desc:
+            self.percent_missing = desc["percent_missing"] / 100.0
         else:
             self.percent_missing = 0.0
 
-        if 'cardinality' not in desc:
-                raise Exception(f'Dimension {self.name} has no value for cardinality.')
-        cardinality = desc['cardinality']
+        if "cardinality" not in desc:
+            raise Exception(f"Dimension {self.name} has no value for cardinality.")
+        cardinality = desc["cardinality"]
 
         if cardinality == 0:
             self.cardinality = None
             self.cardinality_distribution = None
         else:
             self.cardinality = []
-            if 'cardinality_distribution' not in desc:
-                raise Exception(f'"{self.name}" dimension specifies a cardinality without a cardinality distribution.')
-            self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
+            if "cardinality_distribution" not in desc:
+                raise Exception(
+                    f'"{self.name}" dimension specifies a cardinality without a cardinality distribution.'
+                )
+            self.cardinality_distribution = parse_distribution(
+                desc["cardinality_distribution"]
+            )
             for i in range(cardinality):
                 value = None
                 while True:
@@ -79,48 +84,65 @@ class DimensionGeneratorBase:
                         break
                 self.cardinality.append(value)
 
-
     @staticmethod
     def validate_desc(desc, context):
         """Validate fields common to all DimensionGeneratorBase subclasses (int, float, ipaddress)."""
         valid = True
-        if 'name' not in desc:
+        if "name" not in desc:
             logger.error("%s: missing required field 'name'", context)
             valid = False
-        if 'type' not in desc:
+        if "type" not in desc:
             logger.error("%s: missing required field 'type'", context)
             valid = False
-        if 'cardinality' not in desc:
+        if "cardinality" not in desc:
             logger.error("%s: missing required field 'cardinality'", context)
             valid = False
         else:
-            cardinality = desc['cardinality']
+            cardinality = desc["cardinality"]
             try:
                 cardinality = int(cardinality)
                 if cardinality < 0:
-                    logger.error("%s: 'cardinality' must be an integer >= 0, got %s", context, desc['cardinality'])
+                    logger.error(
+                        "%s: 'cardinality' must be an integer >= 0, got %s",
+                        context,
+                        desc["cardinality"],
+                    )
                     valid = False
                 elif cardinality > 0:
-                    if 'cardinality_distribution' not in desc:
-                        logger.error("%s: 'cardinality' > 0 requires 'cardinality_distribution'", context)
+                    if "cardinality_distribution" not in desc:
+                        logger.error(
+                            "%s: 'cardinality' > 0 requires 'cardinality_distribution'",
+                            context,
+                        )
                         valid = False
                     else:
-                        if not validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution"):
+                        if not validate_distribution_desc(
+                            desc["cardinality_distribution"],
+                            f"{context} cardinality_distribution",
+                        ):
                             valid = False
             except (TypeError, ValueError):
-                logger.error("%s: 'cardinality' must be an integer, got %r", context, desc['cardinality'])
+                logger.error(
+                    "%s: 'cardinality' must be an integer, got %r",
+                    context,
+                    desc["cardinality"],
+                )
                 valid = False
-        if 'distribution' not in desc:
+        if "distribution" not in desc:
             logger.error("%s: missing required field 'distribution'", context)
             valid = False
         else:
-            if not validate_distribution_desc(desc['distribution'], f"{context} distribution"):
+            if not validate_distribution_desc(
+                desc["distribution"], f"{context} distribution"
+            ):
                 valid = False
         return valid
 
     def _get_raw_value(self):
         """Generate a single raw value from the underlying distribution. Must be overridden by subclasses."""
-        raise NotImplementedError("Unexpected error: Subclasses must implement _get_raw_value()")
+        raise NotImplementedError(
+            "Unexpected error: Subclasses must implement _get_raw_value()"
+        )
 
     def get_stochastic_value(self):
         """Return a value, selecting from the cardinality pool if one was built, otherwise generating a fresh value."""
@@ -139,7 +161,7 @@ class DimensionGeneratorBase:
                  If the value is null, the string will include "null".
         """
         if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
+            s = '"' + self.name + '": null'
         else:
             if self.cardinality is None:
                 value = self.get_stochastic_value()
@@ -147,27 +169,40 @@ class DimensionGeneratorBase:
                 index = int(self.cardinality_distribution.get_sample())
                 index = max(index, 0)
                 if index >= len(self.cardinality):
-                    index = len(self.cardinality)-1
+                    index = len(self.cardinality) - 1
                 value = self.cardinality[index]
-            s = '"'+self.name+'":'+str(value)
+            s = '"' + self.name + '":' + str(value)
         return s
 
     def is_missing(self):
         # Return True if the dimension value is missing.
         return random.random() < self.percent_missing
 
+
 #
 #  LONG dimensions
 #
 
+
 class DimensionGeneratorInt(DimensionGeneratorBase):
     """Generates integer values from a numeric distribution. Config type: "generator:int"."""
+
     def __init__(self, desc):
-        self.value_distribution = parse_distribution(desc['distribution'])
+        self.value_distribution = parse_distribution(desc["distribution"])
         super().__init__(desc)
 
     def __str__(self):
-        return 'DimensionGeneratorInt(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return (
+            "DimensionGeneratorInt(name="
+            + self.name
+            + ", value_distribution="
+            + str(self.value_distribution)
+            + ", cardinality="
+            + str(self.cardinality)
+            + ", cardinality_distribution="
+            + str(self.cardinality_distribution)
+            + ")"
+        )
 
     @staticmethod
     def validate_desc(desc, context):
@@ -176,34 +211,55 @@ class DimensionGeneratorInt(DimensionGeneratorBase):
     def _get_raw_value(self):
         return int(self.value_distribution.get_sample())
 
+
 #
 # FLOAT dimensions
 #
 
+
 class DimensionGeneratorFloat(DimensionGeneratorBase):
     """Generates float values from a numeric distribution with optional decimal precision. Config type: "generator:float"."""
+
     def __init__(self, desc):
-        self.value_distribution = parse_distribution(desc['distribution'])
-        if 'precision' in desc:
-            self.precision = desc['precision']
+        self.value_distribution = parse_distribution(desc["distribution"])
+        if "precision" in desc:
+            self.precision = desc["precision"]
         else:
             self.precision = None
         super().__init__(desc)
 
     def __str__(self):
-        return 'DimensionGeneratorFloat(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return (
+            "DimensionGeneratorFloat(name="
+            + self.name
+            + ", value_distribution="
+            + str(self.value_distribution)
+            + ", cardinality="
+            + str(self.cardinality)
+            + ", cardinality_distribution="
+            + str(self.cardinality_distribution)
+            + ")"
+        )
 
     @staticmethod
     def validate_desc(desc, context):
         valid = DimensionGeneratorBase.validate_desc(desc, context)
-        if 'precision' in desc:
+        if "precision" in desc:
             try:
-                p = int(desc['precision'])
+                p = int(desc["precision"])
                 if p < 0:
-                    logger.error("%s: 'precision' must be an integer >= 0, got %s", context, desc['precision'])
+                    logger.error(
+                        "%s: 'precision' must be an integer >= 0, got %s",
+                        context,
+                        desc["precision"],
+                    )
                     valid = False
             except (TypeError, ValueError):
-                logger.error("%s: 'precision' must be an integer, got %r", context, desc['precision'])
+                logger.error(
+                    "%s: 'precision' must be an integer, got %r",
+                    context,
+                    desc["precision"],
+                )
                 valid = False
         return valid
 
@@ -212,7 +268,7 @@ class DimensionGeneratorFloat(DimensionGeneratorBase):
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
+            s = '"' + self.name + '": null'
         else:
             if self.cardinality is None:
                 value = self.get_stochastic_value()
@@ -220,14 +276,15 @@ class DimensionGeneratorFloat(DimensionGeneratorBase):
                 index = int(self.cardinality_distribution.get_sample())
                 index = max(index, 0)
                 if index >= len(self.cardinality):
-                    index = len(self.cardinality)-1
+                    index = len(self.cardinality) - 1
                 value = self.cardinality[index]
             if self.precision is None:
-                s = '"'+self.name+'":'+str(value)
+                s = '"' + self.name + '":' + str(value)
             else:
-                format = '%.'+str(self.precision)+'f'
-                s = '"'+self.name+'":'+str(format%value)
+                format = "%." + str(self.precision) + "f"
+                s = '"' + self.name + '":' + str(format % value)
         return s
+
 
 class DimensionGeneratorCounter:
     """Emits a sequentially incrementing integer. Config type: "generator:counter".
@@ -236,51 +293,59 @@ class DimensionGeneratorCounter:
     its own sequence. Useful for surrogate keys within a single emitter.
     Fields: start (default 0), increment (default 1).
     """
+
     def __init__(self, desc):
-        self.name = desc['name']
-        if 'percent_nulls' in desc:
-            self.percent_nulls = desc['percent_nulls'] / 100.0
+        self.name = desc["name"]
+        if "percent_nulls" in desc:
+            self.percent_nulls = desc["percent_nulls"] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc:
-            self.percent_missing = desc['percent_missing'] / 100.0
+        if "percent_missing" in desc:
+            self.percent_missing = desc["percent_missing"] / 100.0
         else:
             self.percent_missing = 0.0
-        if 'start' in desc:
-            self.start = desc['start']
+        if "start" in desc:
+            self.start = desc["start"]
         else:
             self.start = 0
-        if 'increment' in desc:
-            self.increment = desc['increment']
+        if "increment" in desc:
+            self.increment = desc["increment"]
         else:
             self.increment = 1
         self.value = self.start
+
     def __str__(self):
-        s = 'DimensionGeneratorCounter(name='+self.name
+        s = "DimensionGeneratorCounter(name=" + self.name
         if self.start != 0:
-            s += ', '+str(self.start)
+            s += ", " + str(self.start)
         if self.increment != 1:
-            s += ', '+str(self.increment)
-        s += ')'
+            s += ", " + str(self.increment)
+        s += ")"
         return s
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
-        if 'name' not in desc:
+        if "name" not in desc:
             logger.error("%s: missing required field 'name'", context)
             valid = False
-        if 'start' in desc:
+        if "start" in desc:
             try:
-                float(desc['start'])
+                float(desc["start"])
             except (TypeError, ValueError):
-                logger.error("%s: 'start' must be numeric, got %r", context, desc['start'])
+                logger.error(
+                    "%s: 'start' must be numeric, got %r", context, desc["start"]
+                )
                 valid = False
-        if 'increment' in desc:
+        if "increment" in desc:
             try:
-                float(desc['increment'])
+                float(desc["increment"])
             except (TypeError, ValueError):
-                logger.error("%s: 'increment' must be numeric, got %r", context, desc['increment'])
+                logger.error(
+                    "%s: 'increment' must be numeric, got %r",
+                    context,
+                    desc["increment"],
+                )
                 valid = False
         return valid
 
@@ -291,17 +356,19 @@ class DimensionGeneratorCounter:
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
+            s = '"' + self.name + '": null'
         else:
-            s = '"'+self.name+'":"'+str(self.get_stochastic_value())+'"'
+            s = '"' + self.name + '":"' + str(self.get_stochastic_value()) + '"'
             return s
 
     def is_missing(self):
         return random.random() < self.percent_missing
 
+
 #
 # STRING dimensions
 #
+
 
 class DimensionStatic:
     """Always emits a fixed literal value. Config type: "static".
@@ -309,24 +376,26 @@ class DimensionStatic:
     value is any JSON scalar (str, int, float, bool); the output type is the
     JSON value's own type.
     """
+
     def __init__(self, desc):
-        self.name = desc['name']
-        self.value = desc['value']
-        self.percent_missing = desc.get('percent_missing', 0) / 100.0
+        self.name = desc["name"]
+        self.value = desc["value"]
+        self.percent_missing = desc.get("percent_missing", 0) / 100.0
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
-        if 'name' not in desc:
+        if "name" not in desc:
             logger.error("%s: missing required field 'name'", context)
             valid = False
-        if 'value' not in desc:
+        if "value" not in desc:
             logger.error("%s: missing required field 'value'", context)
             valid = False
-        elif not isinstance(desc['value'], (str, int, float, bool)):
+        elif not isinstance(desc["value"], (str, int, float, bool)):
             logger.error(
                 "%s: 'value' must be a scalar (str, int, float, or bool), got %s",
-                context, type(desc['value']).__name__
+                context,
+                type(desc["value"]).__name__,
             )
             valid = False
         return valid
@@ -344,10 +413,11 @@ class DimensionGeneratorString(DimensionGeneratorBase):
     length_distribution controls how many characters to generate per value.
     chars (optional) restricts the character set; defaults to all printable ASCII.
     """
+
     def __init__(self, desc):
-        self.length_distribution = parse_distribution(desc['length_distribution'])
-        if 'chars' in desc:
-            self.chars = desc['chars']
+        self.length_distribution = parse_distribution(desc["length_distribution"])
+        if "chars" in desc:
+            self.chars = desc["chars"]
         else:
             self.chars = string.printable
         # random.choices() needs a sequence; precompute once instead of
@@ -356,48 +426,74 @@ class DimensionGeneratorString(DimensionGeneratorBase):
         super().__init__(desc)
 
     def __str__(self):
-        return 'DimensionGeneratorString(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+', chars='+self.chars+')'
+        return (
+            "DimensionGeneratorString(name="
+            + self.name
+            + ", cardinality="
+            + str(self.cardinality)
+            + ", cardinality_distribution="
+            + str(self.cardinality_distribution)
+            + ", chars="
+            + self.chars
+            + ")"
+        )
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
-        if 'name' not in desc:
+        if "name" not in desc:
             logger.error("%s: missing required field 'name'", context)
             valid = False
-        if 'cardinality' not in desc:
+        if "cardinality" not in desc:
             logger.error("%s: missing required field 'cardinality'", context)
             valid = False
         else:
             try:
-                cardinality = int(desc['cardinality'])
+                cardinality = int(desc["cardinality"])
                 if cardinality < 0:
-                    logger.error("%s: 'cardinality' must be an integer >= 0, got %s", context, desc['cardinality'])
+                    logger.error(
+                        "%s: 'cardinality' must be an integer >= 0, got %s",
+                        context,
+                        desc["cardinality"],
+                    )
                     valid = False
                 elif cardinality > 0:
-                    if 'cardinality_distribution' not in desc:
-                        logger.error("%s: 'cardinality' > 0 requires 'cardinality_distribution'", context)
+                    if "cardinality_distribution" not in desc:
+                        logger.error(
+                            "%s: 'cardinality' > 0 requires 'cardinality_distribution'",
+                            context,
+                        )
                         valid = False
                     else:
-                        if not validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution"):
+                        if not validate_distribution_desc(
+                            desc["cardinality_distribution"],
+                            f"{context} cardinality_distribution",
+                        ):
                             valid = False
             except (TypeError, ValueError):
-                logger.error("%s: 'cardinality' must be an integer, got %r", context, desc['cardinality'])
+                logger.error(
+                    "%s: 'cardinality' must be an integer, got %r",
+                    context,
+                    desc["cardinality"],
+                )
                 valid = False
-        if 'length_distribution' not in desc:
+        if "length_distribution" not in desc:
             logger.error("%s: missing required field 'length_distribution'", context)
             valid = False
         else:
-            if not validate_distribution_desc(desc['length_distribution'], f"{context} length_distribution"):
+            if not validate_distribution_desc(
+                desc["length_distribution"], f"{context} length_distribution"
+            ):
                 valid = False
         return valid
 
     def _get_raw_value(self):
         length = int(self.length_distribution.get_sample())
-        return ''.join(random.choices(self._chars_list, k=length))
+        return "".join(random.choices(self._chars_list, k=length))
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
+            s = '"' + self.name + '": null'
         else:
             if self.cardinality is None:
                 value = self.get_stochastic_value()
@@ -405,14 +501,16 @@ class DimensionGeneratorString(DimensionGeneratorBase):
                 index = int(self.cardinality_distribution.get_sample())
                 index = max(index, 0)
                 if index >= len(self.cardinality):
-                    index = len(self.cardinality)-1
+                    index = len(self.cardinality) - 1
                 value = self.cardinality[index]
-            s = '"'+self.name+'":"'+str(value)+'"'
+            s = '"' + self.name + '":"' + str(value) + '"'
         return s
+
 
 #
 # TIMESTAMP dimensions
 #
+
 
 class DimensionGeneratorClock:
     """Captures the worker's current simulated clock time as a datetime. Config type: "generator:clock".
@@ -421,14 +519,15 @@ class DimensionGeneratorClock:
     setup → timer → emit pattern. Returns timezone-aware UTC datetimes.
     Unlike DimensionGeneratorTimestamp, this reflects the simulation clock, not a random range.
     """
+
     def __init__(self, clock, desc):
         self.clock = clock
-        self.name = desc['name']  # Ensure self.name is set
+        self.name = desc["name"]  # Ensure self.name is set
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
-        if 'name' not in desc:
+        if "name" not in desc:
             logger.error("%s: missing required field 'name'", context)
             valid = False
         return valid
@@ -437,8 +536,11 @@ class DimensionGeneratorClock:
         # Retrieve the current time from the Clock instance
         current_time = self.clock.now()
         if current_time.tzinfo is None:
-            current_time = current_time.replace(tzinfo=timezone.utc)  # Default to UTC if no timezone
+            current_time = current_time.replace(
+                tzinfo=timezone.utc
+            )  # Default to UTC if no timezone
         return current_time
+
 
 class DimensionGeneratorTimestamp(DimensionGeneratorBase):
     """Generates a random datetime within a fixed range, independent of the simulation clock. Config type: "generator:timestamp".
@@ -446,26 +548,31 @@ class DimensionGeneratorTimestamp(DimensionGeneratorBase):
     distribution min/max are ISO 8601 strings. Use DimensionGeneratorClock ("generator:clock") instead
     when you want the record time to track the simulation clock.
     """
+
     def __init__(self, desc):
-        self.name = desc['name']
-        self.value_distribution = parse_timestamp_distribution(desc['distribution'])
-        if 'percent_nulls' in desc:
-            self.percent_nulls = desc['percent_nulls'] / 100.0
+        self.name = desc["name"]
+        self.value_distribution = parse_timestamp_distribution(desc["distribution"])
+        if "percent_nulls" in desc:
+            self.percent_nulls = desc["percent_nulls"] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc:
-            self.percent_missing = desc['percent_missing'] / 100.0
+        if "percent_missing" in desc:
+            self.percent_missing = desc["percent_missing"] / 100.0
         else:
             self.percent_missing = 0.0
-        cardinality = desc['cardinality']
+        cardinality = desc["cardinality"]
         if cardinality == 0:
             self.cardinality = None
             self.cardinality_distribution = None
         else:
-            if 'cardinality_distribution' not in desc:
-                raise Exception(f'"{self.name}" dimension specifies a cardinality without a cardinality distribution.')
+            if "cardinality_distribution" not in desc:
+                raise Exception(
+                    f'"{self.name}" dimension specifies a cardinality without a cardinality distribution.'
+                )
             self.cardinality = []
-            self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
+            self.cardinality_distribution = parse_distribution(
+                desc["cardinality_distribution"]
+            )
             for i in range(cardinality):
                 value = None
                 while True:
@@ -475,32 +582,46 @@ class DimensionGeneratorTimestamp(DimensionGeneratorBase):
                 self.cardinality.append(value)
 
     def __str__(self):
-        return 'DimensionGeneratorTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return (
+            "DimensionGeneratorTimestamp(name="
+            + self.name
+            + ", value_distribution="
+            + str(self.value_distribution)
+            + ", cardinality="
+            + str(self.cardinality)
+            + ", cardinality_distribution="
+            + str(self.cardinality_distribution)
+            + ")"
+        )
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
-        if 'name' not in desc:
+        if "name" not in desc:
             logger.error("%s: missing required field 'name'", context)
             valid = False
-        if 'cardinality' not in desc:
+        if "cardinality" not in desc:
             logger.error("%s: missing required field 'cardinality'", context)
             valid = False
-        if 'distribution' not in desc:
+        if "distribution" not in desc:
             logger.error("%s: missing required field 'distribution'", context)
             valid = False
         else:
-            if not validate_distribution_desc(desc['distribution'], f"{context} distribution"):
+            if not validate_distribution_desc(
+                desc["distribution"], f"{context} distribution"
+            ):
                 valid = False
         return valid
 
     def _get_raw_value(self):
         # Return a random timestamp as a datetime object
-        return datetime.fromtimestamp(self.value_distribution.get_sample(), tz=timezone.utc)
+        return datetime.fromtimestamp(
+            self.value_distribution.get_sample(), tz=timezone.utc
+        )
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
+            s = '"' + self.name + '": null'
         else:
             if self.cardinality is None:
                 value = self.get_stochastic_value()
@@ -508,13 +629,14 @@ class DimensionGeneratorTimestamp(DimensionGeneratorBase):
                 index = int(self.cardinality_distribution.get_sample())
                 index = max(index, 0)
                 if index >= len(self.cardinality):
-                    index = len(self.cardinality)-1
+                    index = len(self.cardinality) - 1
                 value = self.cardinality[index]
-            s = '"'+self.name+'":"'+str(value)+'"'
+            s = '"' + self.name + '":"' + str(value) + '"'
         return s
 
     def is_missing(self):
         return random.random() < self.percent_missing
+
 
 class DimensionGeneratorIPAddress(DimensionGeneratorBase):
     """Generates IPv4 addresses from a numeric distribution over the 32-bit address space. Config type: "generator:ipaddress".
@@ -522,12 +644,23 @@ class DimensionGeneratorIPAddress(DimensionGeneratorBase):
     distribution min/max are integers representing the packed 32-bit address.
     Use a CIDR range by computing min/max from the network prefix.
     """
+
     def __init__(self, desc):
-        self.value_distribution = parse_distribution(desc['distribution'])
+        self.value_distribution = parse_distribution(desc["distribution"])
         super().__init__(desc)
 
     def __str__(self):
-        return 'DimensionGeneratorIPAddress(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return (
+            "DimensionGeneratorIPAddress(name="
+            + self.name
+            + ", value_distribution="
+            + str(self.value_distribution)
+            + ", cardinality="
+            + str(self.cardinality)
+            + ", cardinality_distribution="
+            + str(self.cardinality_distribution)
+            + ")"
+        )
 
     @staticmethod
     def validate_desc(desc, context):
@@ -535,11 +668,19 @@ class DimensionGeneratorIPAddress(DimensionGeneratorBase):
 
     def _get_raw_value(self):
         value = int(self.value_distribution.get_sample())
-        return str((value & 0xFF000000) >> 24)+'.'+str((value & 0x00FF0000) >> 16)+'.'+str((value & 0x0000FF00) >> 8)+'.'+str(value & 0x000000FF)
+        return (
+            str((value & 0xFF000000) >> 24)
+            + "."
+            + str((value & 0x00FF0000) >> 16)
+            + "."
+            + str((value & 0x0000FF00) >> 8)
+            + "."
+            + str(value & 0x000000FF)
+        )
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
+            s = '"' + self.name + '": null'
         else:
             if self.cardinality is None:
                 value = self.get_stochastic_value()
@@ -547,14 +688,16 @@ class DimensionGeneratorIPAddress(DimensionGeneratorBase):
                 index = int(self.cardinality_distribution.get_sample())
                 index = max(index, 0)
                 if index >= len(self.cardinality):
-                    index = len(self.cardinality)-1
+                    index = len(self.cardinality) - 1
                 value = self.cardinality[index]
-            s = '"'+self.name+'":"'+str(value)+'"'
+            s = '"' + self.name + '":"' + str(value) + '"'
         return s
+
 
 #
 # Complex dimensions
 #
+
 
 class DimensionGeneratorEnum:
     """Selects a value from a fixed list using a cardinality_distribution index. Config type: "generator:enum".
@@ -563,45 +706,72 @@ class DimensionGeneratorEnum:
     uniform(min=0, max=N-1) gives equal probability. The index is clamped to
     [0, len(values)-1] to prevent out-of-range errors.
     """
+
     def __init__(self, desc):
-        self.name = desc['name']
-        if 'percent_nulls' in desc:
-            self.percent_nulls = desc['percent_nulls'] / 100.0
+        self.name = desc["name"]
+        if "percent_nulls" in desc:
+            self.percent_nulls = desc["percent_nulls"] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc:
-            self.percent_missing = desc['percent_missing'] / 100.0
+        if "percent_missing" in desc:
+            self.percent_missing = desc["percent_missing"] / 100.0
         else:
             self.percent_missing = 0.0
-        self.cardinality = desc['values']
-        if 'cardinality_distribution' not in desc:
-            raise Exception(f'Dimension {self.name} specifies a cardinality without a cardinality distribution.')
-        self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
+        self.cardinality = desc["values"]
+        if "cardinality_distribution" not in desc:
+            raise Exception(
+                f"Dimension {self.name} specifies a cardinality without a cardinality distribution."
+            )
+        self.cardinality_distribution = parse_distribution(
+            desc["cardinality_distribution"]
+        )
 
     def __str__(self):
-        return 'DimensionGeneratorEnum(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return (
+            "DimensionGeneratorEnum(name="
+            + self.name
+            + ", cardinality="
+            + str(self.cardinality)
+            + ", cardinality_distribution="
+            + str(self.cardinality_distribution)
+            + ")"
+        )
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
-        if 'name' not in desc:
+        if "name" not in desc:
             logger.error("%s: missing required field 'name'", context)
             valid = False
-        values = desc.get('values')
+        values = desc.get("values")
         if not values or not isinstance(values, list):
             logger.error("%s: 'values' required and must be a non-empty list", context)
             valid = False
-        if 'cardinality_distribution' not in desc:
-            logger.error("%s: missing required field 'cardinality_distribution'", context)
+        if "cardinality_distribution" not in desc:
+            logger.error(
+                "%s: missing required field 'cardinality_distribution'", context
+            )
             valid = False
         else:
-            if not validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution"):
+            if not validate_distribution_desc(
+                desc["cardinality_distribution"], f"{context} cardinality_distribution"
+            ):
                 valid = False
-            cd = desc['cardinality_distribution']
-            if isinstance(cd, dict) and cd.get('type', '').lower() == 'uniform' and values and isinstance(values, list):
+            cd = desc["cardinality_distribution"]
+            if (
+                isinstance(cd, dict)
+                and cd.get("type", "").lower() == "uniform"
+                and values
+                and isinstance(values, list)
+            ):
                 try:
-                    if int(cd.get('max', 0)) > len(values) - 1:
-                        logger.warning("%s: cardinality_distribution uniform 'max' (%s) exceeds last valid index (%d) — distribution will be skewed", context, cd['max'], len(values) - 1)
+                    if int(cd.get("max", 0)) > len(values) - 1:
+                        logger.warning(
+                            "%s: cardinality_distribution uniform 'max' (%s) exceeds last valid index (%d) — distribution will be skewed",
+                            context,
+                            cd["max"],
+                            len(values) - 1,
+                        )
                         # do NOT set valid = False — this is non-fatal
                 except (TypeError, ValueError):
                     pass
@@ -611,42 +781,48 @@ class DimensionGeneratorEnum:
         index = int(self.cardinality_distribution.get_sample())
         index = max(index, 0)
         if index >= len(self.cardinality):
-            index = len(self.cardinality)-1
+            index = len(self.cardinality) - 1
         return self.cardinality[index]
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
+            s = '"' + self.name + '": null'
         else:
-            s = '"'+self.name+'":"'+str(self.get_stochastic_value())+'"'
+            s = '"' + self.name + '":"' + str(self.get_stochastic_value()) + '"'
         return s
 
     def is_missing(self):
         return random.random() < self.percent_missing
 
+
 class DimensionGeneratorObject:
     """Generates a nested JSON object from a list of child dimensions. Config type: "generator:object"."""
+
     def __init__(self, clock, desc):
         self.global_clock = clock
-        self.name = desc['name']
-        self.dimensions = get_variables(desc['dimensions'], self.global_clock)
-        if 'percent_nulls' in desc:
-            self.percent_nulls = desc['percent_nulls'] / 100.0
+        self.name = desc["name"]
+        self.dimensions = get_variables(desc["dimensions"], self.global_clock)
+        if "percent_nulls" in desc:
+            self.percent_nulls = desc["percent_nulls"] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc:
-            self.percent_missing = desc['percent_missing'] / 100.0
+        if "percent_missing" in desc:
+            self.percent_missing = desc["percent_missing"] / 100.0
         else:
             self.percent_missing = 0.0
-        cardinality = desc['cardinality']
+        cardinality = desc["cardinality"]
         if cardinality == 0:
             self.cardinality = None
             self.cardinality_distribution = None
         else:
             self.cardinality = []
-            if 'cardinality_distribution' not in desc:
-                raise Exception(f'Dimension {self.name} specifies a cardinality without a cardinality distribution.')
-            self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
+            if "cardinality_distribution" not in desc:
+                raise Exception(
+                    f"Dimension {self.name} specifies a cardinality without a cardinality distribution."
+                )
+            self.cardinality_distribution = parse_distribution(
+                desc["cardinality_distribution"]
+            )
             for i in range(cardinality):
                 while True:
                     value = self.get_instance()
@@ -655,58 +831,75 @@ class DimensionGeneratorObject:
                 self.cardinality.append(value)
 
     def __str__(self):
-        s = 'DimensionGeneratorObject(name='+self.name+', dimensions=['
+        s = "DimensionGeneratorObject(name=" + self.name + ", dimensions=["
         for e in self.dimensions:
-            s += ',' + str(e)
-        s += '])'
+            s += "," + str(e)
+        s += "])"
         return s
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
-        if 'name' not in desc:
+        if "name" not in desc:
             logger.error("%s: missing required field 'name'", context)
             valid = False
-        if 'cardinality' not in desc:
+        if "cardinality" not in desc:
             logger.error("%s: missing required field 'cardinality'", context)
             valid = False
         else:
             try:
-                cardinality = int(desc['cardinality'])
+                cardinality = int(desc["cardinality"])
                 if cardinality < 0:
-                    logger.error("%s: 'cardinality' must be an integer >= 0, got %s", context, desc['cardinality'])
+                    logger.error(
+                        "%s: 'cardinality' must be an integer >= 0, got %s",
+                        context,
+                        desc["cardinality"],
+                    )
                     valid = False
                 elif cardinality > 0:
-                    if 'cardinality_distribution' not in desc:
-                        logger.error("%s: 'cardinality' > 0 requires 'cardinality_distribution'", context)
+                    if "cardinality_distribution" not in desc:
+                        logger.error(
+                            "%s: 'cardinality' > 0 requires 'cardinality_distribution'",
+                            context,
+                        )
                         valid = False
                     else:
-                        if not validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution"):
+                        if not validate_distribution_desc(
+                            desc["cardinality_distribution"],
+                            f"{context} cardinality_distribution",
+                        ):
                             valid = False
             except (TypeError, ValueError):
-                logger.error("%s: 'cardinality' must be an integer, got %r", context, desc['cardinality'])
+                logger.error(
+                    "%s: 'cardinality' must be an integer, got %r",
+                    context,
+                    desc["cardinality"],
+                )
                 valid = False
-        dims = desc.get('dimensions')
+        dims = desc.get("dimensions")
         if not dims or not isinstance(dims, list):
-            logger.error("%s: 'dimensions' required and must be a non-empty list", context)
+            logger.error(
+                "%s: 'dimensions' required and must be a non-empty list", context
+            )
             valid = False
         else:
             for nested in dims:
-                if not validate_dimension_desc(nested, f"{context}, nested dimension '{nested.get('name', '?')}'"):
+                if not validate_dimension_desc(
+                    nested, f"{context}, nested dimension '{nested.get('name', '?')}'"
+                ):
                     valid = False
         return valid
 
     def get_instance(self):
-        s = '"'+self.name+'": {'
+        s = '"' + self.name + '": {'
         for e in self.dimensions:
-            s += e.get_json_field_string() + ','
-        s = s[:-1] +  '}'
+            s += e.get_json_field_string() + ","
+        s = s[:-1] + "}"
         return s
-
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
+            s = '"' + self.name + '": null'
         else:
             if self.cardinality is None:
                 s = self.get_instance()
@@ -714,12 +907,13 @@ class DimensionGeneratorObject:
                 index = int(self.cardinality_distribution.get_sample())
                 index = max(index, 0)
                 if index >= len(self.cardinality):
-                    index = len(self.cardinality)-1
+                    index = len(self.cardinality) - 1
                 s = self.cardinality[index]
         return s
 
     def is_missing(self):
         return random.random() < self.percent_missing
+
 
 class DimensionGeneratorList:
     """Generates a JSON array whose length and element type are both drawn from distributions. Config type: "generator:list".
@@ -727,29 +921,34 @@ class DimensionGeneratorList:
     length_distribution controls the number of elements per array.
     selection_distribution indexes into the elements list to pick the element type for each slot.
     """
+
     def __init__(self, clock, desc):
         self.global_clock = clock
-        self.name = desc['name']
-        self.elements = get_variables(desc['elements'], self.global_clock)
-        self.length_distribution = parse_distribution(desc['length_distribution'])
-        self.selection_distribution = parse_distribution(desc['selection_distribution'])
-        if 'percent_nulls' in desc:
-            self.percent_nulls = desc['percent_nulls'] / 100.0
+        self.name = desc["name"]
+        self.elements = get_variables(desc["elements"], self.global_clock)
+        self.length_distribution = parse_distribution(desc["length_distribution"])
+        self.selection_distribution = parse_distribution(desc["selection_distribution"])
+        if "percent_nulls" in desc:
+            self.percent_nulls = desc["percent_nulls"] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc:
-            self.percent_missing = desc['percent_missing'] / 100.0
+        if "percent_missing" in desc:
+            self.percent_missing = desc["percent_missing"] / 100.0
         else:
             self.percent_missing = 0.0
-        cardinality = desc['cardinality']
+        cardinality = desc["cardinality"]
         if cardinality == 0:
             self.cardinality = None
             self.cardinality_distribution = None
         else:
             self.cardinality = []
-            if 'cardinality_distribution' not in desc:
-                raise Exception(f'Dimension {self.name} specifies a cardinality without a cardinality distribution.')
-            self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
+            if "cardinality_distribution" not in desc:
+                raise Exception(
+                    f"Dimension {self.name} specifies a cardinality without a cardinality distribution."
+                )
+            self.cardinality_distribution = parse_distribution(
+                desc["cardinality_distribution"]
+            )
             for i in range(cardinality):
                 while True:
                     value = self.get_instance()
@@ -758,78 +957,104 @@ class DimensionGeneratorList:
                 self.cardinality.append(value)
 
     def __str__(self):
-        s = 'DimensionGeneratorObject(name='+self.name
-        s += ', length_distribution='+str(self.length_distribution)
-        s += ', selection_distribution='+str(self.selection_distribution)
-        s += ', elements=['
+        s = "DimensionGeneratorObject(name=" + self.name
+        s += ", length_distribution=" + str(self.length_distribution)
+        s += ", selection_distribution=" + str(self.selection_distribution)
+        s += ", elements=["
         for e in self.elements:
-            s += ',' + str(e)
-        s += '])'
+            s += "," + str(e)
+        s += "])"
         return s
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
-        if 'name' not in desc:
+        if "name" not in desc:
             logger.error("%s: missing required field 'name'", context)
             valid = False
-        if 'cardinality' not in desc:
+        if "cardinality" not in desc:
             logger.error("%s: missing required field 'cardinality'", context)
             valid = False
         else:
             try:
-                cardinality = int(desc['cardinality'])
+                cardinality = int(desc["cardinality"])
                 if cardinality < 0:
-                    logger.error("%s: 'cardinality' must be an integer >= 0, got %s", context, desc['cardinality'])
+                    logger.error(
+                        "%s: 'cardinality' must be an integer >= 0, got %s",
+                        context,
+                        desc["cardinality"],
+                    )
                     valid = False
                 elif cardinality > 0:
-                    if 'cardinality_distribution' not in desc:
-                        logger.error("%s: 'cardinality' > 0 requires 'cardinality_distribution'", context)
+                    if "cardinality_distribution" not in desc:
+                        logger.error(
+                            "%s: 'cardinality' > 0 requires 'cardinality_distribution'",
+                            context,
+                        )
                         valid = False
                     else:
-                        if not validate_distribution_desc(desc['cardinality_distribution'], f"{context} cardinality_distribution"):
+                        if not validate_distribution_desc(
+                            desc["cardinality_distribution"],
+                            f"{context} cardinality_distribution",
+                        ):
                             valid = False
             except (TypeError, ValueError):
-                logger.error("%s: 'cardinality' must be an integer, got %r", context, desc['cardinality'])
+                logger.error(
+                    "%s: 'cardinality' must be an integer, got %r",
+                    context,
+                    desc["cardinality"],
+                )
                 valid = False
-        elems = desc.get('elements')
+        elems = desc.get("elements")
         if not elems or not isinstance(elems, list):
-            logger.error("%s: 'elements' required and must be a non-empty list", context)
+            logger.error(
+                "%s: 'elements' required and must be a non-empty list", context
+            )
             valid = False
         else:
             for elem in elems:
-                if not validate_dimension_desc(elem, f"{context}, element '{elem.get('name', '?')}'"):
+                if not validate_dimension_desc(
+                    elem, f"{context}, element '{elem.get('name', '?')}'"
+                ):
                     valid = False
-        if 'length_distribution' not in desc:
+        if "length_distribution" not in desc:
             logger.error("%s: missing required field 'length_distribution'", context)
             valid = False
         else:
-            if not validate_distribution_desc(desc['length_distribution'], f"{context} length_distribution"):
+            if not validate_distribution_desc(
+                desc["length_distribution"], f"{context} length_distribution"
+            ):
                 valid = False
-        if 'selection_distribution' not in desc:
+        if "selection_distribution" not in desc:
             logger.error("%s: missing required field 'selection_distribution'", context)
             valid = False
         else:
-            if not validate_distribution_desc(desc['selection_distribution'], f"{context} selection_distribution"):
+            if not validate_distribution_desc(
+                desc["selection_distribution"], f"{context} selection_distribution"
+            ):
                 valid = False
         return valid
 
     def get_instance(self):
-        s = '"'+self.name+'": ['
+        s = '"' + self.name + '": ['
         length = int(self.length_distribution.get_sample())
         for i in range(length):
             index = int(self.selection_distribution.get_sample())
             index = max(index, 0)
             if index >= length:
-                index = length-1
-            s += re.sub('^.*?:', '', self.elements[index].get_json_field_string(), count=1) + ','
-        s = s[:-1] +  ']'
+                index = length - 1
+            s += (
+                re.sub(
+                    "^.*?:", "", self.elements[index].get_json_field_string(), count=1
+                )
+                + ","
+            )
+        s = s[:-1] + "]"
         return s
-
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
-            s = '"'+self.name+'": null'
+            s = '"' + self.name + '": null'
         else:
             if self.cardinality is None:
                 s = self.get_instance()
@@ -837,7 +1062,7 @@ class DimensionGeneratorList:
                 index = int(self.cardinality_distribution.get_sample())
                 index = max(index, 0)
                 if index >= len(self.cardinality):
-                    index = len(self.cardinality)-1
+                    index = len(self.cardinality) - 1
                 s = self.cardinality[index]
         return s
 
@@ -849,6 +1074,7 @@ class DimensionGeneratorList:
 # Classes for handling variables
 #
 
+
 class DimensionVariable:
     """Outputs the current value of a named worker variable. Config type: "variable".
 
@@ -857,62 +1083,76 @@ class DimensionVariable:
     will be raised at runtime. Use validate_config() to catch this pre-flight.
     Only valid in emitter dimensions, not in a state's variables block.
     """
+
     def __init__(self, desc):
-        self.name = desc['name']
-        self.variable_name = desc['variable']
+        self.name = desc["name"]
+        self.variable_name = desc["variable"]
 
     def __str__(self):
-        return 'DimensionVariable(name='+self.name+', value='+self.variable_name+')'
+        return (
+            "DimensionVariable(name="
+            + self.name
+            + ", value="
+            + self.variable_name
+            + ")"
+        )
 
     @staticmethod
     def validate_desc(desc, context):
         valid = True
-        if 'name' not in desc:
+        if "name" not in desc:
             logger.error("%s: missing required field 'name'", context)
             valid = False
-        if 'variable' not in desc:
+        if "variable" not in desc:
             logger.error("%s: missing required field 'variable'", context)
             valid = False
         return valid
 
-    def get_json_field_string(self, variables): # NOTE: because of timing, this method has a different signature than the other elements
+    def get_json_field_string(
+        self, variables
+    ):  # NOTE: because of timing, this method has a different signature than the other elements
         value = variables[self.variable_name]
-        return '"'+self.name+'":"'+str(value)+'"'
+        return '"' + self.name + '":"' + str(value) + '"'
+
 
 #
 # Configuration parsing functions
 #
 
 _GENERATOR_CLASSES = {
-    'generator:counter': DimensionGeneratorCounter,
-    'generator:enum': DimensionGeneratorEnum,
-    'generator:string': DimensionGeneratorString,
-    'generator:int': DimensionGeneratorInt,
-    'generator:float': DimensionGeneratorFloat,
-    'generator:timestamp': DimensionGeneratorTimestamp,
-    'generator:clock': DimensionGeneratorClock,
-    'generator:ipaddress': DimensionGeneratorIPAddress,
-    'generator:object': DimensionGeneratorObject,
-    'generator:list': DimensionGeneratorList,
+    "generator:counter": DimensionGeneratorCounter,
+    "generator:enum": DimensionGeneratorEnum,
+    "generator:string": DimensionGeneratorString,
+    "generator:int": DimensionGeneratorInt,
+    "generator:float": DimensionGeneratorFloat,
+    "generator:timestamp": DimensionGeneratorTimestamp,
+    "generator:clock": DimensionGeneratorClock,
+    "generator:ipaddress": DimensionGeneratorIPAddress,
+    "generator:object": DimensionGeneratorObject,
+    "generator:list": DimensionGeneratorList,
 }
 
 # These classes also need the simulation clock (their own, or for child dimensions).
-_CLOCK_AWARE = (DimensionGeneratorClock, DimensionGeneratorObject, DimensionGeneratorList)
+_CLOCK_AWARE = (
+    DimensionGeneratorClock,
+    DimensionGeneratorObject,
+    DimensionGeneratorList,
+)
 
 # Type names retired by the move to static / variable / generator:<class>.
 RETIRED_DIMENSION_TYPES = {
-    'string:static': 'static',
-    'int:static': 'static',
-    **{t.split(':', 1)[1]: t for t in _GENERATOR_CLASSES},
+    "string:static": "static",
+    "int:static": "static",
+    **{t.split(":", 1)[1]: t for t in _GENERATOR_CLASSES},
 }
 
 
 def parse_element(desc, global_clock):
     """Return the dimension object for one dimension config dict."""
-    t = desc['type'].lower()
-    if t == 'static':
+    t = desc["type"].lower()
+    if t == "static":
         return DimensionStatic(desc)
-    if t == 'variable':
+    if t == "variable":
         return DimensionVariable(desc)
     cls = _GENERATOR_CLASSES.get(t)
     if cls is None:
@@ -921,19 +1161,20 @@ def parse_element(desc, global_clock):
         return cls(global_clock, desc)
     return cls(desc)
 
+
 def get_variables(desc, global_clock):
     # Parses the emitter configuration and returns a list of dimension objects using parse_element().
-    elements = []
-    for element in desc:
-        elements.append(parse_element(element, global_clock))  # Pass global_clock
-    return elements
+    return [parse_element(element, global_clock) for element in desc]
+
 
 def get_dimensions(desc, global_clock):
     # Parses the emitter configuration and returns a list of dimension objects using parse_element().
     elements = get_variables(desc, global_clock)  # Pass global_clock
     return elements
 
-KNOWN_DIMENSION_TYPES = ('static', 'variable', *sorted(_GENERATOR_CLASSES))
+
+KNOWN_DIMENSION_TYPES = ("static", "variable", *sorted(_GENERATOR_CLASSES))
+
 
 def validate_dimension_desc(desc, context):
     """
@@ -941,26 +1182,32 @@ def validate_dimension_desc(desc, context):
     Logs errors/warnings directly and returns True (valid) or False (invalid).
     """
     if not isinstance(desc, dict):
-        logger.error("%s: dimension must be a JSON object, got %s", context, type(desc).__name__)
+        logger.error(
+            "%s: dimension must be a JSON object, got %s", context, type(desc).__name__
+        )
         return False
-    if 'type' not in desc:
+    if "type" not in desc:
         logger.error("%s: missing required field 'type'", context)
         return False
-    dim_type = str(desc['type']).lower()
-    if dim_type == 'static':
+    dim_type = str(desc["type"]).lower()
+    if dim_type == "static":
         return DimensionStatic.validate_desc(desc, context)
-    if dim_type == 'variable':
+    if dim_type == "variable":
         return DimensionVariable.validate_desc(desc, context)
     if dim_type in _GENERATOR_CLASSES:
         return _GENERATOR_CLASSES[dim_type].validate_desc(desc, context)
     if dim_type in RETIRED_DIMENSION_TYPES:
         logger.error(
             "%s: dimension type '%s' was renamed to '%s'",
-            context, desc['type'], RETIRED_DIMENSION_TYPES[dim_type]
+            context,
+            desc["type"],
+            RETIRED_DIMENSION_TYPES[dim_type],
         )
         return False
     logger.error(
         "%s: unknown dimension type '%s' (known: %s)",
-        context, desc['type'], ', '.join(KNOWN_DIMENSION_TYPES)
+        context,
+        desc["type"],
+        ", ".join(KNOWN_DIMENSION_TYPES),
     )
     return False
