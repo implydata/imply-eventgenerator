@@ -550,7 +550,7 @@ Examples:
 
 - **VPC Flow Logs**: multiple 60-second aggregation windows for the same
   connection
-- **Session Logs**: multiple events (pageviews, clicks) for the same session
+- **Session Logs**: multiple events (page views, clicks) for the same session
 - **Transaction Logs**: multiple line items for the same order
 
 **Pattern:** use a continue/loop state to emit multiple records for the same

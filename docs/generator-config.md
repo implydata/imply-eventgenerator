@@ -140,7 +140,7 @@ time,value
 
 `-p`/`--partition <duration>` emits a self-describing marker into the output
 stream at every calendar-aligned boundary of the given ISO 8601 duration—`P1D`
-for midnight, `PT1H` for the top of every hour—like SQL's `TIME_TRUNC`, not an
+for midnight, `PT1H` for the top of every hour—like `TIME_TRUNC` in SQL, not an
 offset from `-s`. The first partition may be shorter than one interval if `-s`
 doesn't itself fall on a boundary. If the active template has a `header`, it's
 re-emitted right after each marker too, so every partition is a self-contained

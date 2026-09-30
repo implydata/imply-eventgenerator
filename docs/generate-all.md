@@ -115,7 +115,7 @@ The ecommerce presets (`ecommerce`, `ecommerce_lighting`, `ecommerce_furniture`)
 each get their own separate `templates` list, even though the three currently
 list identical templates—they're independent configs (see the project's own
 guidance on this), so keeping their entries independent here too means editing
-one's templates never silently affects another's.
+the templates for one never silently affects the others.
 
 ### Volumes
 
@@ -130,13 +130,12 @@ collide on disk.
 Omitting `--volume` entirely is its own distinct mode, not shorthand for any
 named volume: **neither `-i` nor `-w` is passed to `generator.py` at all**, so
 it falls back to its own bare defaults—`DEFAULT_CONCURRENCY` (100) for `-w`, and
-whatever interarrival rate is already configured in the preset's own
-`event:start:timer` state for `-i`. The output path segment for this mode is the
-literal string `default`. This is deliberately _not_ the same as any named
-volume's tuned settings—a profile's natural, un-overridden output can land
-above, below, or between the named tiers depending on its own ceiling, so
-`default` exists as its own thing rather than being folded into (or aliased to)
-one of them.
+whatever interarrival rate the `event:start:timer` state in the preset already
+sets for `-i`. The output path segment for this mode is the literal string
+`default`. This is deliberately _not_ the same as any named volume's tuned
+settings—a profile's natural, un-overridden output can land above, below, or
+between the named tiers depending on its own ceiling, so `default` exists as its
+own thing rather than being folded into (or aliased to) one of them.
 
 Each named volume is a **cap**, not a target average—the settings for a given
 profile/volume pair are tuned so that no single day's row count exceeds it, not
@@ -152,12 +151,11 @@ past the natural ceiling for whatever interarrival rate is already in effect
 than guessed.
 
 Not every profile supports every volume—the ceiling a profile can actually reach
-depends on its own `-w`/`-i` limits (see each preset's own
-`docs/presets/<profile>.md` Volume section). A profile with no recorded entry
-for the requested volume is skipped with a message rather than failing the whole
-run, so `--volume large --profile ecommerce --profile endpoint_network` runs
-whichever of the two actually supports `large` and says why it skipped the
-other.
+depends on its own `-w`/`-i` limits (see the Volume section of
+`docs/presets/<profile>.md`). A profile with no recorded entry for the requested
+volume is skipped with a message rather than failing the whole run, so
+`--volume large --profile ecommerce --profile endpoint_network` runs whichever
+of the two actually supports `large` and says why it skipped the other.
 
 Each entry also records `observed_max_rows_per_day`,
 `observed_mean_rows_per_day`, `test_window_days`, and `tested_on`—real, measured

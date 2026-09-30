@@ -422,20 +422,19 @@ jq -r '.request_id' sample.json | sort | uniq | wc -l
 
 ### Volume (`-w` and `-i`)
 
-`-w` and `-i` together determine throughput via Little's Law—see the
-[README's Volume section](../README.md#volume) for the concept. The
-best-practice question for config authoring: **what are you modeling, and does
-the resulting concurrency
-ceiling—`(average session duration) / (start interval)`—seem right for that?** A
-PBX with a ceiling of ~9 concurrent calls, or an e-commerce site with a ceiling
-of ~2,000 concurrent shoppers, should each feel plausible for the real system
-being described. If a config's ceiling comes out oddly tiny or huge, that's
-usually a sign the durations or interval you picked don't actually reflect the
-real system yet—not something to shrug off. And `-i` is the primary lever for
-_volume_: reaching for `-w` first when you want more data is a common wrong
-instinct, since raising it past the ceiling has no effect. See Step 10 of
-[how-to-build-a-config.md](how-to-build-a-config.md) for measuring a preset's
-own ceiling once it's built.
+`-w` and `-i` together determine throughput via Little's Law—see
+[Volume](../README.md#volume) in the README for the concept. The best-practice
+question for config authoring: **what are you modeling, and does the resulting
+concurrency ceiling—`(average session duration) / (start interval)`—seem right
+for that?** A PBX with a ceiling of ~9 concurrent calls, or an e-commerce site
+with a ceiling of ~2,000 concurrent shoppers, should each feel plausible for the
+real system being described. If the ceiling for a config comes out oddly tiny or
+huge, that's usually a sign the durations or interval you picked don't actually
+reflect the real system yet—not something to shrug off. And `-i` is the primary
+lever for _volume_: reaching for `-w` first when you want more data is a common
+wrong instinct, since raising it past the ceiling has no effect. See Step 10 of
+[how-to-build-a-config.md](how-to-build-a-config.md) for measuring the ceiling
+of a preset once it's built.
 
 ### Cardinality impact
 
@@ -522,7 +521,7 @@ See [patterns.md](patterns.md#flow-duration-with-setup-and-timer-states)
 {"name": "var_user_id", "type": "generator:int", "distribution": {"type": "uniform", "min": 1, "max": 2147483647}}
 ```
 
-**Result**: every record has unique user_id (unrealistic).
+**Result**: every record has a unique `user_id` (unrealistic).
 
 ✅ **Solution**: control cardinality with enums or limited ranges
 

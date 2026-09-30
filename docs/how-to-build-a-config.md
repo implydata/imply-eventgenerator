@@ -336,9 +336,9 @@ binary-search refinement—and prints the empirical ceiling to stderr, plus a CS
 table of rows vs `-w` to stdout. If the config has an ambiguous clock field,
 pass `--clock-field <field>`.
 
-Document the result in the preset's `docs/presets/<name>.md` Volume section
-using direct language and include the empirical table and a Mermaid
-`xychart-beta`. See `docs/presets/vpc_flow_logs.md` for the canonical format.
+Document the result in the Volume section of `docs/presets/<name>.md` using
+direct language and include the empirical table and a Mermaid `xychart-beta`.
+See `docs/presets/vpc_flow_logs.md` for the canonical format.
 
 ---
 
