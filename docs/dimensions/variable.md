@@ -9,10 +9,9 @@ variables) causes a validation error.
 
 **Runtime error**: if the referenced variable has not been set by the time the
 emitter runs, the generator raises a `KeyError`. This is not always caught by
-`--validate` — if the execution path can reach the emitter before the activity
-that sets the variable, the error will only appear at runtime. Always set
-variables in a `setup_*` activity that runs before any emit state that
-references them.
+`--validate`—if the execution path can reach the emitter before the activity
+that sets the variable, the error only appears at runtime. Always set variables
+in a `setup_*` activity that runs before any emit state that references them.
 
 | Field      | Description                                                                | Possible values | Required? | Default |
 | ---------- | -------------------------------------------------------------------------- | --------------- | --------- | ------- |
@@ -118,7 +117,7 @@ Both activities use the `click` emitter, which contains:
 }
 ```
 
-Save the JSON above as `example.json` and run it with the following command.
+Save the preceding JSON as `example.json` and run it with the following command.
 
 ```bash
 python generator.py -c example.json -n 15 -w 2 -s "2009-05-21T08:00:10"

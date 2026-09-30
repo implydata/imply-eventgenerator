@@ -4,20 +4,20 @@
 > for the step-by-step design process. This page is the field-level reference.
 
 A generator configuration is a JSON document passed to the generator via `-c`.
-Each concurrent worker (`-w`) runs one independent Actor — one lifecycle from
-the initial `event:start:timer` state to `event:end`.
+Each concurrent worker (`-w`) runs one independent Actor—one lifecycle from the
+initial `event:start:timer` state to `event:end`.
 
 See [`presets/configs/`](../presets/configs/) for ready-to-use examples.
 
 | Object                        | Description                                                   | Options                           | Required? |
 | ----------------------------- | ------------------------------------------------------------- | --------------------------------- | --------- |
-| [`states`](./states.md)       | A list of states that will be used to generate events.        | See [`states`](./states.md)       | Yes       |
+| [`states`](./states.md)       | A list of states used to generate events.                     | See [`states`](./states.md)       | Yes       |
 | [`emitters`](./emitters.md)   | A list of emitters.                                           | See [`emitters`](./emitters.md)   | Yes       |
 | [`templates`](./templates.md) | Named Jinja2 output templates, selected at runtime with `-t`. | See [`templates`](./templates.md) | No        |
 
 In this example, `session_start` spawns a new worker every second. Each worker
 emits an event via `emit_event`, waits 5 seconds in `wait_5s`, then loops back
-to emit again via the `route` gateway — cycling until the generator stops or the
+to emit again via the `route` gateway—cycling until the generator stops or the
 worker exits.
 
 ```json
@@ -74,7 +74,7 @@ worker exits.
 }
 ```
 
-Try this out by saving the above to `example.json`.
+Try this out by saving the preceding JSON to `example.json`.
 
 The following command generates 10 records with one worker, using a simulated
 clock:
@@ -139,8 +139,8 @@ time,value
 ## Partitioning output for bulk export
 
 `-p`/`--partition <duration>` emits a self-describing marker into the output
-stream at every calendar-aligned boundary of the given ISO 8601 duration — `P1D`
-for midnight, `PT1H` for the top of every hour — like SQL's `TIME_TRUNC`, not an
+stream at every calendar-aligned boundary of the given ISO 8601 duration—`P1D`
+for midnight, `PT1H` for the top of every hour—like SQL's `TIME_TRUNC`, not an
 offset from `-s`. The first partition may be shorter than one interval if `-s`
 doesn't itself fall on a boundary. If the active template has a `header`, it's
 re-emitted right after each marker too, so every partition is a self-contained
@@ -161,25 +161,25 @@ time,value
 ...
 ```
 
-`<RS>` above is the literal ASCII Record Separator control character (`\x1e`),
-not printable text — `tools/split_stream.sh` splits on this exact prefix.
+In the preceding output, `<RS>` is the literal ASCII Record Separator control
+character (`\x1e`), not printable text—`tools/split_stream.sh` splits on this
+exact prefix.
 
 This exists so one long, continuous run can be split into per-day (or per-hour)
 files afterwards without any tool having to parse a timestamp out of the
-rendered records — not possible generically, since different templates render
-time in different fields and formats (or none at all). See
+rendered records—not possible generically, since different templates render time
+in different fields and formats (or none at all). See
 [split-stream.md](./split-stream.md) for the tool that does the splitting, and
 [generate-all.md](./generate-all.md) for running this across every preset and
 template in one pass.
 
-## See Also
+## See also
 
-- [How to build a config](how-to-build-a-config.md) — step-by-step design guide
-- [Splitting a run into partitions](split-stream.md) — `-p`/`--partition` and
+- [How to build a config](how-to-build-a-config.md)—step-by-step design guide
+- [Splitting a run into partitions](split-stream.md)—`-p`/`--partition` and
   `tools/split_stream.sh`
-- [Generating the full preset catalog](generate-all.md) —
-  `tools/generate_all.sh`
-- [States](states.md) — state type reference
-- [Emitters](emitters.md) — emitter field reference
-- [Common patterns](patterns.md) — state machine patterns
-- [Best practices](best-practices.md) — naming conventions and pitfalls
+- [Generating the full preset catalog](generate-all.md)—`tools/generate_all.sh`
+- [States](states.md)—state type reference
+- [Emitters](emitters.md)—emitter field reference
+- [Common patterns](patterns.md)—state machine patterns
+- [Best practices](best-practices.md)—naming conventions and pitfalls

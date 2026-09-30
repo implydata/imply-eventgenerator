@@ -17,14 +17,14 @@ In this example, `session_start` spawns a new worker every second. A
 `gateway:exclusive` routes 80% to `example_event_1` and 20% to
 `example_event_2`, each preceded by a 0.1-second timer, cycling continuously.
 
-The emitter for `state_1` is `example_event_1`. This emits a simple
+The emitter for `state_1` is `example_event_1`. This emits a
 [`generator:string`](./string.md) as `emitter_number`, and `generator:timestamp`
-in the range between 1st January 2020 at 3pm and 1st January 2020 at 8pm.
+in the range from January 1, 2020, 3:00 PM to January 1, 2020, 8:00 PM.
 `percent_nulls` adds a 25% chance that the value is null.
 
-The emitter for `state_2` is `example_event_2` which also emits a simple string
+The emitter for `state_2` is `example_event_2` which also emits a string
 containing the emitter number. The `generator:timestamp` for these events lie
-between 1st and 2nd of January 1920.
+between January 1 and January 2, 1920.
 
 ```json
 {
@@ -117,7 +117,7 @@ between 1st and 2nd of January 1920.
 }
 ```
 
-Since the JSON above contains an inline `target`, you can save the JSON above as
+Because the preceding JSON contains an inline `target`, you can save it as
 `example.json` and run it with the following command.
 
 ```bash

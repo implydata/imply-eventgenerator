@@ -6,13 +6,13 @@
 ## The Actor
 
 The state machine design is grounded in
-[BPMN (Business Process Model and Notation)](https://en.wikipedia.org/wiki/Business_Process_Model_and_Notation)
-— a standard for modelling business processes as flows of events, activities,
-and gateways. The five state types map directly onto BPMN concepts:
+[BPMN (Business Process Model and Notation)](https://en.wikipedia.org/wiki/Business_Process_Model_and_Notation)—a
+standard for modelling business processes as flows of events, activities, and
+gateways. The five state types map directly onto BPMN concepts:
 start/intermediate/end events, activities, and exclusive gateways. Each worker
-is a BPMN pool — one lane, one participant, one lifecycle.
+is a BPMN pool—one lane, one participant, one lifecycle.
 
-Every state machine models the behaviour of a single **Actor** — the real-world
+Every state machine models the behaviour of a single **Actor**—the real-world
 entity whose lifecycle the state machine represents. Each concurrent worker
 (`-w`) runs one independent instance of the machine, simulating one Actor at a
 time.
@@ -46,30 +46,30 @@ flowchart LR
 
 There are five state types. Every state must have a `name` and a `type`.
 
-| Type                       | Role                                        | Emits a record? | Sets variables? | Delays?                          |
-| -------------------------- | ------------------------------------------- | --------------- | --------------- | -------------------------------- |
-| `event:start:timer`        | First state; controls interarrival pacing   | No              | No              | Yes — `cardinality_distribution` |
-| `event:intermediate:timer` | Pause between activities                    | No              | No              | Yes — `cardinality_distribution` |
-| `activity`                 | Do work: set variables and/or emit a record | Optional        | Optional        | No                               |
-| `gateway:exclusive`        | Probabilistic routing                       | No              | No              | No                               |
-| `event:end`                | Terminate the worker                        | No              | No              | No                               |
+| Type                       | Role                                        | Emits a record? | Sets variables? | Delays?                        |
+| -------------------------- | ------------------------------------------- | --------------- | --------------- | ------------------------------ |
+| `event:start:timer`        | First state; controls interarrival pacing   | No              | No              | Yes—`cardinality_distribution` |
+| `event:intermediate:timer` | Pause between activities                    | No              | No              | Yes—`cardinality_distribution` |
+| `activity`                 | Do work: set variables and/or emit a record | Optional        | Optional        | No                             |
+| `gateway:exclusive`        | Probabilistic routing                       | No              | No              | No                             |
+| `event:end`                | End the session                             | No              | No              | No                             |
 
 List all states in the `states` array of the configuration file. The first entry
 is the initial state and must be of type `event:start:timer`.
 
 ---
 
-## event:start:timer
+## `event:start:timer`
 
 The first state in every config. Its sole job is to control how fast new workers
 are spawned (the interarrival interval). It does not emit a record and cannot
 set variables.
 
 Its `cardinality_distribution` can be overridden at runtime without editing the
-config, via `-i <seconds>` — supported for `constant` (overrides `value`),
+config, via `-i <seconds>`—supported for `constant` (overrides `value`),
 `exponential` and `normal` (overrides `mean`), and `gmm_temporal` (overrides the
-base `mean`, leaving its time-of-day shape untouched). Unsupported types (e.g.
-`uniform`) raise an error rather than silently no-op. See the
+base `mean`, leaving its time-of-day shape untouched). Unsupported types (for
+example, `uniform`) raise an error rather than silently no-op. See the
 [command-line reference](../README.md#command-line-reference).
 
 | Field                      | Description                                                                                              | Required? |
@@ -95,11 +95,11 @@ base `mean`, leaving its time-of-day shape untouched). Unsupported types (e.g.
 
 ---
 
-## event:intermediate:timer
+## `event:intermediate:timer`
 
 A pause between two activities. Use this whenever you need the simulated clock
-to advance before the next activity runs — for example, to model the duration of
-a network flow, a page dwell time, or a processing delay. It does not emit a
+to advance before the next activity runs—for example, to model the duration of a
+network flow, a page dwell time, or a processing delay. It does not emit a
 record and cannot set variables.
 
 | Field                      | Description                                                                    | Required? |
@@ -126,10 +126,10 @@ record and cannot set variables.
 
 ---
 
-## activity
+## `activity`
 
 An activity is where work happens: variables are evaluated and, optionally, a
-record is emitted. There is no delay in an activity state — use an
+record is emitted. There is no delay in an activity state—use an
 `event:intermediate:timer` immediately before the activity if you need the clock
 to advance first.
 
@@ -147,7 +147,7 @@ to advance first.
 | `_comment`  | Optional annotation.                                                                                                                                                            | No        |
 | `variables` | A list of [static](./dimensions/static.md) and [generator](./dimensions/generator.md) dimensions whose values are stored for later use. Evaluated before the record is emitted. | No        |
 | `emitter`   | The [emitter](./emitters.md) to use. If omitted, no record is emitted.                                                                                                          | No        |
-| `next`      | Name of the next state (a string, not a transitions list). Route to an `event:end` state to terminate.                                                                          | Yes       |
+| `next`      | Name of the next state (a string, not a transitions list). Route to an `event:end` state to end the session.                                                                    | Yes       |
 
 ### Naming conventions
 
@@ -157,7 +157,7 @@ By convention:
 - Activity states that **emit records** (with or without also setting variables)
   are named `emit_*`.
 
-There is no type distinction between these two patterns — both use
+There is no type distinction between these two patterns—both use
 `"type": "activity"`. The naming convention exists purely to make configs easier
 to read.
 
@@ -207,8 +207,8 @@ to read.
 
 ### Modeling events with duration
 
-To emit a record that covers a time range (e.g. a network flow with `start` and
-`end` timestamps), use the **setup → timer → emit** pattern:
+To emit a record that covers a time range (for example, a network flow with
+`start` and `end` timestamps), use the **setup → timer → emit** pattern:
 
 ```mermaid
 flowchart LR
@@ -270,11 +270,11 @@ duration.
 
 ---
 
-## gateway:exclusive
+## `gateway:exclusive`
 
 Routes the worker to one of several next states based on weighted probabilities.
 It does not emit a record and cannot set variables. Use this to model branching
-paths — e.g., 40% web traffic, 25% database traffic, etc.
+paths—for example, 40% web traffic, 25% database traffic, etc.
 
 | Field         | Description                                             | Required? |
 | ------------- | ------------------------------------------------------- | --------- |
@@ -283,12 +283,12 @@ paths — e.g., 40% web traffic, 25% database traffic, etc.
 | `_comment`    | Optional annotation.                                    | No        |
 | `transitions` | A list of possible next states and their probabilities. | Yes       |
 
-### transitions
+### `transitions`
 
-| Field         | Description                                                                | Required? |
-| ------------- | -------------------------------------------------------------------------- | --------- |
-| `next`        | The name of the next state. Route to an `event:end` state to terminate.    | Yes       |
-| `probability` | Probability of this branch being taken. All probabilities must sum to 1.0. | Yes       |
+| Field         | Description                                                                   | Required? |
+| ------------- | ----------------------------------------------------------------------------- | --------- |
+| `next`        | The name of the next state. Route to an `event:end` state to end the session. | Yes       |
+| `probability` | Probability of this branch being taken. All probabilities must sum to 1.0.    | Yes       |
 
 ```json
 {
@@ -307,7 +307,7 @@ paths — e.g., 40% web traffic, 25% database traffic, etc.
 
 ---
 
-## event:end
+## `event:end`
 
 Terminates the worker. No fields other than `name` and `type` are permitted. The
 worker exits cleanly after reaching this state.
@@ -325,18 +325,17 @@ worker exits cleanly after reaching this state.
 ```
 
 Every config must have at least one `event:end` state. Configs with multiple
-exit paths may have multiple `event:end` states — one per terminal path is
-valid. All paths through the state machine must eventually route to an
-`event:end`.
+exit paths may have multiple `event:end` states—one per terminal path is valid.
+All paths through the state machine must eventually route to an `event:end`.
 
 ---
 
 ## Complete example
 
-This example models a simple network connection: a start timer controls
-interarrival, an activity sets up connection attributes and captures the start
-time, a timer delays for the flow duration, an activity emits the completed flow
-record, and an end state terminates the worker.
+This example models a network connection: a start timer controls interarrival,
+an activity sets up connection attributes and captures the start time, a timer
+delays for the flow duration, an activity emits the completed flow record, and
+an end state terminates the worker.
 
 ```mermaid
 flowchart TD
@@ -442,9 +441,8 @@ flowchart TD
 Variables set in `activity` states are **per-worker and per-lifecycle**:
 
 - Each worker starts with an empty variable namespace.
-- Variables persist for the entire lifetime of that worker — once set, a
-  variable is available in every subsequent activity state in the same
-  lifecycle.
+- Variables persist for the entire lifetime of that worker—once set, a variable
+  is available in every subsequent activity state in the same lifecycle.
 - Revisiting a state unconditionally **overwrites** the variable's previous
   value. There is no accumulation or append semantics.
 - When the worker reaches `event:end` and a new lifecycle begins, the namespace
@@ -462,27 +460,27 @@ Running with `--validate` checks the config before any data is generated. It
 catches:
 
 - Missing `event:start:timer` or `event:end` state
-- Invalid state types or missing required fields
+- Unknown state types or missing required fields
 - Transition targets that don't exist
 - Gateway probabilities that don't sum to 1.0 (±0.01 tolerance)
 - Emitter dimensions referencing a variable that is never set by any activity
 - Named template not found in the config (when `-t` is specified)
 - Environment variables referenced in a template that are not set
 
-It does **not** catch ordering issues — a variable referenced in an emitter
-might pass validation even if the execution path reaches the emitter before the
-variable is set. That will raise a runtime error. Test with
+It does **not** catch ordering issues—a variable referenced in an emitter might
+pass validation even if the execution path reaches the emitter before the
+variable is set. That raises a runtime error. Test with
 `-n 100 -s "2024-01-01T00:00:00"` to surface these.
 
 ---
 
-## See Also
+## See also
 
-- [How to build a config](how-to-build-a-config.md) — step-by-step design guide
-- [Generators](dimensions/generator.md) — all generator types for use in
+- [How to build a config](how-to-build-a-config.md)—step-by-step design guide
+- [Generators](dimensions/generator.md)—all generator types for use in
   `variables`
-- [Distributions](distributions.md) — distribution types for
+- [Distributions](distributions.md)—distribution types for
   `cardinality_distribution`
-- [Common patterns](patterns.md) — variable persistence, multi-record sessions,
+- [Common patterns](patterns.md)—variable persistence, multi-record sessions,
   flow duration
-- [Best practices](best-practices.md) — naming conventions and pitfalls
+- [Best practices](best-practices.md)—naming conventions and pitfalls

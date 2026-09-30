@@ -147,8 +147,8 @@ characters are used.
 }
 ```
 
-Save the configuration above as `example.json` and use the following command to
-create 10 records with one worker:
+Save the preceding configuration as `example.json` and use the following command
+to create 10 records with one worker:
 
 ```bash
 python3 src/generator.py -f example.json -n 10 -w 1

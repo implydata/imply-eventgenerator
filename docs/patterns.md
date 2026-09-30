@@ -18,7 +18,7 @@ achieving realistic, efficient configurations.
 
 ### Key concept
 
-**Key Insight:** Variables set in one state automatically persist to all
+**Key Insight:** variables set in one state automatically persist to all
 subsequent states within the same worker. You only need to redefine variables
 that change.
 
@@ -72,20 +72,20 @@ machines. Understanding variable persistence allows you to:
 
 ### How it works
 
-1. **`setup_session` activity**: Sets `var_user_id` and `var_session_id` once
+1. **`setup_session` activity**: sets `var_user_id` and `var_session_id` once
    for the Actor's lifetime
-2. **`emit_page_view` activity**: References `var_user_id` and `var_session_id`
+2. **`emit_page_view` activity**: references `var_user_id` and `var_session_id`
    without redefining them
-3. **Actor scope**: Variables persist for the lifetime of the Actor instance
+3. **Actor scope**: variables persist for the lifetime of the Actor instance
    (one worker)
-4. **Only redefine what changes**: Only define new variables or variables whose
+4. **Only redefine what changes**: only define new variables or variables whose
    values should change between states
 
 ### Common use cases
 
 - **Connection-level attributes**: IP addresses, user IDs, session IDs
-- **Transaction attributes**: Order IDs, customer information
-- **Flow attributes**: Source/destination addresses, ports
+- **Transaction attributes**: order IDs, customer information
+- **Flow attributes**: source/destination addresses, ports
 
 ### Example: VPC Flow Logs
 
@@ -131,20 +131,20 @@ machines. Understanding variable persistence allows you to:
 ### Benefits
 
 ✅ **Reduced Configuration Size**: 20-30% smaller configs for complex state
-machines ✅ **Easier Maintenance**: Change common variables in one place ✅
-**Better Performance**: Fewer variable computations per state ✅ **Clearer
-Intent**: Shows which variables are connection-wide vs state-specific
+machines ✅ **Easier Maintenance**: change common variables in one place ✅
+**Better Performance**: fewer variable computations per state ✅ **Clearer
+Intent**: shows which variables are connection-wide vs state-specific
 
 ## Flow duration with setup and timer states
 
 ### Problem and solution
 
-**Problem:** When modeling events with duration (network flows, sessions,
+**Problem:** when modeling events with duration (network flows, sessions,
 transactions), both start and end times must be captured, but a delay must occur
 between them. This requires the start time to be captured before the delay and
 the end time after.
 
-**Solution:** Use a two-state pattern: a `setup_*` activity state that sets
+**Solution:** use a two-state pattern: a `setup_*` activity state that sets
 variables (including `var_start`), followed by an `event:intermediate:timer`
 state for the delay. The `emit_*` activity after the timer captures `var_end`
 and emits the record.
@@ -156,10 +156,10 @@ flows, session logs, or transaction records.
 
 When modeling a flow with duration, execution happens across three states:
 
-1. **`setup_*` activity** — captures `var_start` and any connection attributes
-   (no emitter)
-2. **`event:intermediate:timer`** — the delay; time advances
-3. **`emit_*` activity** — captures `var_end`, emits the record
+1. **`setup_*` activity**—captures `var_start` and any connection attributes (no
+   emitter)
+2. **`event:intermediate:timer`**—the delay; time advances
+3. **`emit_*` activity**—captures `var_end`, emits the record
 
 This ensures that `var_start` and `var_end` have different values, creating
 realistic duration.
@@ -225,7 +225,7 @@ realistic duration.
 }
 ```
 
-**Problem**: Both `var_start` and `var_end` are sampled at the same instant,
+**Problem**: both `var_start` and `var_end` are sampled at the same instant,
 resulting in zero-duration flows.
 
 ### Use cases
@@ -268,16 +268,16 @@ A data-transfer state using the setup+timer+emit pattern:
 }
 ```
 
-**Result**: Flow records with realistic duration of 5–30 seconds, capturing
+**Result**: flow records with realistic duration of 5–30 seconds, capturing
 actual data transfer time.
 
 ### Key benefits
 
-✅ **Realistic Time Windows**: Events have proper duration (start < end) ✅
-**Clear Separation of Concerns**: Setup, wait, and emit are distinct states ✅
-**Accurate Metrics**: Can model throughput, packets/bytes over time ✅
-**Protocol Accuracy**: Models real-world connection lifecycles ✅ **Testable**:
-Easy to verify duration ranges in generated data
+✅ **Realistic Time Windows**: events have proper duration (start < end) ✅
+**Clear Separation of Concerns**: setup, wait, and emit are distinct states ✅
+**Accurate Metrics**: can model throughput, packets/bytes over time ✅
+**Protocol Accuracy**: models real-world connection lifecycles ✅ **Testable**:
+duration ranges in generated data can be checked directly
 
 ### When to use the setup state
 
@@ -299,7 +299,7 @@ Use the `emit_*` activity for:
 
 ### Optimization strategy
 
-**Optimization:** Move variables that are common across all execution paths to
+**Optimization:** move variables that are common across all execution paths to
 the initial routing state. This reduces configuration size and makes intent
 clearer.
 
@@ -474,7 +474,7 @@ protocol) is always observed by the **same ENI** across all its flow records.
 }
 ```
 
-**Result**: All flow records for the same connection have the same ENI (100%
+**Result**: all flow records for the same connection have the same ENI (100%
 consistency).
 
 **Incorrect** (ENI in each traffic state):
@@ -489,7 +489,7 @@ consistency).
 }
 ```
 
-**Problem**: Each flow record randomly selects a new ENI. A connection with 3
+**Problem**: each flow record randomly selects a new ENI. A connection with 3
 flow records (SYN, DATA, FIN) could show different ENIs for each record, which
 is impossible in real AWS infrastructure.
 
@@ -497,11 +497,11 @@ is impossible in real AWS infrastructure.
 
 Place variables in the initial state when they represent:
 
-- **Infrastructure attributes**: Network interfaces, VPCs, subnets, availability
+- **Infrastructure attributes**: network interfaces, VPCs, subnets, availability
   zones
-- **Connection identity**: Source/destination IPs and ports (for multi-record
+- **Connection identity**: source/destination IPs and ports (for multi-record
   connections)
-- **Session attributes**: User IDs, session IDs, customer IDs
+- **Session attributes**: user IDs, session IDs, customer IDs
 - **Account/tenant context**: AWS account IDs, organization IDs
 - **Any attribute that should remain constant across all records for the same
   connection**
@@ -510,9 +510,9 @@ Place variables in the initial state when they represent:
 
 Set variables in individual states when they represent:
 
-- **Time-varying metrics**: Packet counts, byte counts that change per flow
+- **Time-varying metrics**: packet counts, byte counts that change per flow
   record
-- **Temporal boundaries**: Start/end times that differ for each aggregation
+- **Temporal boundaries**: start/end times that differ for each aggregation
   window
 - **State-specific attributes**: TCP flags, connection state that changes over
   lifecycle
@@ -531,9 +531,9 @@ Ask yourself:
 ### Common variable benefits
 
 ✅ **Reduced Configuration Size**: 20-30% reduction for complex state machines
-✅ **Single Source of Truth**: Change common variables in one place ✅ **Clearer
-Intent**: Immediately shows which variables are global vs pattern-specific ✅
-**Easier Maintenance**: Add new traffic patterns without duplicating common
+✅ **Single Source of Truth**: change common variables in one place ✅ **Clearer
+Intent**: immediately shows which variables are global vs pattern-specific ✅
+**Easier Maintenance**: add new traffic patterns without duplicating common
 variables
 
 ### Caution
@@ -548,12 +548,12 @@ differs in distribution or values between patterns, keep it pattern-specific.
 Real-world connections often generate multiple observation records over time.
 Examples:
 
-- **VPC Flow Logs**: Multiple 60-second aggregation windows for the same
+- **VPC Flow Logs**: multiple 60-second aggregation windows for the same
   connection
-- **Session Logs**: Multiple events (pageviews, clicks) for the same session
-- **Transaction Logs**: Multiple line items for the same order
+- **Session Logs**: multiple events (pageviews, clicks) for the same session
+- **Transaction Logs**: multiple line items for the same order
 
-**Pattern:** Use a continue/loop state to emit multiple records for the same
+**Pattern:** use a continue/loop state to emit multiple records for the same
 connection.
 
 ### State flow diagram
@@ -630,15 +630,15 @@ connection.
 
 ### How multi-record works
 
-1. **Connection Setup**: Sets the 5-tuple (src/dst addr/port) once at the start
-2. **Setup State**: Captures `var_start` before the timer
-3. **Timer State**: Time advances (simulating data transfer duration)
-4. **Emit State**: Captures `var_end`, emits the flow record
+1. **Connection Setup**: sets the 5-tuple (src/dst addr/port) once at the start
+2. **Setup State**: captures `var_start` before the timer
+3. **Timer State**: time advances (simulating data transfer duration)
+4. **Emit State**: captures `var_end`, emits the flow record
 5. **Decision Point**: 30% chance to loop back to `setup_flow_record`, 70%
    chance to reach `event:end`
-6. **Same Connection**: Source/destination IPs and ports persist across all
+6. **Same Connection**: source/destination IPs and ports persist across all
    records
-7. **Result**: Same 5-tuple appears in multiple flow records with different time
+7. **Result**: same 5-tuple appears in multiple flow records with different time
    windows
 
 ### Real-world multi-record example: VPC Flow Logs
@@ -738,7 +738,7 @@ Make long-running connections less likely by using a separate
 }
 ```
 
-**Result**: Most connections emit 1-2 records, fewer emit 3+, very few emit 4+.
+**Result**: most connections emit 1-2 records, fewer emit 3+, few emit 4+.
 
 #### Session events (multiple event types)
 
@@ -784,15 +784,15 @@ Make long-running connections less likely by using a separate
 }
 ```
 
-**Result**: Same `session_id` (persisted variable) appears across multiple
+**Result**: same `session_id` (persisted variable) appears across multiple
 events of different types.
 
 ### Session event benefits
 
-✅ **Realistic Connection Lifetimes**: Models long-running connections
-accurately ✅ **Temporal Correlation**: Same connection attributes across
-multiple records ✅ **Aggregation Testing**: Perfect for testing time-series
-aggregations ✅ **Cardinality Control**: More records without more unique
+✅ **Realistic Connection Lifetimes**: models long-running connections
+accurately ✅ **Temporal Correlation**: same connection attributes across
+multiple records ✅ **Aggregation Testing**: perfect for testing time-series
+aggregations ✅ **Cardinality Control**: more records without more distinct
 connections
 
 ## TCP connection lifecycle pattern
@@ -802,7 +802,7 @@ connections
 Real TCP connections have distinct phases with different characteristics:
 
 - **SYN** (Handshake): 3 packets, ~180-240 bytes
-- **Data Transfer**: Variable packets/bytes depending on payload
+- **Data Transfer**: variable packets/bytes depending on payload
 - **FIN** (Graceful close): 2 packets, ~120-180 bytes
 - **RST** (Abrupt close): 1 packet, ~60 bytes
 
@@ -976,27 +976,27 @@ Each TCP phase uses the setup+timer+emit pattern: a `setup_*` activity captures
 
 - **Packets**: 3 (SYN, SYN-ACK, ACK)
 - **Bytes**: 180-240 (60-80 bytes per packet including headers)
-- **Duration**: Very short (~0.1 seconds)
+- **Duration**: short (about 0.1 seconds)
 
 #### Data transfer
 
-- **Packets**: Variable (50-500+ depending on payload size)
-- **Bytes**: Variable (5KB-500KB+ depending on content)
-- **Duration**: Variable (seconds to minutes)
+- **Packets**: variable (50-500+ depending on payload size)
+- **Bytes**: variable (5KB-500KB+ depending on content)
+- **Duration**: variable (seconds to minutes)
 - **May Continue**: 50% chance for additional data records
 
 #### FIN (graceful close)
 
 - **Packets**: 2 (FIN, ACK or FIN-ACK, ACK)
 - **Bytes**: 120-180 (60-90 bytes per packet)
-- **Duration**: Very short (~0.1 seconds)
+- **Duration**: short (about 0.1 seconds)
 
 #### RST (connection reset)
 
 - **Packets**: 1 (RST)
 - **Bytes**: 54-66 (single packet with headers)
-- **Duration**: Very short (~0.05 seconds)
-- **When**: Connection refused, timeout, or error (5% of connections)
+- **Duration**: short (about 0.05 seconds)
+- **When**: connection refused, timeout, or error (5% of connections)
 
 ### Real-world example: VPC Flow Logs with TCP lifecycle
 
@@ -1099,23 +1099,23 @@ phase:
 
 ### VPC Flow Log use cases
 
-✅ **Security Analysis**: Detect SYN floods, port scans, incomplete handshakes
-✅ **Capacity Planning**: Model realistic bandwidth consumption patterns ✅
-**Anomaly Detection**: Identify connections with unusual packet/byte ratios ✅
-**Protocol Testing**: Verify flow aggregation logic handles TCP states correctly
+✅ **Security Analysis**: detect SYN floods, port scans, incomplete handshakes
+✅ **Capacity Planning**: model realistic bandwidth consumption patterns ✅
+**Anomaly Detection**: identify connections with unusual packet/byte ratios ✅
+**Protocol Testing**: verify flow aggregation logic handles TCP states correctly
 
 ### VPC Flow Log benefits
 
-✅ **Protocol Realism**: Models actual TCP behavior ✅ **Security Testing**:
-Data suitable for IDS/IPS testing ✅ **Performance Analysis**: Realistic traffic
-patterns for load testing ✅ **Temporal Patterns**: Captures connection
+✅ **Protocol Realism**: models actual TCP behavior ✅ **Security Testing**:
+data suitable for IDS/IPS testing ✅ **Performance Analysis**: realistic traffic
+patterns for load testing ✅ **Temporal Patterns**: captures connection
 lifecycle timing
 
 ## Testing with synthetic clock
 
 ### Synthetic clock overview
 
-**Critical Best Practice:** When developing configurations, ALWAYS use the
+**Critical Best Practice:** when developing configurations, ALWAYS use the
 synthetic clock (`-s`) for instant feedback. Only use real-time mode (omit `-s`)
 for production streaming scenarios.
 
@@ -1128,7 +1128,8 @@ Without synthetic clock, the generator honors real-time delays:
 
 - Delay of 5 seconds → waits 5 seconds
 - Delay of 60 seconds → waits 60 seconds
-- Generating 1000 events with exponential delay (mean 10s) → **waits ~3 hours**
+- Generating 1000 events with exponential delay (mean 10 seconds) → **waits ~3
+  hours**
 
 This makes development painfully slow.
 
@@ -1155,12 +1156,12 @@ python3 generator.py -c vpc_flow_logs.json -n 1000 -s "2024-01-01T00:00:00" > fl
 
 ### How synthetic clock works
 
-1. **Start Time**: Clock initialized to specified time (e.g.,
+1. **Start Time**: clock initialized to specified time (for example,
    `2024-01-01T00:00:00`)
-2. **Delay Processing**: When state has delay of 5 seconds, clock advances by 5
+2. **Delay Processing**: when state has delay of 5 seconds, clock advances by 5
    seconds instantly
 3. **Clock Variables**: `var_start` and `var_end` use synthetic clock values
-4. **Result**: All 1000 events generated in milliseconds with realistic
+4. **Result**: all 1000 events generated in milliseconds with realistic
    timestamps
 
 ### Example synthetic clock output
@@ -1173,17 +1174,17 @@ With synthetic clock starting at `2024-01-01T00:00:00`:
 {"start": 1704067210, "end": 1704067211, "packets": 2, "bytes": 145}
 ```
 
-**Notice**: Realistic timestamps with proper delays between records, generated
+**Notice**: realistic timestamps with proper delays between records, generated
 instantly.
 
 ### When to use real-time mode
 
 Use real-time mode (omit `-s`) only for:
 
-- **Production streaming**: Sending events to Kafka, Kinesis, etc. at realistic
+- **Production streaming**: sending events to Kafka, Kinesis, etc. at realistic
   rates
-- **Load testing**: Simulating realistic request rates
-- **Live demos**: Showing real-time data generation
+- **Load testing**: simulating realistic request rates
+- **Live demos**: showing real-time data generation
 
 ```bash
 # Real-time mode (events generated at realistic intervals) — omit -s
@@ -1212,10 +1213,10 @@ python3 generator.py -c vpc_flow_logs.json | kafka-producer ...
 
 ### Synthetic clock benefits
 
-✅ **Instant Feedback**: Milliseconds instead of minutes/hours ✅ **Rapid
-Iteration**: Test changes immediately ✅ **Large Datasets**: Generate 100K+
-events in seconds ✅ **Deterministic Testing**: Same start time = reproducible
-output ✅ **Time Travel**: Test historical time ranges instantly
+✅ **Instant Feedback**: milliseconds instead of minutes/hours ✅ **Rapid
+Iteration**: test changes immediately ✅ **Large Datasets**: generate 100K+
+events in seconds ✅ **Deterministic Testing**: same start time = reproducible
+output ✅ **Time Travel**: test historical time ranges instantly
 
 ### Common mistakes
 
@@ -1245,15 +1246,15 @@ python3 generator.py -c vpc_flow_logs.json -n 10000 -s "2024-01-01T00:00:00"
 These six patterns represent essential techniques for building realistic,
 efficient state machine configurations:
 
-1. **Variable Persistence**: Variables persist across states - only redefine
+1. **Variable Persistence**: variables persist across states - only redefine
    what changes
-2. **Flow Duration with Setup and Timer States**: Use a `setup_*` activity to
+2. **Flow Duration with Setup and Timer States**: use a `setup_*` activity to
    capture start time, an `event:intermediate:timer` for the delay, and an
    `emit_*` activity to capture end time and emit the record
-3. **Common Variables in Initial State**: Move shared variables to initial state
+3. **Common Variables in Initial State**: move shared variables to initial state
    for efficiency and realism
-4. **Multiple Records Per Connection**: Use continue loops for long-running
+4. **Multiple Records Per Connection**: use continue loops for long-running
    connections
-5. **TCP Lifecycle**: Model protocol phases with realistic packet/byte
+5. **TCP Lifecycle**: model protocol phases with realistic packet/byte
    characteristics
-6. **Synthetic Clock**: Use `-s` flag for instant development feedback
+6. **Synthetic Clock**: use `-s` flag for instant development feedback

@@ -7,10 +7,10 @@ created that increments with every generation.
 per-emitter-dimension-instance. Counters reset to `start` when a new worker
 lifecycle begins. If a worker visits an emit state multiple times in a single
 lifecycle, the counter increments on every visit. Two emitters that each define
-a counter are independent of each other — they do not share state.
+a counter are independent of each other—they do not share state.
 
-Counters are not incremented when the field is missing or null (i.e.
-`percent_missing` or `percent_nulls` fires).
+Counters are not incremented when the field is missing or null, that is, when
+`percent_missing` or `percent_nulls` fires.
 
 | Field             | Description                                                                    | Possible values            | Required? | Default |
 | ----------------- | ------------------------------------------------------------------------------ | -------------------------- | --------- | ------- |
@@ -22,20 +22,19 @@ Counters are not incremented when the field is missing or null (i.e.
 | `increment`       | The increment for the counter.                                                 | Integer                    | No.       | 1       |
 
 In this example, `session_start` spawns a new worker every second. A
-`gateway:exclusive` routes 50/50 between two emitters — each preceded by a
-0.1-second timer — cycling continuously.
+`gateway:exclusive` routes 50/50 between two emitters—each preceded by a
+0.1-second timer—cycling continuously.
 
 Each state has its own emitter, `state_1` uses `example_event_1`, `state_2` uses
 `example_event_2`.
 
 The first emitter, `example_event_1`, contains four counter dimensions:
 
-- `default_counter1` uses all defaults, starting at 0 and incrementing by 1.
+- `default_counter1` uses all defaults: it starts at 0 and increments by 1.
 - `start_counter1` begins at 100, and uses the default increment of 1.
 - `increment_counter1` uses the default start of 0, but has a specific increment
   of 10000.
-- `both_counter1` uses both a specific start and increment, 250 and 50
-  respectively.
+- `both_counter1` uses a start of 250 and an increment of 50 respectively.
 
 The second emitter, `example_event_2`, mirrors the same configuration, using
 different dimension names and different start and increment values.
@@ -107,8 +106,8 @@ different dimension names and different start and increment values.
 }
 ```
 
-Save the above configuration as `example.json` and use the following command to
-create 10 records with one worker using a simulated clock:
+Save the preceding configuration as `example.json` and use the following command
+to create 10 records with one worker using a simulated clock:
 
 ```bash
 python generator.py -c example.json -n 10 -w 1 -s "2024-01-01T00:00:00"
