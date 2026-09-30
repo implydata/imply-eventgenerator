@@ -31,6 +31,9 @@
 - Replace `-m` with `-w` in the quick-start commands in
   `docs/presets/ecommerce_gifts.md` and `docs/presets/ecommerce_sports.md`.
 - Remove the README link to `test.sh`, which doesn't exist.
+- Add a Vale vocabulary for technical terms such as `config`, `datetime`,
+  `enum`, `namespace`, and `interarrival`, so Vale's spell check stops flagging
+  them in `docs/`.
 - Document Jinja's built-in `tojson` filter in `docs/templates.md` for values
   that contain backslashes or quotes.
 
