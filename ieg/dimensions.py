@@ -162,7 +162,7 @@ class DimensionGeneratorBase:
 #
 
 class DimensionGeneratorInt(DimensionGeneratorBase):
-    """Generates integer values from a numeric distribution. Config type: "int"."""
+    """Generates integer values from a numeric distribution. Config type: "generator:int"."""
     def __init__(self, desc):
         self.value_distribution = parse_distribution(desc['distribution'])
         super().__init__(desc)
@@ -182,7 +182,7 @@ class DimensionGeneratorInt(DimensionGeneratorBase):
 #
 
 class DimensionGeneratorFloat(DimensionGeneratorBase):
-    """Generates float values from a numeric distribution with optional decimal precision. Config type: "float"."""
+    """Generates float values from a numeric distribution with optional decimal precision. Config type: "generator:float"."""
     def __init__(self, desc):
         self.value_distribution = parse_distribution(desc['distribution'])
         if 'precision' in desc:
@@ -232,7 +232,7 @@ class DimensionGeneratorFloat(DimensionGeneratorBase):
         return s
 
 class DimensionGeneratorCounter:
-    """Emits a sequentially incrementing integer. Config type: "counter".
+    """Emits a sequentially incrementing integer. Config type: "generator:counter".
 
     The counter is per-instance, not global — each DimensionGeneratorCounter object maintains
     its own sequence. Useful for surrogate keys within a single emitter.
@@ -341,7 +341,7 @@ class DimensionStatic:
 
 
 class DimensionGeneratorString(DimensionGeneratorBase):
-    """Generates random strings of a given length drawn from a character set. Config type: "string".
+    """Generates random strings of a given length drawn from a character set. Config type: "generator:string".
 
     length_distribution controls how many characters to generate per value.
     chars (optional) restricts the character set; defaults to all printable ASCII.
@@ -418,7 +418,7 @@ class DimensionGeneratorString(DimensionGeneratorBase):
 #
 
 class DimensionGeneratorClock:
-    """Captures the worker's current simulated clock time as a datetime. Config type: "clock".
+    """Captures the worker's current simulated clock time as a datetime. Config type: "generator:clock".
 
     Used for the record timestamp and for start/end time capture in the
     setup → timer → emit pattern. Returns timezone-aware UTC datetimes.
@@ -444,9 +444,9 @@ class DimensionGeneratorClock:
         return current_time
 
 class DimensionGeneratorTimestamp(DimensionGeneratorBase):
-    """Generates a random datetime within a fixed range, independent of the simulation clock. Config type: "timestamp".
+    """Generates a random datetime within a fixed range, independent of the simulation clock. Config type: "generator:timestamp".
 
-    distribution min/max are ISO 8601 strings. Use DimensionGeneratorClock ("clock") instead
+    distribution min/max are ISO 8601 strings. Use DimensionGeneratorClock ("generator:clock") instead
     when you want the record time to track the simulation clock.
     """
     def __init__(self, desc):
@@ -521,7 +521,7 @@ class DimensionGeneratorTimestamp(DimensionGeneratorBase):
         return random.random() < self.percent_missing
 
 class DimensionGeneratorIPAddress(DimensionGeneratorBase):
-    """Generates IPv4 addresses from a numeric distribution over the 32-bit address space. Config type: "ipaddress".
+    """Generates IPv4 addresses from a numeric distribution over the 32-bit address space. Config type: "generator:ipaddress".
 
     distribution min/max are integers representing the packed 32-bit address.
     Use a CIDR range by computing min/max from the network prefix.
@@ -562,7 +562,7 @@ class DimensionGeneratorIPAddress(DimensionGeneratorBase):
 #
 
 class DimensionGeneratorEnum:
-    """Selects a value from a fixed list using a cardinality_distribution index. Config type: "enum".
+    """Selects a value from a fixed list using a cardinality_distribution index. Config type: "generator:enum".
 
     cardinality_distribution is used as a zero-based index into the values list, so
     uniform(min=0, max=N-1) gives equal probability. The index is clamped to
@@ -631,7 +631,7 @@ class DimensionGeneratorEnum:
         return random.random() < self.percent_missing
 
 class DimensionGeneratorObject():
-    """Generates a nested JSON object from a list of child dimensions. Config type: "object"."""
+    """Generates a nested JSON object from a list of child dimensions. Config type: "generator:object"."""
     def __init__(self, clock, desc):
         self.global_clock = clock
         self.name = desc['name']
@@ -730,7 +730,7 @@ class DimensionGeneratorObject():
         return random.random() < self.percent_missing
 
 class DimensionGeneratorList():
-    """Generates a JSON array whose length and element type are both drawn from distributions. Config type: "list".
+    """Generates a JSON array whose length and element type are both drawn from distributions. Config type: "generator:list".
 
     length_distribution controls the number of elements per array.
     selection_distribution indexes into the elements list to pick the element type for each slot.
