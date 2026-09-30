@@ -18,7 +18,6 @@ import json
 import sys
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------------
 # Schema knowledge
 # ---------------------------------------------------------------------------
@@ -96,9 +95,9 @@ def _reorder(obj: dict, preferred: list) -> dict:
     for k in preferred:
         if k in obj:
             result[k] = obj[k]
-    for k in obj:
+    for k, v in obj.items():
         if k not in result:
-            result[k] = obj[k]
+            result[k] = v
     return result
 
 
@@ -175,7 +174,7 @@ def _inline(obj) -> str:
     return json.dumps(obj, ensure_ascii=False)
 
 
-def fmt(value, depth: int = 0, key: str = None) -> str:
+def fmt(value, depth: int = 0, key: str | None = None) -> str:
     """Recursively render value as a formatted JSON string."""
     pad = INDENT * depth
     inner = INDENT * (depth + 1)

@@ -50,16 +50,16 @@ class DimensionGeneratorBase:
             Exception: If 'cardinality' or 'cardinality_distribution' is missing when required.
         """
         self.name = desc['name']
-        if 'percent_nulls' in desc.keys():
+        if 'percent_nulls' in desc:
             self.percent_nulls = desc['percent_nulls'] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc.keys():
+        if 'percent_missing' in desc:
             self.percent_missing = desc['percent_missing'] / 100.0
         else:
             self.percent_missing = 0.0
 
-        if 'cardinality' not in desc.keys():
+        if 'cardinality' not in desc:
                 raise Exception(f'Dimension {self.name} has no value for cardinality.')
         cardinality = desc['cardinality']
 
@@ -68,7 +68,7 @@ class DimensionGeneratorBase:
             self.cardinality_distribution = None
         else:
             self.cardinality = []
-            if 'cardinality_distribution' not in desc.keys():
+            if 'cardinality_distribution' not in desc:
                 raise Exception(f'"{self.name}" dimension specifies a cardinality without a cardinality distribution.')
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
             for i in range(cardinality):
@@ -145,8 +145,7 @@ class DimensionGeneratorBase:
                 value = self.get_stochastic_value()
             else:
                 index = int(self.cardinality_distribution.get_sample())
-                if index < 0:
-                    index = 0
+                index = max(index, 0)
                 if index >= len(self.cardinality):
                     index = len(self.cardinality)-1
                 value = self.cardinality[index]
@@ -219,8 +218,7 @@ class DimensionGeneratorFloat(DimensionGeneratorBase):
                 value = self.get_stochastic_value()
             else:
                 index = int(self.cardinality_distribution.get_sample())
-                if index < 0:
-                    index = 0
+                index = max(index, 0)
                 if index >= len(self.cardinality):
                     index = len(self.cardinality)-1
                 value = self.cardinality[index]
@@ -240,19 +238,19 @@ class DimensionGeneratorCounter:
     """
     def __init__(self, desc):
         self.name = desc['name']
-        if 'percent_nulls' in desc.keys():
+        if 'percent_nulls' in desc:
             self.percent_nulls = desc['percent_nulls'] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc.keys():
+        if 'percent_missing' in desc:
             self.percent_missing = desc['percent_missing'] / 100.0
         else:
             self.percent_missing = 0.0
-        if 'start' in desc.keys():
+        if 'start' in desc:
             self.start = desc['start']
         else:
             self.start = 0
-        if 'increment' in desc.keys():
+        if 'increment' in desc:
             self.increment = desc['increment']
         else:
             self.increment = 1
@@ -405,8 +403,7 @@ class DimensionGeneratorString(DimensionGeneratorBase):
                 value = self.get_stochastic_value()
             else:
                 index = int(self.cardinality_distribution.get_sample())
-                if index < 0:
-                    index = 0
+                index = max(index, 0)
                 if index >= len(self.cardinality):
                     index = len(self.cardinality)-1
                 value = self.cardinality[index]
@@ -452,11 +449,11 @@ class DimensionGeneratorTimestamp(DimensionGeneratorBase):
     def __init__(self, desc):
         self.name = desc['name']
         self.value_distribution = parse_timestamp_distribution(desc['distribution'])
-        if 'percent_nulls' in desc.keys():
+        if 'percent_nulls' in desc:
             self.percent_nulls = desc['percent_nulls'] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc.keys():
+        if 'percent_missing' in desc:
             self.percent_missing = desc['percent_missing'] / 100.0
         else:
             self.percent_missing = 0.0
@@ -465,7 +462,7 @@ class DimensionGeneratorTimestamp(DimensionGeneratorBase):
             self.cardinality = None
             self.cardinality_distribution = None
         else:
-            if 'cardinality_distribution' not in desc.keys():
+            if 'cardinality_distribution' not in desc:
                 raise Exception(f'"{self.name}" dimension specifies a cardinality without a cardinality distribution.')
             self.cardinality = []
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
@@ -509,8 +506,7 @@ class DimensionGeneratorTimestamp(DimensionGeneratorBase):
                 value = self.get_stochastic_value()
             else:
                 index = int(self.cardinality_distribution.get_sample())
-                if index < 0:
-                    index = 0
+                index = max(index, 0)
                 if index >= len(self.cardinality):
                     index = len(self.cardinality)-1
                 value = self.cardinality[index]
@@ -549,8 +545,7 @@ class DimensionGeneratorIPAddress(DimensionGeneratorBase):
                 value = self.get_stochastic_value()
             else:
                 index = int(self.cardinality_distribution.get_sample())
-                if index < 0:
-                    index = 0
+                index = max(index, 0)
                 if index >= len(self.cardinality):
                     index = len(self.cardinality)-1
                 value = self.cardinality[index]
@@ -570,16 +565,16 @@ class DimensionGeneratorEnum:
     """
     def __init__(self, desc):
         self.name = desc['name']
-        if 'percent_nulls' in desc.keys():
+        if 'percent_nulls' in desc:
             self.percent_nulls = desc['percent_nulls'] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc.keys():
+        if 'percent_missing' in desc:
             self.percent_missing = desc['percent_missing'] / 100.0
         else:
             self.percent_missing = 0.0
         self.cardinality = desc['values']
-        if 'cardinality_distribution' not in desc.keys():
+        if 'cardinality_distribution' not in desc:
             raise Exception(f'Dimension {self.name} specifies a cardinality without a cardinality distribution.')
         self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
 
@@ -614,8 +609,7 @@ class DimensionGeneratorEnum:
 
     def get_stochastic_value(self):
         index = int(self.cardinality_distribution.get_sample())
-        if index < 0:
-            index = 0
+        index = max(index, 0)
         if index >= len(self.cardinality):
             index = len(self.cardinality)-1
         return self.cardinality[index]
@@ -630,17 +624,17 @@ class DimensionGeneratorEnum:
     def is_missing(self):
         return random.random() < self.percent_missing
 
-class DimensionGeneratorObject():
+class DimensionGeneratorObject:
     """Generates a nested JSON object from a list of child dimensions. Config type: "generator:object"."""
     def __init__(self, clock, desc):
         self.global_clock = clock
         self.name = desc['name']
         self.dimensions = get_variables(desc['dimensions'], self.global_clock)
-        if 'percent_nulls' in desc.keys():
+        if 'percent_nulls' in desc:
             self.percent_nulls = desc['percent_nulls'] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc.keys():
+        if 'percent_missing' in desc:
             self.percent_missing = desc['percent_missing'] / 100.0
         else:
             self.percent_missing = 0.0
@@ -650,11 +644,10 @@ class DimensionGeneratorObject():
             self.cardinality_distribution = None
         else:
             self.cardinality = []
-            if 'cardinality_distribution' not in desc.keys():
+            if 'cardinality_distribution' not in desc:
                 raise Exception(f'Dimension {self.name} specifies a cardinality without a cardinality distribution.')
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
             for i in range(cardinality):
-                Value = None
                 while True:
                     value = self.get_instance()
                     if value not in self.cardinality:
@@ -719,8 +712,7 @@ class DimensionGeneratorObject():
                 s = self.get_instance()
             else:
                 index = int(self.cardinality_distribution.get_sample())
-                if index < 0:
-                    index = 0
+                index = max(index, 0)
                 if index >= len(self.cardinality):
                     index = len(self.cardinality)-1
                 s = self.cardinality[index]
@@ -729,7 +721,7 @@ class DimensionGeneratorObject():
     def is_missing(self):
         return random.random() < self.percent_missing
 
-class DimensionGeneratorList():
+class DimensionGeneratorList:
     """Generates a JSON array whose length and element type are both drawn from distributions. Config type: "generator:list".
 
     length_distribution controls the number of elements per array.
@@ -741,11 +733,11 @@ class DimensionGeneratorList():
         self.elements = get_variables(desc['elements'], self.global_clock)
         self.length_distribution = parse_distribution(desc['length_distribution'])
         self.selection_distribution = parse_distribution(desc['selection_distribution'])
-        if 'percent_nulls' in desc.keys():
+        if 'percent_nulls' in desc:
             self.percent_nulls = desc['percent_nulls'] / 100.0
         else:
             self.percent_nulls = 0.0
-        if 'percent_missing' in desc.keys():
+        if 'percent_missing' in desc:
             self.percent_missing = desc['percent_missing'] / 100.0
         else:
             self.percent_missing = 0.0
@@ -755,11 +747,10 @@ class DimensionGeneratorList():
             self.cardinality_distribution = None
         else:
             self.cardinality = []
-            if 'cardinality_distribution' not in desc.keys():
+            if 'cardinality_distribution' not in desc:
                 raise Exception(f'Dimension {self.name} specifies a cardinality without a cardinality distribution.')
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
             for i in range(cardinality):
-                Value = None
                 while True:
                     value = self.get_instance()
                     if value not in self.cardinality:
@@ -828,8 +819,7 @@ class DimensionGeneratorList():
         length = int(self.length_distribution.get_sample())
         for i in range(length):
             index = int(self.selection_distribution.get_sample())
-            if index < 0:
-                index = 0
+            index = max(index, 0)
             if index >= length:
                 index = length-1
             s += re.sub('^.*?:', '', self.elements[index].get_json_field_string(), count=1) + ','
@@ -845,8 +835,7 @@ class DimensionGeneratorList():
                 s = self.get_instance()
             else:
                 index = int(self.cardinality_distribution.get_sample())
-                if index < 0:
-                    index = 0
+                index = max(index, 0)
                 if index >= len(self.cardinality):
                     index = len(self.cardinality)-1
                 s = self.cardinality[index]

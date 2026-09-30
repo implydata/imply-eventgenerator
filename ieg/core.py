@@ -258,7 +258,7 @@ class DataDriver:
                 dimensions = self.emitters[emitter_name]
             else:
                 dimensions = None  # No emitter = no record emission
-            if 'variables' not in state.keys():
+            if 'variables' not in state:
                 variables = []
             else:
                 variables = get_variables(state['variables'], self.global_clock)

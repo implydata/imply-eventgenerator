@@ -44,7 +44,6 @@ import isodate
 from rich.console import Console
 from rich.progress import (
     BarColumn,
-    MofNCompleteColumn,
     Progress,
     SpinnerColumn,
     TaskProgressColumn,
@@ -113,9 +112,12 @@ def find_clock_field(config):
         via_var = []
         for emitter in config.get("emitters", []):
             for dim in emitter.get("dimensions", []):
-                if dim.get("type") == "variable" and dim.get("variable") in clock_vars:
-                    if dim["name"] not in via_var:
-                        via_var.append(dim["name"])
+                if (
+                    dim.get("type") == "variable"
+                    and dim.get("variable") in clock_vars
+                    and dim["name"] not in via_var
+                ):
+                    via_var.append(dim["name"])
         if via_var:
             return (via_var[0], []) if len(via_var) == 1 else (None, via_var)
 
@@ -465,15 +467,15 @@ def main():
         start_dt = start_dt.replace(tzinfo=timezone.utc)
     end_dt = start_dt + isodate.parse_duration(args.duration)
 
-    run_kwargs = dict(
-        config_path=args.config,
-        duration_str=args.duration,
-        start_str=args.start,
-        seed=args.seed,
-        clock_field=clock_field,
-        start_dt=start_dt,
-        end_dt=end_dt,
-    )
+    run_kwargs = {
+        "config_path": args.config,
+        "duration_str": args.duration,
+        "start_str": args.start,
+        "seed": args.seed,
+        "clock_field": clock_field,
+        "start_dt": start_dt,
+        "end_dt": end_dt,
+    }
 
     with Progress(
         SpinnerColumn(),
