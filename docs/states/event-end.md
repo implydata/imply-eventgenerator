@@ -18,3 +18,9 @@ worker exits cleanly after reaching this state.
 Every config must have at least one `event:end` state. Configs with multiple
 exit paths may have multiple `event:end` states—one per terminal path is valid.
 All paths through the state machine must eventually route to an `event:end`.
+
+## See also
+
+- [State types](../states.md)—all state types, and behavior they share
+- [`gateway:exclusive`](./gateway-exclusive.md)—routes to one of several next
+  states, including `event:end`

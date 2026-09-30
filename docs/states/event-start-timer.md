@@ -31,3 +31,11 @@ example, `uniform`) raise an error rather than silently no-op. See the
   "next": "setup_session"
 }
 ```
+
+## See also
+
+- [State types](../states.md)—all state types, and behavior they share
+- [Distributions](../distributions.md)—distribution types for
+  `cardinality_distribution`
+- [`event:intermediate:timer`](./event-intermediate-timer.md)—the timer that
+  delays a session partway through

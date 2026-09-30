@@ -26,3 +26,11 @@ record and cannot set variables.
   "next": "emit_flow_record"
 }
 ```
+
+## See also
+
+- [State types](../states.md)—all state types, and behavior they share
+- [Distributions](../distributions.md)—distribution types for
+  `cardinality_distribution`
+- [`activity`](./activity.md)—the state that usually follows a timer to emit a
+  record

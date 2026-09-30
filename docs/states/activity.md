@@ -139,3 +139,12 @@ flowchart LR
 **Result**: `var_start` is captured at state entry, then 5–30 seconds pass, then
 `var_end` is captured. The emitted record has `start < end` with realistic
 duration.
+
+## See also
+
+- [State types](../states.md)—all state types, and behavior they share
+- [Emitters](../emitters.md)—emitter structure and the three kinds of dimension
+- [Generators](../dimensions/generator.md)—generator types for use in
+  `variables`
+- [Common patterns](../patterns.md)—including flow duration with setup and timer
+  states

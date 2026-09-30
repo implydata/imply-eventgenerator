@@ -32,3 +32,9 @@ paths—for example, 40% web traffic, 25% database traffic, etc.
   ]
 }
 ```
+
+## See also
+
+- [State types](../states.md)—all state types, and behavior they share
+- [`event:end`](./event-end.md)—the state that ends a session, a common
+  transition target

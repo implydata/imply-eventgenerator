@@ -92,7 +92,12 @@ Two state types call a child config:
   the branch, so a byte-diff couldn't verify it. Find the cause as part of the
   port.
 - The branch's subprocess code is thread-based. It has to be rewritten as simpy
-  generators on top of the `StateBase` subclasses in `ieg/states.py`.
+  generators on top of the `StateBase` subclasses in `ieg/states.py`. Start by
+  extracting two pieces from `DataDriver`, as the branch had them
+  (`run_state_machine` and `_parse_states`): a generator that runs a states
+  dict from a given entry state against a given variables dict, and a
+  function that parses a list of state dicts with a given set of emitters.
+  Today both are inline in `DataDriver.__init__` and `session_process`.
 - `fmt_config.py` sorts every `variables` block by type and then by name. Once a
   template can read another variable in the same block, that reordering can
   break evaluation order. Either stop sorting `variables` blocks, or have
