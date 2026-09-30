@@ -6,7 +6,7 @@ import re
 
 from ieg.dimensions import validate_dimension_desc
 from ieg.distributions import validate_distribution_desc
-from ieg.states import State
+from ieg.states import validate_state_desc
 
 logger = logging.getLogger("ieg")
 
@@ -100,7 +100,7 @@ def validate_config(config, template_name=None):
         # Per-state validation
         for i, state in enumerate(config["states"]):
             ctx = f"state '{state.get('name', f'[{i}]')}'"
-            if not State.validate_desc(state, emitter_names, ctx):
+            if not validate_state_desc(state, emitter_names, ctx):
                 valid = False
             state_type = state.get("type")
             if (

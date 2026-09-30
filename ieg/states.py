@@ -1,8 +1,7 @@
-"""State machine classes: Transition, State, and Controller.
+"""State machine classes: one class per state type, plus Controller.
 
-State models one node in the Actor lifecycle graph. Controller tracks simulation
-end conditions (record count or elapsed duration). Transition encodes a single
-weighted edge in a gateway:exclusive state's transitions list.
+Each StateBase subclass models one state type in the Actor lifecycle graph.
+Controller tracks simulation end conditions (record count or elapsed duration).
 
 See docs/states.md for the config-level reference.
 """
@@ -14,361 +13,389 @@ import threading
 
 import isodate
 
+from ieg.dimensions import get_variables
+from ieg.distributions import parse_distribution
+
 logger = logging.getLogger("ieg")
 
 
-class Transition:
-    """A single weighted edge in a gateway:exclusive state's transitions list."""
+class StateBase:
+    """Base class for one node in the Actor lifecycle state machine.
 
-    def __init__(self, next_state, probability):
-        self.next_state = next_state
-        self.probability = probability
-
-    def __str__(self):
-        return (
-            "Transition(next_state="
-            + str(self.next_state)
-            + ", probability="
-            + str(self.probability)
-            + ")"
-        )
-
-    @staticmethod
-    def validate_desc(desc, context):
-        """Validate a single transition config dict. Logs errors and returns bool."""
-        valid = True
-        if "next" not in desc:
-            logger.error("%s: transition missing required field 'next'", context)
-            valid = False
-        elif not isinstance(desc["next"], str):
-            logger.error(
-                "%s: transition 'next' must be a string, got %s",
-                context,
-                type(desc["next"]).__name__,
-            )
-            valid = False
-        if "probability" not in desc:
-            logger.error("%s: transition missing required field 'probability'", context)
-            valid = False
-        else:
-            try:
-                p = float(desc["probability"])
-                if not (0 < p <= 1):
-                    logger.error(
-                        "%s: transition 'probability' must be in (0, 1], got %s",
-                        context,
-                        desc["probability"],
-                    )
-                    valid = False
-            except (TypeError, ValueError):
-                logger.error(
-                    "%s: transition 'probability' must be a number, got %r",
-                    context,
-                    desc["probability"],
-                )
-                valid = False
-        return valid
-
-    @staticmethod
-    def parse_transitions(desc):
-        transitions = []
-        for trans in desc:
-            next_state = trans["next"]
-            probability = float(trans["probability"])
-            transitions.append(Transition(next_state, probability))
-        return transitions
-
-
-VALID_TYPES = {
-    "activity",
-    "gateway:exclusive",
-    "event:start:timer",
-    "event:intermediate:timer",
-    "event:end",
-}
-
-
-class State:
-    """A node in the Actor lifecycle state machine.
-
-    type determines runtime behaviour:
-      event:start:timer        — controls worker spawn pacing; always first
-      event:intermediate:timer — advances the clock without emitting
-      activity                 — evaluates variables and optionally emits a record
-      gateway:exclusive        — routes to one of several next states by probability
-      event:end                — terminates the worker thread
+    Each subclass handles one state type. parse() builds an instance from a
+    config dict, validate_desc() checks a config dict without building one,
+    run() performs the state's side effects inside a simpy process, and
+    next_state() picks the name of the state to move to.
     """
 
-    def __init__(self, name, state_type, dimensions, delay, transitions, variables):
+    type = None
+
+    def __init__(self, name):
         self.name = name
-        self.type = state_type
-        self.dimensions = dimensions
-        self.delay = delay
-        self.transitions = transitions
-        self.transition_states = [t.next_state for t in transitions]
-        self.transition_probabilities = [t.probability for t in transitions]
-        # random.choices(weights=...) recomputes this cumulative sum from
-        # scratch on every single call — precompute it once, since the
-        # probabilities never change after construction.
-        self._transition_cum_weights = list(
-            itertools.accumulate(self.transition_probabilities)
-        )
-        self.variables = variables
 
     def __str__(self):
-        return (
-            "State(name="
-            + self.name
-            + ", type="
-            + self.type
-            + ", dimensions="
-            + str([str(d) for d in self.dimensions])
-            + ", delay="
-            + str(self.delay)
-            + ", transition_states="
-            + str(self.transition_states)
-            + ", transition_probabilities="
-            + str(self.transition_probabilities)
-            + "variables="
-            + str([str(v) for v in self.variables])
-            + ")"
+        return f"{type(self).__name__}(name={self.name})"
+
+    @classmethod
+    def parse(cls, desc, emitters, clock):
+        """Build an instance from a state config dict.
+
+        Args:
+            desc: The state's config dict.
+            emitters: Map of emitter name to its parsed dimensions.
+            clock: The simulation Clock, for distributions and dimensions that need it.
+
+        Returns:
+            An instance of the subclass.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def validate_desc(desc, emitter_names, context):
+        """Validate a state config dict of this type. Logs errors and returns bool."""
+        raise NotImplementedError
+
+    def run(self, driver, variables):
+        """Generator: perform this state's side effects.
+
+        Run with `yield from state.run(driver, variables)` inside a simpy
+        process. Only timer states actually yield.
+
+        Args:
+            driver: The DataDriver running the session.
+            variables: The session's worker variables, updated in place.
+        """
+        return
+        yield
+
+    def next_state(self):
+        """Return the name of the next state, or None to end the session."""
+        raise NotImplementedError
+
+
+class _SingleNextState(StateBase):
+    """A state with exactly one successor, named by its 'next' field."""
+
+    def __init__(self, name, next_name):
+        super().__init__(name)
+        self.next_name = next_name
+
+    def next_state(self):
+        # Draw and discard one random number, matching the single-option
+        # random.choices() call that routing used to make for every state.
+        random.random()
+        return self.next_name
+
+
+def _no_variables(desc, state_type, context):
+    if "variables" in desc or "variables_on_entry" in desc:
+        logger.error(
+            "%s: %s must not have variables — only activities can set variables",
+            context,
+            state_type,
+        )
+        return False
+    return True
+
+
+def _next_is_string(desc, state_type, context):
+    if "next" not in desc:
+        logger.error("%s: %s missing required field 'next'", context, state_type)
+        return False
+    if not isinstance(desc["next"], str):
+        logger.error("%s: %s 'next' must be a string", context, state_type)
+        return False
+    return True
+
+
+class EventStartTimerState(_SingleNextState):
+    """The session's entry point. Its cardinality_distribution sets how often
+    sessions start; DataDriver.arrival_process reads it, not the state itself."""
+
+    type = "event:start:timer"
+
+    @classmethod
+    def parse(cls, desc, emitters, clock):
+        return cls(desc["name"], desc["next"])
+
+    @staticmethod
+    def validate_desc(desc, emitter_names, context):
+        valid = True
+        t = "event:start:timer"
+        if "cardinality_distribution" not in desc:
+            logger.error(
+                "%s: %s missing required field 'cardinality_distribution'", context, t
+            )
+            valid = False
+        if desc.get("emitter") is not None:
+            logger.error("%s: %s must not have an emitter", context, t)
+            valid = False
+        if not _next_is_string(desc, t, context):
+            valid = False
+        if "transitions" in desc:
+            logger.error("%s: %s uses 'next', not 'transitions'", context, t)
+            valid = False
+        if not _no_variables(desc, t, context):
+            valid = False
+        return valid
+
+
+class EventIntermediateTimerState(_SingleNextState):
+    """Advances the session's clock by a sampled delay, without emitting."""
+
+    type = "event:intermediate:timer"
+
+    def __init__(self, name, next_name, delay):
+        super().__init__(name, next_name)
+        self.delay = delay
+
+    @classmethod
+    def parse(cls, desc, emitters, clock):
+        delay = parse_distribution(desc["cardinality_distribution"], clock=clock)
+        return cls(desc["name"], desc["next"], delay)
+
+    @staticmethod
+    def validate_desc(desc, emitter_names, context):
+        valid = True
+        t = "event:intermediate:timer"
+        if "cardinality_distribution" not in desc:
+            logger.error(
+                "%s: %s missing required field 'cardinality_distribution'", context, t
+            )
+            valid = False
+        if not _next_is_string(desc, t, context):
+            valid = False
+        if desc.get("emitter") is not None:
+            logger.error("%s: %s must not have an emitter", context, t)
+            valid = False
+        if "transitions" in desc:
+            logger.error("%s: %s uses 'next', not 'transitions'", context, t)
+            valid = False
+        if not _no_variables(desc, t, context):
+            valid = False
+        return valid
+
+    def run(self, driver, variables):
+        yield from driver.global_clock.sleep(float(self.delay.get_sample()))
+
+
+class ActivityState(_SingleNextState):
+    """Sets variables, then emits a record if the state names an emitter."""
+
+    type = "activity"
+
+    def __init__(self, name, next_name, variables, dimensions):
+        super().__init__(name, next_name)
+        self.variables = variables
+        self.dimensions = dimensions
+
+    @classmethod
+    def parse(cls, desc, emitters, clock):
+        emitter_name = desc.get("emitter")
+        dimensions = emitters[emitter_name] if emitter_name is not None else None
+        variables = get_variables(desc.get("variables", []), clock)
+        return cls(desc["name"], desc["next"], variables, dimensions)
+
+    @staticmethod
+    def validate_desc(desc, emitter_names, context):
+        valid = True
+        if "cardinality_distribution" in desc:
+            logger.error(
+                "%s: activity must not have 'cardinality_distribution' — "
+                "precede it with event:intermediate:timer",
+                context,
+            )
+            valid = False
+        if "transitions" in desc:
+            logger.error(
+                "%s: activity uses 'next', not 'transitions' — add a "
+                "gateway:exclusive for routing",
+                context,
+            )
+            valid = False
+        if not _next_is_string(desc, "activity", context):
+            valid = False
+        if "variables_on_entry" in desc:
+            logger.error(
+                "%s: 'variables_on_entry' is not supported — use "
+                "'variables' in an activity",
+                context,
+            )
+            valid = False
+        emitter = desc.get("emitter")
+        if emitter is not None and emitter not in emitter_names:
+            logger.error(
+                "%s: references emitter '%s' which is not defined in 'emitters'",
+                context,
+                emitter,
+            )
+            valid = False
+        return valid
+
+    def run(self, driver, variables):
+        driver.set_variable_values(variables, self.variables)
+        if self.dimensions is not None:
+            record = driver.create_record(self.dimensions, variables)
+            driver._emit(driver.render_record(record), driver.global_clock.now())
+            driver.sim_control.inc_rec_count()
+        return
+        yield
+
+
+class GatewayExclusiveState(StateBase):
+    """Routes to one of several next states, chosen by weighted probability."""
+
+    type = "gateway:exclusive"
+
+    def __init__(self, name, next_names, probabilities):
+        super().__init__(name)
+        self.next_names = next_names
+        # random.choices(weights=...) recomputes this cumulative sum on every
+        # call; the probabilities never change, so compute it once.
+        self._cum_weights = list(itertools.accumulate(probabilities))
+
+    @classmethod
+    def parse(cls, desc, emitters, clock):
+        transitions = desc["transitions"]
+        return cls(
+            desc["name"],
+            [t["next"] for t in transitions],
+            [float(t["probability"]) for t in transitions],
         )
 
     @staticmethod
     def validate_desc(desc, emitter_names, context):
-        """Validate a state config dict. Logs errors/warnings and returns bool."""
         valid = True
-        if "name" not in desc:
-            logger.error("%s: missing required field 'name'", context)
+        t = "gateway:exclusive"
+        if desc.get("emitter") is not None:
+            logger.error("%s: %s must not have an emitter", context, t)
             valid = False
-
-        state_type = desc.get("type")
-        if state_type is None:
-            logger.error("%s: missing required field 'type'", context)
+        if "cardinality_distribution" in desc:
+            logger.error("%s: %s must not have 'cardinality_distribution'", context, t)
+            valid = False
+        if "next" in desc:
+            logger.error("%s: %s uses 'transitions', not 'next'", context, t)
+            valid = False
+        if not _no_variables(desc, t, context):
+            valid = False
+        transitions = desc.get("transitions")
+        if not transitions or not isinstance(transitions, list):
+            logger.error("%s: %s missing required field 'transitions'", context, t)
             return False
-        if state_type not in VALID_TYPES:
-            logger.error("%s: unknown state type '%s'", context, state_type)
-            return False  # nothing else meaningful to check
-
-        if state_type == "event:end":
-            if desc.get("emitter") is not None:
-                logger.error("%s: event:end must not have an emitter", context)
+        total_prob = 0.0
+        for i, trans in enumerate(transitions):
+            if not _validate_transition(trans, f"{context}, transition [{i}]"):
                 valid = False
-            if "variables" in desc or "variables_on_entry" in desc:
-                logger.error(
-                    "%s: event:end must not have variables — only activities "
-                    "can set variables",
-                    context,
-                )
-                valid = False
-            return valid
-
-        if state_type == "event:start:timer":
-            if "cardinality_distribution" not in desc:
-                logger.error(
-                    "%s: event:start:timer missing required field "
-                    "'cardinality_distribution'",
-                    context,
-                )
-                valid = False
-            if desc.get("emitter") is not None:
-                logger.error("%s: event:start:timer must not have an emitter", context)
-                valid = False
-            if "next" not in desc:
-                logger.error(
-                    "%s: event:start:timer missing required field 'next'", context
-                )
-                valid = False
-            elif not isinstance(desc["next"], str):
-                logger.error("%s: event:start:timer 'next' must be a string", context)
-                valid = False
-            if "transitions" in desc:
-                logger.error(
-                    "%s: event:start:timer uses 'next', not 'transitions'", context
-                )
-                valid = False
-            if "variables" in desc or "variables_on_entry" in desc:
-                logger.error(
-                    "%s: event:start:timer must not have variables — only "
-                    "activities can set variables",
-                    context,
-                )
-                valid = False
-            return valid
-
-        if state_type == "event:intermediate:timer":
-            if "cardinality_distribution" not in desc:
-                logger.error(
-                    "%s: event:intermediate:timer missing required field "
-                    "'cardinality_distribution'",
-                    context,
-                )
-                valid = False
-            if "next" not in desc:
-                logger.error(
-                    "%s: event:intermediate:timer missing required field 'next'",
-                    context,
-                )
-                valid = False
-            elif not isinstance(desc["next"], str):
-                logger.error(
-                    "%s: event:intermediate:timer 'next' must be a string", context
-                )
-                valid = False
-            if desc.get("emitter") is not None:
-                logger.error(
-                    "%s: event:intermediate:timer must not have an emitter", context
-                )
-                valid = False
-            if "transitions" in desc:
-                logger.error(
-                    "%s: event:intermediate:timer uses 'next', not 'transitions'",
-                    context,
-                )
-                valid = False
-            if "variables" in desc or "variables_on_entry" in desc:
-                logger.error(
-                    "%s: event:intermediate:timer must not have variables — "
-                    "only activities can set variables",
-                    context,
-                )
-                valid = False
-            return valid
-
-        if state_type == "activity":
-            if "cardinality_distribution" in desc:
-                logger.error(
-                    "%s: activity must not have 'cardinality_distribution' — "
-                    "precede it with event:intermediate:timer",
-                    context,
-                )
-                valid = False
-            if "transitions" in desc:
-                logger.error(
-                    "%s: activity uses 'next', not 'transitions' — add a "
-                    "gateway:exclusive for routing",
-                    context,
-                )
-                valid = False
-            if "next" not in desc:
-                logger.error("%s: activity missing required field 'next'", context)
-                valid = False
-            elif not isinstance(desc["next"], str):
-                logger.error("%s: activity 'next' must be a string", context)
-                valid = False
-            if "variables_on_entry" in desc:
-                logger.error(
-                    "%s: 'variables_on_entry' is not supported — use "
-                    "'variables' in an activity",
-                    context,
-                )
-                valid = False
-            emitter = desc.get("emitter")
-            if emitter is not None and emitter not in emitter_names:
-                logger.error(
-                    "%s: references emitter '%s' which is not defined in 'emitters'",
-                    context,
-                    emitter,
-                )
-                valid = False
-            return valid
-
-        if state_type == "gateway:exclusive":
-            if desc.get("emitter") is not None:
-                logger.error("%s: gateway:exclusive must not have an emitter", context)
-                valid = False
-            if "cardinality_distribution" in desc:
-                logger.error(
-                    "%s: gateway:exclusive must not have 'cardinality_distribution'",
-                    context,
-                )
-                valid = False
-            if "next" in desc:
-                logger.error(
-                    "%s: gateway:exclusive uses 'transitions', not 'next'", context
-                )
-                valid = False
-            if "variables" in desc or "variables_on_entry" in desc:
-                logger.error(
-                    "%s: gateway:exclusive must not have variables — only "
-                    "activities can set variables",
-                    context,
-                )
-                valid = False
-            transitions = desc.get("transitions")
-            if not transitions or not isinstance(transitions, list):
-                logger.error(
-                    "%s: gateway:exclusive missing required field 'transitions'",
-                    context,
-                )
-                valid = False
-            else:
-                total_prob = 0.0
-                for i, trans in enumerate(transitions):
-                    trans_ctx = f"{context}, transition [{i}]"
-                    if not Transition.validate_desc(trans, trans_ctx):
-                        valid = False
-                    try:
-                        total_prob += float(trans.get("probability", 0))
-                    except (TypeError, ValueError):
-                        pass
-                if abs(total_prob - 1.0) > 0.01:
-                    logger.error(
-                        "%s: transition probabilities sum to %.4f, not 1.0",
-                        context,
-                        total_prob,
-                    )
-                    valid = False
-            return valid
-
+            try:
+                total_prob += float(trans.get("probability", 0))
+            except (TypeError, ValueError):
+                pass
+        if abs(total_prob - 1.0) > 0.01:
+            logger.error(
+                "%s: transition probabilities sum to %.4f, not 1.0", context, total_prob
+            )
+            valid = False
         return valid
 
-    def get_next_state_name(self):
-        if not self.transition_states:
-            return None
-        return random.choices(
-            self.transition_states, cum_weights=self._transition_cum_weights, k=1
-        )[0]
+    def next_state(self):
+        return random.choices(self.next_names, cum_weights=self._cum_weights, k=1)[0]
 
 
-def estimate_session_length(states, start_state):
-    """Estimate how long a typical session lasts, from the state graph alone.
+def _validate_transition(desc, context):
+    """Validate one entry in a gateway's transitions list. Logs errors and returns bool."""
+    valid = True
+    if "next" not in desc:
+        logger.error("%s: transition missing required field 'next'", context)
+        valid = False
+    elif not isinstance(desc["next"], str):
+        logger.error(
+            "%s: transition 'next' must be a string, got %s",
+            context,
+            type(desc["next"]).__name__,
+        )
+        valid = False
+    if "probability" not in desc:
+        logger.error("%s: transition missing required field 'probability'", context)
+        valid = False
+    else:
+        try:
+            p = float(desc["probability"])
+            if not (0 < p <= 1):
+                logger.error(
+                    "%s: transition 'probability' must be in (0, 1], got %s",
+                    context,
+                    desc["probability"],
+                )
+                valid = False
+        except (TypeError, ValueError):
+            logger.error(
+                "%s: transition 'probability' must be a number, got %r",
+                context,
+                desc["probability"],
+            )
+            valid = False
+    return valid
 
-    Walks the graph once from start_state, weighting each transition by its
-    probability and summing event:intermediate:timer means, but stops following
-    any branch that revisits a state already seen on that path -- so a loop
-    contributes only its first pass (`naive`). Separately tracks the probability
-    of reaching event:end without ever looping back (`p_escape`). Dividing the
-    two applies the geometric-series correction for a retry loop: exact for a
-    single homogeneous loop, an approximation when a graph has several loops at
-    different depths (each with its own escape dynamics) folded into one
-    aggregate p_escape.
 
-    Not currently called from anywhere in this repo.
+class EventEndState(StateBase):
+    """Ends the session. Sessions stop on reaching it, so it never runs."""
+
+    type = "event:end"
+
+    @classmethod
+    def parse(cls, desc, emitters, clock):
+        return cls(desc["name"])
+
+    @staticmethod
+    def validate_desc(desc, emitter_names, context):
+        valid = True
+        if desc.get("emitter") is not None:
+            logger.error("%s: event:end must not have an emitter", context)
+            valid = False
+        if not _no_variables(desc, "event:end", context):
+            valid = False
+        return valid
+
+    def next_state(self):
+        return None
+
+
+STATE_CLASSES = {
+    cls.type: cls
+    for cls in (
+        EventStartTimerState,
+        EventIntermediateTimerState,
+        ActivityState,
+        GatewayExclusiveState,
+        EventEndState,
+    )
+}
+
+
+def validate_state_desc(desc, emitter_names, context):
+    """Validate one state config dict. Logs errors and returns bool.
+
+    Args:
+        desc: The state's config dict.
+        emitter_names: Names of the emitters the config defines.
+        context: Prefix for log messages, such as "state 'setup'".
+
+    Returns:
+        True if the state is valid.
     """
-
-    def walk(state, visited):
-        if state is None or state.type == "event:end":
-            return 0.0, 1.0
-        if state.name in visited:
-            return 0.0, 0.0
-        visited = visited | {state.name}
-        if state.type == "event:intermediate:timer":
-            own_delay = state.delay.mean()
-        else:
-            own_delay = 0.0
-        delay_sum = 0.0
-        escape = 0.0
-        for t in state.transitions:
-            d, e = walk(states.get(t.next_state), visited)
-            delay_sum += t.probability * d
-            escape += t.probability * e
-        return own_delay + delay_sum, escape
-
-    naive, p_escape = walk(start_state, frozenset())
-    if p_escape <= 0:
-        return naive
-    return naive / p_escape
+    valid = True
+    if "name" not in desc:
+        logger.error("%s: missing required field 'name'", context)
+        valid = False
+    state_type = desc.get("type")
+    if state_type is None:
+        logger.error("%s: missing required field 'type'", context)
+        return False
+    cls = STATE_CLASSES.get(state_type)
+    if cls is None:
+        logger.error("%s: unknown state type '%s'", context, state_type)
+        return False
+    return cls.validate_desc(desc, emitter_names, context) and valid
 
 
 class Controller:
