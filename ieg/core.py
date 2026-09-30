@@ -23,7 +23,7 @@ from ieg.dimensions import (
     DimensionVariable,
     get_dimensions,
 )
-from ieg.distributions import parse_distribution, parse_schedule
+from ieg.distributions import parse_schedule
 from ieg.states import STATE_CLASSES, Controller
 from ieg.validate import validate_config
 
@@ -256,18 +256,14 @@ class DataDriver:
                 state, self.emitters, self.global_clock
             )
             self.states[this_state.name] = this_state
-            if state_type == "event:start:timer":
+            if this_state.is_entry:
                 self.initial_state = this_state
 
         if self.initial_state is None:
             raise RuntimeError("Config has no event:start:timer state.")
 
-        # Interarrival rate comes from the event:start:timer state's
-        # cardinality_distribution field
-        timer_desc = next(s for s in state_desc if s.get("type") == "event:start:timer")
-        self.rate_delay = parse_distribution(
-            timer_desc["cardinality_distribution"], clock=self.global_clock
-        )
+        # Sessions start at the rate set by the entry state's cardinality_distribution.
+        self.rate_delay = self.initial_state.interarrival
 
         # Admission for -w: there's no queue. The population of potential
         # arrivals is treated as unbounded (see arrival_process), so the only
@@ -403,7 +399,7 @@ class DataDriver:
                 if next_state_name is None:
                     break
                 next_state = self.states.get(next_state_name)
-                if next_state is None or next_state.type == "event:end":
+                if next_state is None or next_state.is_terminal:
                     break
                 current_state = next_state
         finally:

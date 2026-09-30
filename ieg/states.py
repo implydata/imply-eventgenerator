@@ -14,7 +14,7 @@ import threading
 import isodate
 
 from ieg.dimensions import get_variables
-from ieg.distributions import parse_distribution
+from ieg.distributions import parse_distribution, validate_distribution_desc
 
 logger = logging.getLogger("ieg")
 
@@ -29,6 +29,10 @@ class StateBase:
     """
 
     type = None
+    # A session starts at the (single) entry state and stops on reaching a
+    # terminal state.
+    is_entry = False
+    is_terminal = False
 
     def __init__(self, name):
         self.name = name
@@ -72,6 +76,11 @@ class StateBase:
         """Return the name of the next state, or None to end the session."""
         raise NotImplementedError
 
+    @staticmethod
+    def successors(desc):
+        """Return the names of the states a state config dict can lead to."""
+        return []
+
 
 class _SingleNextState(StateBase):
     """A state with exactly one successor, named by its 'next' field."""
@@ -79,6 +88,10 @@ class _SingleNextState(StateBase):
     def __init__(self, name, next_name):
         super().__init__(name)
         self.next_name = next_name
+
+    @staticmethod
+    def successors(desc):
+        return [desc["next"]] if isinstance(desc.get("next"), str) else []
 
     def next_state(self):
         # Draw and discard one random number, matching the single-option
@@ -98,6 +111,15 @@ def _no_variables(desc, state_type, context):
     return True
 
 
+def _valid_delay(desc, context):
+    """Validate a timer's cardinality_distribution, if it has one."""
+    if "cardinality_distribution" not in desc:
+        return True
+    return validate_distribution_desc(
+        desc["cardinality_distribution"], f"{context} cardinality_distribution"
+    )
+
+
 def _next_is_string(desc, state_type, context):
     if "next" not in desc:
         logger.error("%s: %s missing required field 'next'", context, state_type)
@@ -113,10 +135,16 @@ class EventStartTimerState(_SingleNextState):
     sessions start; DataDriver.arrival_process reads it, not the state itself."""
 
     type = "event:start:timer"
+    is_entry = True
+
+    def __init__(self, name, next_name, interarrival):
+        super().__init__(name, next_name)
+        self.interarrival = interarrival
 
     @classmethod
     def parse(cls, desc, emitters, clock):
-        return cls(desc["name"], desc["next"])
+        interarrival = parse_distribution(desc["cardinality_distribution"], clock=clock)
+        return cls(desc["name"], desc["next"], interarrival)
 
     @staticmethod
     def validate_desc(desc, emitter_names, context):
@@ -137,7 +165,7 @@ class EventStartTimerState(_SingleNextState):
             valid = False
         if not _no_variables(desc, t, context):
             valid = False
-        return valid
+        return _valid_delay(desc, context) and valid
 
 
 class EventIntermediateTimerState(_SingleNextState):
@@ -173,7 +201,7 @@ class EventIntermediateTimerState(_SingleNextState):
             valid = False
         if not _no_variables(desc, t, context):
             valid = False
-        return valid
+        return _valid_delay(desc, context) and valid
 
     def run(self, driver, variables):
         yield from driver.global_clock.sleep(float(self.delay.get_sample()))
@@ -297,6 +325,17 @@ class GatewayExclusiveState(StateBase):
             valid = False
         return valid
 
+    @staticmethod
+    def successors(desc):
+        transitions = desc.get("transitions")
+        if not isinstance(transitions, list):
+            return []
+        return [
+            t["next"]
+            for t in transitions
+            if isinstance(t, dict) and isinstance(t.get("next"), str)
+        ]
+
     def next_state(self):
         return random.choices(self.next_names, cum_weights=self._cum_weights, k=1)[0]
 
@@ -341,6 +380,7 @@ class EventEndState(StateBase):
     """Ends the session. Sessions stop on reaching it, so it never runs."""
 
     type = "event:end"
+    is_terminal = True
 
     @classmethod
     def parse(cls, desc, emitters, clock):

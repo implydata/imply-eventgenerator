@@ -5,8 +5,7 @@ import os
 import re
 
 from ieg.dimensions import validate_dimension_desc
-from ieg.distributions import validate_distribution_desc
-from ieg.states import validate_state_desc
+from ieg.states import STATE_CLASSES, validate_state_desc
 
 logger = logging.getLogger("ieg")
 
@@ -60,34 +59,36 @@ def validate_config(config, template_name=None):
             if "name" in state:
                 state_names.add(state["name"])
 
+        def state_class(state):
+            return STATE_CLASSES.get(state.get("type"))
+
+        entry_type = next(t for t, c in STATE_CLASSES.items() if c.is_entry)
+        terminal_type = next(t for t, c in STATE_CLASSES.items() if c.is_terminal)
+
         end_state_names = {
             s["name"]
             for s in config["states"]
-            if s.get("type") == "event:end" and "name" in s
+            if "name" in s and state_class(s) is not None and state_class(s).is_terminal
         }
 
-        # Cross-cutting: exactly one event:start:timer
+        # Cross-cutting: exactly one entry state
         start_states = [
-            s for s in config["states"] if s.get("type") == "event:start:timer"
+            s
+            for s in config["states"]
+            if state_class(s) is not None and state_class(s).is_entry
         ]
         if len(start_states) == 0:
-            logger.error("Config has no event:start:timer state")
+            logger.error("Config has no %s state", entry_type)
             valid = False
         elif len(start_states) > 1:
             logger.error(
-                "Config has multiple event:start:timer states — only one is allowed"
+                "Config has multiple %s states — only one is allowed", entry_type
             )
             valid = False
-        else:
-            timer_desc = start_states[0].get("cardinality_distribution")
-            if timer_desc and not validate_distribution_desc(
-                timer_desc, "event:start:timer.cardinality_distribution"
-            ):
-                valid = False
 
-        # Cross-cutting: at least one event:end
+        # Cross-cutting: at least one terminal state
         if not end_state_names:
-            logger.error("Config has no event:end state")
+            logger.error("Config has no %s state", terminal_type)
             valid = False
 
         # Collect all variable names set by any state (activities only)
@@ -101,15 +102,6 @@ def validate_config(config, template_name=None):
         for i, state in enumerate(config["states"]):
             ctx = f"state '{state.get('name', f'[{i}]')}'"
             if not validate_state_desc(state, emitter_names, ctx):
-                valid = False
-            state_type = state.get("type")
-            if (
-                state_type in ("event:intermediate:timer", "event:start:timer")
-                and "cardinality_distribution" in state
-                and not validate_distribution_desc(
-                    state["cardinality_distribution"], f"{ctx} cardinality_distribution"
-                )
-            ):
                 valid = False
             for var in state.get("variables", []):
                 vctx = f"{ctx}, variable '{var.get('name', '?')}'"
@@ -156,13 +148,12 @@ def validate_config(config, template_name=None):
                         valid = False
 
         def outgoing(state):
-            """All next-state names from a state, regardless of how they're expressed."""
-            nxts = [t.get("next", "") for t in state.get("transitions", [])]
-            if "next" in state:  # activity, event:start:timer, event:intermediate:timer
-                nxts.append(state["next"])
+            """Names of the defined states that a state can lead to."""
+            cls = state_class(state)
+            nxts = cls.successors(state) if cls is not None else []
             return [n for n in nxts if n in state_names]
 
-        # Cross-cutting: infinite loop detection — can a state reach an event:end?
+        # Cross-cutting: infinite loop detection — can a state reach a terminal state?
         can_escape = set(end_state_names)
         for state in config["states"]:
             if any(n in end_state_names for n in outgoing(state)):
@@ -178,7 +169,7 @@ def validate_config(config, template_name=None):
                     can_escape.add(sname)
                     changed = True
 
-        # Find states reachable from event:start:timer
+        # Find states reachable from the entry state
         if start_states:
             reachable = set()
             frontier = {start_states[0].get("name", "")}
@@ -196,10 +187,12 @@ def validate_config(config, template_name=None):
 
             for sname in sorted(reachable - can_escape):
                 logger.warning(
-                    "state '%s': no path to event:end — potential infinite loop", sname
+                    "state '%s': no path to %s — potential infinite loop",
+                    sname,
+                    terminal_type,
                 )
             for sname in sorted(state_names - reachable):
-                logger.warning("state '%s': unreachable from event:start:timer", sname)
+                logger.warning("state '%s': unreachable from %s", sname, entry_type)
 
     # Templates block validation
     templates = config.get("templates", {})
