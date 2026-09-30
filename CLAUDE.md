@@ -2,12 +2,12 @@
 
 ## Actor-first design
 
-Every config must have an agreed **Actor** before any JSON is written. An Actor is the entity that flows through the state machine — one worker thread, one journey. Propose the Actor(s) and their high-level workflow and wait for confirmation before writing any config.
+Every config must have an agreed **Actor** before any JSON is written. An Actor is the entity that flows through the state machine — one session, one journey. Propose the Actor(s) and their high-level workflow and wait for confirmation before writing any config.
 
 - A config can have multiple Actor *types* (e.g. Human, Hacker, Bot in the ecommerce preset), routed at session start via a routing state such as `global_init`.
 - All Actor types share the same `-w` worker pool, capped by Little's Law.
 - `-w` caps the number of simultaneously active sessions. When set below the natural concurrency (L = λW), it reduces throughput — in both real-time and simulated modes. When at or above L, it has no effect on throughput; the interarrival `mean` is the binding constraint.
-- In simulated mode, the Clock serialises threads for **time-ordering** (advancing simulated time in scheduled-event order). This is separate from the concurrency cap: the spawning thread still enforces `effective_max` and sleeps 5 simulated seconds when at capacity. Do not conflate time-ordering serialisation with bypassing the concurrency constraint.
+- The engine is a single-threaded `simpy` event loop. At each arrival, `arrival_process` starts a new session only if fewer than `effective_max` sessions are active. Otherwise the arrival is dropped: there's no queue and no retry.
 
 ## Preset structure
 
@@ -21,7 +21,7 @@ Each preset consists of:
 
 The `conf/` directory and `docs/conf/` are deprecated — ignore them entirely.
 
-The ecommerce configs (`ecommerce.json`, `ecommerce_furniture.json`, `ecommerce_lighting.json`) are fully independent — editing one does not imply checking the others.
+The ecommerce configs (`ecommerce.json`, `ecommerce_furniture.json`, `ecommerce_gifts.json`, `ecommerce_lighting.json`, `ecommerce_sports.json`) are fully independent — editing one does not imply checking the others.
 
 ## Preset doc structure
 
@@ -55,6 +55,7 @@ The reference docs in `docs/` are the authoritative source for what the engine s
 - If a code change adds or modifies a state type, distribution type, emitter option, or field type, update the relevant doc in the same pass — not as a follow-up.
 - `field-generators.md` is an index page; the per-type detail lives in `docs/types/`. When a new field type is added, create `docs/types/<type>.md` **and** add a row to `field-generators.md`.
 - If asked to write a config that uses a distribution or field type not present in `docs/`, **stop and flag it** rather than writing JSON and hoping it works.
+- If a change alters a preset's output volume or session timing, re-profile it and update its entries in `tools/generate_all.json` and its doc's **Volume** section. A seeded byte-diff (`--seed` with `-s`) of the preset's output before and after the change shows whether re-profiling is needed.
 
 ## Testing configs
 
