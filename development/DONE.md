@@ -1,5 +1,8 @@
 # DONE
 
+- Broke down the `202604-looping` branch. Its standalone parts landed on main
+  as the dimension kinds and the state classes, the subprocess idea is kept as
+  a brief in `development/TODO-subprocesses.md`, and the branch was deleted.
 - Replaced the single `State` class with one class per state type, each with
   its own parsing, validation, and behaviour, and gave each state type its own
   page under `docs/states/`. Seeded output is unchanged. Sustained generation is
