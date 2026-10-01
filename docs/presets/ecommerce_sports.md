@@ -23,7 +23,7 @@ python generator.py -c presets/configs/ecommerce_sports.json --template csv -n \
 
 # With time-of-day variation
 python generator.py -c presets/configs/ecommerce_sports.json --template \
-  access_combined -m 700 --schedule presets/schedules/ecommerce.json
+  access_combined -w 700 --schedule presets/schedules/ecommerce.json
 
 # IIS W3C log (Splunk ms:iis:auto sourcetype — recommended)
 python generator.py -c presets/configs/ecommerce_sports.json --template \
@@ -32,20 +32,20 @@ python generator.py -c presets/configs/ecommerce_sports.json --template \
 
 ## Templates
 
-| Template | Output |
-| --- | --- |
-| `apache:access:json` | Splunk TA JSON (`KV_MODE=json`) |
-| `apache:access:kv` | Splunk TA key=value pairs |
-| `apache:access:combined` | NCSA combined log (Splunk `apache:access:combined` sourcetype) |
-| `access_combined` | NCSA combined log (Splunk `access_combined` pre-trained sourcetype) |
-| `access_combined_wcookie` | NCSA combined log with cookie field appended |
-| `access_common` | NCSA common log (no referrer or user-agent) |
-| `csv` | CSV with header row |
-| `ms:iis:auto` | IIS W3C log (`ms:iis:auto` sourcetype) |
-| `ms:iis:default:85` | IIS W3C log (`ms:iis:default:85` sourcetype — identical output to `ms:iis:auto`, included for completeness) |
-| `ms:iis:default` | IIS W3C log (`ms:iis:default` sourcetype, IIS 7.0 field ordering) |
-| `ms:iis:splunk` | IIS W3C log (`ms:iis:splunk` sourcetype, adds `Content-Type` and `https` fields) |
-| `ocsf:http_activity` | [OCSF](https://schema.ocsf.io/) 1.4.0 HTTP Activity (`class_uid` 4002) JSON — one event per request, for security data lake / SIEM ingestion |
+| Template                  | Output                                                                                                                                       |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apache:access:json`      | Splunk TA JSON (`KV_MODE=json`)                                                                                                              |
+| `apache:access:kv`        | Splunk TA key=value pairs                                                                                                                    |
+| `apache:access:combined`  | NCSA combined log (Splunk `apache:access:combined` sourcetype)                                                                               |
+| `access_combined`         | NCSA combined log (Splunk `access_combined` pre-trained sourcetype)                                                                          |
+| `access_combined_wcookie` | NCSA combined log with cookie field appended                                                                                                 |
+| `access_common`           | NCSA common log (no referrer or user-agent)                                                                                                  |
+| `csv`                     | CSV with header row                                                                                                                          |
+| `ms:iis:auto`             | IIS W3C log (`ms:iis:auto` sourcetype)                                                                                                       |
+| `ms:iis:default:85`       | IIS W3C log (`ms:iis:default:85` sourcetype — identical output to `ms:iis:auto`, included for completeness)                                  |
+| `ms:iis:default`          | IIS W3C log (`ms:iis:default` sourcetype, IIS 7.0 field ordering)                                                                            |
+| `ms:iis:splunk`           | IIS W3C log (`ms:iis:splunk` sourcetype, adds `Content-Type` and `https` fields)                                                             |
+| `ocsf:http_activity`      | [OCSF](https://schema.ocsf.io/) 1.4.0 HTTP Activity (`class_uid` 4002) JSON — one event per request, for security data lake / SIEM ingestion |
 
 When generating IIS data for Splunk, use `--template ms:iis:auto` — the other
 IIS templates are included for completeness but have been marked as deprecated
@@ -62,46 +62,46 @@ across all three actor types.
 
 ## Output fields
 
-| Field | Description |
-| --- | --- |
-| `time` | Request timestamp |
-| `client` | Client IP address |
-| `ident` | RFC 1413 identity (always `-`) |
-| `user` | Authenticated username (usually `-`) |
-| `http_method` | HTTP method (`GET`, `POST`, etc.) |
-| `uri_path` | Request path |
-| `uri_query` | Query string (empty if none) |
-| `http_version` | Protocol version (`HTTP/1.1`, `HTTP/2.0`) |
-| `status` | HTTP response status code |
-| `bytes_out` | Response bytes |
-| `bytes_in` | Request bytes |
-| `http_referrer` | Referrer URL |
-| `http_user_agent` | User-Agent string |
-| `http_content_type` | Content-Type of the response |
-| `cookie` | Session cookie value |
-| `server` | Server IP address (`10.0.4.x`) |
-| `dest_port` | Server port (80, 443, or 8080) |
-| `response_time_microseconds` | Response latency in microseconds |
+| Field                        | Description                               |
+| ---------------------------- | ----------------------------------------- |
+| `time`                       | Request timestamp                         |
+| `client`                     | Client IP address                         |
+| `ident`                      | RFC 1413 identity (always `-`)            |
+| `user`                       | Authenticated username (usually `-`)      |
+| `http_method`                | HTTP method (`GET`, `POST`, etc.)         |
+| `uri_path`                   | Request path                              |
+| `uri_query`                  | Query string (empty if none)              |
+| `http_version`               | Protocol version (`HTTP/1.1`, `HTTP/2.0`) |
+| `status`                     | HTTP response status code                 |
+| `bytes_out`                  | Response bytes                            |
+| `bytes_in`                   | Request bytes                             |
+| `http_referrer`              | Referrer URL                              |
+| `http_user_agent`            | User-Agent string                         |
+| `http_content_type`          | Content-Type of the response              |
+| `cookie`                     | Session cookie value                      |
+| `server`                     | Server IP address (`10.0.4.x`)            |
+| `dest_port`                  | Server port (80, 443, or 8080)            |
+| `response_time_microseconds` | Response latency in microseconds          |
 
 ## Product categories
 
-| Category | Weight | Example products |
-| --- | --- | --- |
-| Fitness & gym | 32% | Adjustable dumbbell set, resistance bands, yoga mat, kettlebell, foam roller |
-| Outdoor & hiking | 23% | Trail running vest, ultralight sleeping bag, trekking poles, headlamp, tent |
-| Team sports | 17% | Match football, cricket bat, basketball, rugby ball, hockey stick, goalkeeper gloves |
-| Cycling | 14% | Road bike helmet, cycling gloves, LED bike lights, GPS cycling computer, clip pedals |
-| Water sports | 9% | Swim cap, triathlon wetsuit, open-water goggles, paddle board, kayak paddle |
+| Category         | Weight | Example products                                                                     |
+| ---------------- | ------ | ------------------------------------------------------------------------------------ |
+| Fitness & gym    | 32%    | Adjustable dumbbell set, resistance bands, yoga mat, kettlebell, foam roller         |
+| Outdoor & hiking | 23%    | Trail running vest, ultralight sleeping bag, trekking poles, headlamp, tent          |
+| Team sports      | 17%    | Match football, cricket bat, basketball, rugby ball, hockey stick, goalkeeper gloves |
+| Cycling          | 14%    | Road bike helmet, cycling gloves, LED bike lights, GPS cycling computer, clip pedals |
+| Water sports     | 9%     | Swim cap, triathlon wetsuit, open-water goggles, paddle board, kayak paddle          |
 
 ## Session routing
 
 Each session is routed at startup by `global_init` (no event emitted):
 
-| Session type | Probability | Description |
-| --- | --- | --- |
-| Human | 99.5% | Normal shopper browsing the store |
-| Hacker | 0.1% | Automated scanner probing for vulnerabilities |
-| Bot | 0.4% | Web crawler indexing site content |
+| Session type | Probability | Description                                   |
+| ------------ | ----------- | --------------------------------------------- |
+| Human        | 99.5%       | Normal shopper browsing the store             |
+| Hacker       | 0.1%        | Automated scanner probing for vulnerabilities |
+| Bot          | 0.4%        | Web crawler indexing site content             |
 
 ```mermaid
 flowchart LR
@@ -162,11 +162,11 @@ flowchart LR
 `hacker_start` fires once on session entry (no event emitted) to pin the
 session-level properties:
 
-| Property | Value |
-| --- | --- |
-| User-agent | One of: `sqlmap/1.7.8`, `Nikto/2.1.6`, `masscan/1.3`, `zgrab/0.x`, `curl/7.68.0`, `python-requests/2.28.1`, `Go-http-client/1.1`, `Wget/1.21.2` |
-| Client IP | Drawn from a pool of **3 IPs** (simulates a single attacker or small botnet) |
-| HTTP version | Always `HTTP/1.1` |
+| Property     | Value                                                                                                                                           |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| User-agent   | One of: `sqlmap/1.7.8`, `Nikto/2.1.6`, `masscan/1.3`, `zgrab/0.x`, `curl/7.68.0`, `python-requests/2.28.1`, `Go-http-client/1.1`, `Wget/1.21.2` |
+| Client IP    | Drawn from a pool of **3 IPs** (simulates a single attacker or small botnet)                                                                    |
+| HTTP version | Always `HTTP/1.1`                                                                                                                               |
 
 The `hacker` state then loops at ~0.01 s interarrival, emitting probe requests
 with:
@@ -195,11 +195,11 @@ flowchart LR
 `bot_start` fires once on session entry (no event emitted) to pin the
 session-level properties:
 
-| Property | Value |
-| --- | --- |
-| User-agent | One of: `Googlebot/2.1`, `bingbot/2.0`, `Applebot/0.1`, `SemrushBot/7`, `AhrefsBot/7.0`, `DotBot/1.2`, `python-requests/2.28.1`, `curl/7.68.0`, `Scrapy/2.11.0` |
-| Client IP | Drawn from a pool of **5 IPs** (simulates a crawler's datacenter egress range) |
-| HTTP version | Always `HTTP/1.1` |
+| Property     | Value                                                                                                                                                           |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User-agent   | One of: `Googlebot/2.1`, `bingbot/2.0`, `Applebot/0.1`, `SemrushBot/7`, `AhrefsBot/7.0`, `DotBot/1.2`, `python-requests/2.28.1`, `curl/7.68.0`, `Scrapy/2.11.0` |
+| Client IP    | Drawn from a pool of **5 IPs** (simulates a crawler's datacenter egress range)                                                                                  |
+| HTTP version | Always `HTTP/1.1`                                                                                                                                               |
 
 The `bot` state then loops at ~1 s interarrival, emitting crawl requests with:
 
@@ -224,8 +224,8 @@ has no effect.
 
 The chart below shows how output scales with workers (varying `-w`) with the
 preset's default start interval (`--seed 42`, no schedule, PT6H simulated
-window). To regenerate: `python tools/bench_config_workers.py -c
-presets/configs/ecommerce_sports.json`.
+window). To regenerate:
+`python tools/bench_config_workers.py -c presets/configs/ecommerce_sports.json`.
 
 ```mermaid
 %%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
@@ -238,17 +238,17 @@ xychart-beta
 
 Adjust `-i` and `-w` to model heavier traffic. The table below illustrates how
 output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H
-simulated window). To regenerate: `python tools/bench_grid.py -c
-presets/configs/ecommerce_sports.json`.
+simulated window). To regenerate:
+`python tools/bench_grid.py -c presets/configs/ecommerce_sports.json`.
 
-| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | ↕️ | ↕️ | ↕️ | ↕️ | ↕️ | 🟥 361,117 (15.1s) | 🟥 898,436 (33.1s) | 🟥 1,802,728 (63.9s) |
-| 0.1 | 🟩 393 (0.6s) | 🟩 1,832 (0.6s) | 🟨 9,137 (0.8s) | 🟧 36,384 (1.7s) | 🟧 89,660 (3.4s) | 🟥 358,768 (11.6s) | 🟥 898,096 (29.0s) | 🟥 1,775,664 (59.2s) |
-| 0.75 (default) | 🟩 389 (0.3s) | 🟩 1,827 (0.3s) | 🟨 8,965 (0.6s) | 🟧 35,849 (1.3s) | 🟧 90,118 (2.9s) | 🟥 345,387 (10.7s) | 🟥 361,489 (11.1s) | ↔️ |
-| 1 | 🟩 378 (0.3s) | 🟩 1,868 (0.3s) | 🟨 8,869 (0.6s) | 🟧 36,081 (1.3s) | 🟧 88,985 (2.9s) | 🟥 274,744 (8.7s) | ↔️ | ↔️ |
+| `-i` \ `-w`    | 1             | 5               | 25              | 100              | 250              | 1,000              | 2,500              | 5,000                |
+| :------------- | :------------ | :-------------- | :-------------- | :--------------- | :--------------- | :----------------- | :----------------- | :------------------- |
+| 0.01           | ↕️            | ↕️              | ↕️              | ↕️               | ↕️               | 🟥 361,117 (15.1s) | 🟥 898,436 (33.1s) | 🟥 1,802,728 (63.9s) |
+| 0.1            | 🟩 393 (0.6s) | 🟩 1,832 (0.6s) | 🟨 9,137 (0.8s) | 🟧 36,384 (1.7s) | 🟧 89,660 (3.4s) | 🟥 358,768 (11.6s) | 🟥 898,096 (29.0s) | 🟥 1,775,664 (59.2s) |
+| 0.75 (default) | 🟩 389 (0.3s) | 🟩 1,827 (0.3s) | 🟨 8,965 (0.6s) | 🟧 35,849 (1.3s) | 🟧 90,118 (2.9s) | 🟥 345,387 (10.7s) | 🟥 361,489 (11.1s) | ↔️                   |
+| 1              | 🟩 378 (0.3s) | 🟩 1,868 (0.3s) | 🟨 8,869 (0.6s) | 🟧 36,081 (1.3s) | 🟧 88,985 (2.9s) | 🟥 274,744 (8.7s)  | ↔️                 | ↔️                   |
 
-💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
-no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
-seconds for that cell's own run -- not shown for skipped/plateau cells, which
-were never actually run.
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ =
+Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that
+cell's own run -- not shown for skipped/plateau cells, which were never actually
+run.

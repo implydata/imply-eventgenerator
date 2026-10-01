@@ -14,8 +14,9 @@ a `tools/generate_all.json` volume tier.
 
 One object per profile, per template, per day.
 
-> For a sequential, local-first alternative without the parallel-jobs/manifest/S3-upload
-> machinery, see [generate-all.md](./generate-all.md) and [split-stream.md](./split-stream.md).
+> For a sequential, local-first alternative without the
+> parallel-jobs/manifest/S3-upload machinery, see
+> [generate-all.md](./generate-all.md) and [split-stream.md](./split-stream.md).
 
 ## Quick start
 
@@ -42,7 +43,7 @@ Each partition is one `generator.py` invocation covering exactly one simulated
 day:
 
 ```bash
-python generator.py -c presets/configs/ecommerce.json -t csv -m 2112 \
+python generator.py -c presets/configs/ecommerce.json -t csv -w 2112 \
   -r P1D -s 2026-05-27T00:00:00 --schedule presets/schedules/ecommerce.json
 ```
 
@@ -81,10 +82,10 @@ Each window is exact — verified at `--split-hours 6`, the four objects covered
 
 Two reasons to use it. It shrinks the work unit, so a day of the heaviest
 profile parallelises instead of occupying one core for minutes — one
-`vpc_flow_logs` day went from 44s at `--split-hours 24` to 15s at `--split-hours
-6` on four cores. And it caps object size, which matters because gzip is not
-splittable: a full day of a high-volume profile run at a busy `-i` can be tens
-of MB in one object that no reader can split.
+`vpc_flow_logs` day went from 44s at `--split-hours 24` to 15s at
+`--split-hours 6` on four cores. And it caps object size, which matters because
+gzip is not splittable: a full day of a high-volume profile run at a busy `-i`
+can be tens of MB in one object that no reader can split.
 
 The cost is boundary artifacts. Each sub-run starts with an empty worker pool
 that has to ramp up, and sessions in flight are cut at every boundary — the same
@@ -94,32 +95,32 @@ lost to three extra cut points. Keep the default for maximum realism; reach for
 
 ## Options
 
-| Argument | Description |
-| --- | --- |
-| `--bucket` | Destination S3 bucket. Mutually exclusive with `--local-dir`. |
-| `--local-dir` | Write the same partition tree to a local directory instead of S3. |
-| `--prefix` | Key prefix within the bucket. Default: bucket root. |
-| `--start` / `--end` | First and last day to generate, inclusive (`YYYY-MM-DD`). |
-| `--profile` | Only this profile (config basename). Repeatable. Default: every config. |
-| `--exclude-profile` | Skip this profile. Repeatable. |
-| `--template` | Only this template name. Repeatable. Default: every template in each config. |
-| `--jobs` | Parallel generator processes. Default: cores minus 2. |
-| `--split-hours` | Split each day into objects of this many hours (1, 2, 3, 4, 6, 8, 12 or 24). Default: 24 — one object per day. |
-| `-m` / `--concurrency` | Override `-m` for every profile. Default: each profile's measured ceiling. |
-| `--no-schedule` | Ignore per-profile schedules. Raises ecommerce volume by ~1.5×. |
-| `--seed-base` | Derive each day's `--seed` as `seed-base + day ordinal`. See the caveat below. |
-| `--compresslevel` | gzip level 1–9. Default: 6. |
-| `--aws-profile` | AWS profile to authenticate with, including SSO profiles. Defaults to `$AWS_PROFILE`, then the default profile. |
-| `--region` | AWS region. Default: the profile's own region. |
-| `--sso-login` | Run `aws sso login` automatically if credentials are expired or missing. |
-| `--storage-class` | S3 storage class, e.g. `STANDARD_IA`. |
-| `--sse` / `--kms-key-id` | Server-side encryption, e.g. `AES256` or `aws:kms` with a key id. |
-| `--acl` | Object ACL, e.g. `bucket-owner-full-control`. |
-| `--manifest` | JSONL run log, also used for resume. Default: `lake_manifest.jsonl`. |
-| `--overwrite` | Regenerate partitions already recorded in the manifest. |
-| `--check-remote` | Also skip partitions already present at the destination (one HEAD each). |
-| `--task-timeout` | Kill a single partition after N seconds. Default: no limit. |
-| `--dry-run` | Print the plan and exit. |
+| Argument                 | Description                                                                                                     |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `--bucket`               | Destination S3 bucket. Mutually exclusive with `--local-dir`.                                                   |
+| `--local-dir`            | Write the same partition tree to a local directory instead of S3.                                               |
+| `--prefix`               | Key prefix within the bucket. Default: bucket root.                                                             |
+| `--start` / `--end`      | First and last day to generate, inclusive (`YYYY-MM-DD`).                                                       |
+| `--profile`              | Only this profile (config basename). Repeatable. Default: every config.                                         |
+| `--exclude-profile`      | Skip this profile. Repeatable.                                                                                  |
+| `--template`             | Only this template name. Repeatable. Default: every template in each config.                                    |
+| `--jobs`                 | Parallel generator processes. Default: cores minus 2.                                                           |
+| `--split-hours`          | Split each day into objects of this many hours (1, 2, 3, 4, 6, 8, 12 or 24). Default: 24 — one object per day.  |
+| `-m` / `--concurrency`   | Override `-m` for every profile. Default: each profile's measured ceiling.                                      |
+| `--no-schedule`          | Ignore per-profile schedules. Raises ecommerce volume by ~1.5×.                                                 |
+| `--seed-base`            | Derive each day's `--seed` as `seed-base + day ordinal`. See the caveat below.                                  |
+| `--compresslevel`        | gzip level 1–9. Default: 6.                                                                                     |
+| `--aws-profile`          | AWS profile to authenticate with, including SSO profiles. Defaults to `$AWS_PROFILE`, then the default profile. |
+| `--region`               | AWS region. Default: the profile's own region.                                                                  |
+| `--sso-login`            | Run `aws sso login` automatically if credentials are expired or missing.                                        |
+| `--storage-class`        | S3 storage class, e.g. `STANDARD_IA`.                                                                           |
+| `--sse` / `--kms-key-id` | Server-side encryption, e.g. `AES256` or `aws:kms` with a key id.                                               |
+| `--acl`                  | Object ACL, e.g. `bucket-owner-full-control`.                                                                   |
+| `--manifest`             | JSONL run log, also used for resume. Default: `lake_manifest.jsonl`.                                            |
+| `--overwrite`            | Regenerate partitions already recorded in the manifest.                                                         |
+| `--check-remote`         | Also skip partitions already present at the destination (one HEAD each).                                        |
+| `--task-timeout`         | Kill a single partition after N seconds. Default: no limit.                                                     |
+| `--dry-run`              | Print the plan and exit.                                                                                        |
 
 ## Volume per profile
 
@@ -131,15 +132,15 @@ ones with `tools/bench_config.py`.
 Measured rates, with the ecommerce schedule applied to the three ecommerce
 profiles:
 
-| Profile | `-m` | Schedule | rows/day | 90 days raw (all templates) |
-| --- | --- | --- | --- | --- |
-| `ecommerce` | 2112 | `ecommerce.json` | ~533k | ~135 GB (11 templates) |
-| `ecommerce_lighting` | 2112 | `ecommerce.json` | ~700k | ~177 GB (11 templates) |
-| `ecommerce_furniture` | 528 | `ecommerce.json` | ~156k | ~40 GB (11 templates) |
-| `vpc_flow_logs` | 66 | — | ~795k | ~7 GB |
-| `endpoint_network` | 1 | — | ~289k | ~2 GB |
-| `ssh_auth` | 66 | — | ~21k | ~165 MB |
-| `pbx_calls` | 9 | — | ~2.9k | ~48 MB |
+| Profile               | `-m` | Schedule         | rows/day | 90 days raw (all templates) |
+| --------------------- | ---- | ---------------- | -------- | --------------------------- |
+| `ecommerce`           | 2112 | `ecommerce.json` | ~533k    | ~135 GB (11 templates)      |
+| `ecommerce_lighting`  | 2112 | `ecommerce.json` | ~700k    | ~177 GB (11 templates)      |
+| `ecommerce_furniture` | 528  | `ecommerce.json` | ~156k    | ~40 GB (11 templates)       |
+| `vpc_flow_logs`       | 66   | —                | ~795k    | ~7 GB                       |
+| `endpoint_network`    | 1    | —                | ~289k    | ~2 GB                       |
+| `ssh_auth`            | 66   | —                | ~21k     | ~165 MB                     |
+| `pbx_calls`           | 9    | —                | ~2.9k    | ~48 MB                      |
 
 `vpc_flow_logs_derived` has been retired — its physical-consistency fix (bytes
 derived from packets × MSS rather than sampled independently) is now merged
@@ -161,12 +162,12 @@ narrow `--profile`/`--template`, or shorten the date range.
 
 Measured per-partition cost for one simulated day, one generator, no contention:
 
-| Profile | Solo wall per day | Rows/day | gzip/day | Ratio |
-| --- | --- | --- | --- | --- |
-| `ecommerce` (`apache:access:json`) | 43s | 563k | 20.3 MB | 13.1:1 |
-| `vpc_flow_logs` | 44s | 795k | 10.3 MB | 8.5:1 |
-| `ssh_auth` | 1.8s | 21k | 0.3 MB | — |
-| `pbx_calls` | 0.6s | 2.9k | 0.1 MB | — |
+| Profile                            | Solo wall per day | Rows/day | gzip/day | Ratio  |
+| ---------------------------------- | ----------------- | -------- | -------- | ------ |
+| `ecommerce` (`apache:access:json`) | 43s               | 563k     | 20.3 MB  | 13.1:1 |
+| `vpc_flow_logs`                    | 44s               | 795k     | 10.3 MB  | 8.5:1  |
+| `ssh_auth`                         | 1.8s              | 21k      | 0.3 MB   | —      |
+| `pbx_calls`                        | 0.6s              | 2.9k     | 0.1 MB   | —      |
 
 (`vpc_flow_logs_derived`'s row is removed along with the profile — see the note
 above.)

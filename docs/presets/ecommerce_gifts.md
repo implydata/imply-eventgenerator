@@ -22,7 +22,7 @@ python generator.py -c presets/configs/ecommerce_gifts.json --template csv -n \
 
 # With time-of-day variation
 python generator.py -c presets/configs/ecommerce_gifts.json --template \
-  access_combined -m 400 --schedule presets/schedules/ecommerce.json
+  access_combined -w 400 --schedule presets/schedules/ecommerce.json
 
 # IIS W3C log (Splunk ms:iis:auto sourcetype — recommended)
 python generator.py -c presets/configs/ecommerce_gifts.json --template \
@@ -31,20 +31,20 @@ python generator.py -c presets/configs/ecommerce_gifts.json --template \
 
 ## Templates
 
-| Template | Output |
-| --- | --- |
-| `apache:access:json` | Splunk TA JSON (`KV_MODE=json`) |
-| `apache:access:kv` | Splunk TA key=value pairs |
-| `apache:access:combined` | NCSA combined log (Splunk `apache:access:combined` sourcetype) |
-| `access_combined` | NCSA combined log (Splunk `access_combined` pre-trained sourcetype) |
-| `access_combined_wcookie` | NCSA combined log with cookie field appended |
-| `access_common` | NCSA common log (no referrer or user-agent) |
-| `csv` | CSV with header row |
-| `ms:iis:auto` | IIS W3C log (`ms:iis:auto` sourcetype) |
-| `ms:iis:default:85` | IIS W3C log (`ms:iis:default:85` sourcetype — identical output to `ms:iis:auto`, included for completeness) |
-| `ms:iis:default` | IIS W3C log (`ms:iis:default` sourcetype, IIS 7.0 field ordering) |
-| `ms:iis:splunk` | IIS W3C log (`ms:iis:splunk` sourcetype, adds `Content-Type` and `https` fields) |
-| `ocsf:http_activity` | [OCSF](https://schema.ocsf.io/) 1.4.0 HTTP Activity (`class_uid` 4002) JSON — one event per request, for security data lake / SIEM ingestion |
+| Template                  | Output                                                                                                                                       |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apache:access:json`      | Splunk TA JSON (`KV_MODE=json`)                                                                                                              |
+| `apache:access:kv`        | Splunk TA key=value pairs                                                                                                                    |
+| `apache:access:combined`  | NCSA combined log (Splunk `apache:access:combined` sourcetype)                                                                               |
+| `access_combined`         | NCSA combined log (Splunk `access_combined` pre-trained sourcetype)                                                                          |
+| `access_combined_wcookie` | NCSA combined log with cookie field appended                                                                                                 |
+| `access_common`           | NCSA common log (no referrer or user-agent)                                                                                                  |
+| `csv`                     | CSV with header row                                                                                                                          |
+| `ms:iis:auto`             | IIS W3C log (`ms:iis:auto` sourcetype)                                                                                                       |
+| `ms:iis:default:85`       | IIS W3C log (`ms:iis:default:85` sourcetype — identical output to `ms:iis:auto`, included for completeness)                                  |
+| `ms:iis:default`          | IIS W3C log (`ms:iis:default` sourcetype, IIS 7.0 field ordering)                                                                            |
+| `ms:iis:splunk`           | IIS W3C log (`ms:iis:splunk` sourcetype, adds `Content-Type` and `https` fields)                                                             |
+| `ocsf:http_activity`      | [OCSF](https://schema.ocsf.io/) 1.4.0 HTTP Activity (`class_uid` 4002) JSON — one event per request, for security data lake / SIEM ingestion |
 
 When generating IIS data for Splunk, use `--template ms:iis:auto` — the other
 IIS templates are included for completeness but have been marked as deprecated
@@ -61,46 +61,46 @@ across all three actor types.
 
 ## Output fields
 
-| Field | Description |
-| --- | --- |
-| `time` | Request timestamp |
-| `client` | Client IP address |
-| `ident` | RFC 1413 identity (always `-`) |
-| `user` | Authenticated username (usually `-`) |
-| `http_method` | HTTP method (`GET`, `POST`, etc.) |
-| `uri_path` | Request path |
-| `uri_query` | Query string (empty if none) |
-| `http_version` | Protocol version (`HTTP/1.1`, `HTTP/2.0`) |
-| `status` | HTTP response status code |
-| `bytes_out` | Response bytes |
-| `bytes_in` | Request bytes |
-| `http_referrer` | Referrer URL |
-| `http_user_agent` | User-Agent string |
-| `http_content_type` | Content-Type of the response |
-| `cookie` | Session cookie value |
-| `server` | Server IP address (`10.0.3.x`) |
-| `dest_port` | Server port (80, 443, or 8080) |
-| `response_time_microseconds` | Response latency in microseconds |
+| Field                        | Description                               |
+| ---------------------------- | ----------------------------------------- |
+| `time`                       | Request timestamp                         |
+| `client`                     | Client IP address                         |
+| `ident`                      | RFC 1413 identity (always `-`)            |
+| `user`                       | Authenticated username (usually `-`)      |
+| `http_method`                | HTTP method (`GET`, `POST`, etc.)         |
+| `uri_path`                   | Request path                              |
+| `uri_query`                  | Query string (empty if none)              |
+| `http_version`               | Protocol version (`HTTP/1.1`, `HTTP/2.0`) |
+| `status`                     | HTTP response status code                 |
+| `bytes_out`                  | Response bytes                            |
+| `bytes_in`                   | Request bytes                             |
+| `http_referrer`              | Referrer URL                              |
+| `http_user_agent`            | User-Agent string                         |
+| `http_content_type`          | Content-Type of the response              |
+| `cookie`                     | Session cookie value                      |
+| `server`                     | Server IP address (`10.0.3.x`)            |
+| `dest_port`                  | Server port (80, 443, or 8080)            |
+| `response_time_microseconds` | Response latency in microseconds          |
 
 ## Product categories
 
-| Category | Weight | Example products |
-| --- | --- | --- |
-| Seasonal | 28% | Christmas gift box, birthday hamper, Valentine's rose set, Mother's Day floral box |
-| Accessories | 20% | Sterling pendant necklace, silk scarf, cashmere wrap shawl, pearl drop earrings |
-| Home & lifestyle | 18% | Hand-poured soy candle, linen photo frame, reed diffuser set, artisan throw blanket |
-| Tech & gadgets | 14% | Wireless charging pad, Bluetooth mini speaker, smart travel mug, mini projector |
-| Kids & toys | 9% | Wooden building blocks, science experiment kit, art and craft set, DIY robot kit |
+| Category         | Weight | Example products                                                                    |
+| ---------------- | ------ | ----------------------------------------------------------------------------------- |
+| Seasonal         | 28%    | Christmas gift box, birthday hamper, Valentine's rose set, Mother's Day floral box  |
+| Accessories      | 20%    | Sterling pendant necklace, silk scarf, cashmere wrap shawl, pearl drop earrings     |
+| Home & lifestyle | 18%    | Hand-poured soy candle, linen photo frame, reed diffuser set, artisan throw blanket |
+| Tech & gadgets   | 14%    | Wireless charging pad, Bluetooth mini speaker, smart travel mug, mini projector     |
+| Kids & toys      | 9%     | Wooden building blocks, science experiment kit, art and craft set, DIY robot kit    |
 
 ## Session routing
 
 Each session is routed at startup by `global_init` (no event emitted):
 
-| Session type | Probability | Description |
-| --- | --- | --- |
-| Human | 99.7% | Normal shopper browsing the store |
-| Hacker | 0.1% | Automated scanner probing for vulnerabilities |
-| Bot | 0.2% | Web crawler indexing site content |
+| Session type | Probability | Description                                   |
+| ------------ | ----------- | --------------------------------------------- |
+| Human        | 99.7%       | Normal shopper browsing the store             |
+| Hacker       | 0.1%        | Automated scanner probing for vulnerabilities |
+| Bot          | 0.2%        | Web crawler indexing site content             |
 
 ```mermaid
 flowchart LR
@@ -162,11 +162,11 @@ flowchart LR
 `hacker_start` fires once on session entry (no event emitted) to pin the
 session-level properties:
 
-| Property | Value |
-| --- | --- |
-| User-agent | One of: `sqlmap/1.7.8`, `Nikto/2.1.6`, `masscan/1.3`, `zgrab/0.x`, `curl/7.68.0`, `python-requests/2.28.1`, `Go-http-client/1.1`, `Wget/1.21.2` |
-| Client IP | Drawn from a pool of **3 IPs** (simulates a single attacker or small botnet) |
-| HTTP version | Always `HTTP/1.1` |
+| Property     | Value                                                                                                                                           |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| User-agent   | One of: `sqlmap/1.7.8`, `Nikto/2.1.6`, `masscan/1.3`, `zgrab/0.x`, `curl/7.68.0`, `python-requests/2.28.1`, `Go-http-client/1.1`, `Wget/1.21.2` |
+| Client IP    | Drawn from a pool of **3 IPs** (simulates a single attacker or small botnet)                                                                    |
+| HTTP version | Always `HTTP/1.1`                                                                                                                               |
 
 The `hacker` state then loops at ~0.01 s interarrival, emitting probe requests
 with:
@@ -195,11 +195,11 @@ flowchart LR
 `bot_start` fires once on session entry (no event emitted) to pin the
 session-level properties:
 
-| Property | Value |
-| --- | --- |
-| User-agent | One of: `Googlebot/2.1`, `bingbot/2.0`, `Applebot/0.1`, `SemrushBot/7`, `AhrefsBot/7.0`, `DotBot/1.2`, `python-requests/2.28.1`, `curl/7.68.0`, `Scrapy/2.11.0` |
-| Client IP | Drawn from a pool of **5 IPs** (simulates a crawler's datacenter egress range) |
-| HTTP version | Always `HTTP/1.1` |
+| Property     | Value                                                                                                                                                           |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User-agent   | One of: `Googlebot/2.1`, `bingbot/2.0`, `Applebot/0.1`, `SemrushBot/7`, `AhrefsBot/7.0`, `DotBot/1.2`, `python-requests/2.28.1`, `curl/7.68.0`, `Scrapy/2.11.0` |
+| Client IP    | Drawn from a pool of **5 IPs** (simulates a crawler's datacenter egress range)                                                                                  |
+| HTTP version | Always `HTTP/1.1`                                                                                                                                               |
 
 The `bot` state then loops at ~1 s interarrival, emitting crawl requests with:
 
@@ -224,8 +224,8 @@ has no effect.
 
 The chart below shows how output scales with workers (varying `-w`) with the
 preset's default start interval (`--seed 42`, no schedule, PT6H simulated
-window). To regenerate: `python tools/bench_config_workers.py -c
-presets/configs/ecommerce_gifts.json`.
+window). To regenerate:
+`python tools/bench_config_workers.py -c presets/configs/ecommerce_gifts.json`.
 
 ```mermaid
 %%{init: {'themeVariables': {'xyChart': {'plotColorPalette': '#2563eb'}}}}%%
@@ -238,17 +238,17 @@ xychart-beta
 
 Adjust `-i` and `-w` to model heavier traffic. The table below illustrates how
 output scales across `-w` and `-i` together (`--seed 42`, no schedule, PT6H
-simulated window). To regenerate: `python tools/bench_grid.py -c
-presets/configs/ecommerce_gifts.json`.
+simulated window). To regenerate:
+`python tools/bench_grid.py -c presets/configs/ecommerce_gifts.json`.
 
-| `-i` \ `-w` | 1 | 5 | 25 | 100 | 250 | 1,000 | 2,500 | 5,000 |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0.01 | ↕️ | 🟩 1,532 (2.8s) | ↕️ | ↕️ | ↕️ | 🟥 306,370 (13.5s) | 🟥 766,922 (29.4s) | 🟥 1,530,898 (57.6s) |
-| 0.1 | 🟩 289 (0.5s) | 🟩 1,537 (0.6s) | 🟨 7,601 (0.8s) | 🟧 30,564 (1.5s) | 🟧 76,511 (2.9s) | 🟥 305,552 (10.0s) | 🟥 760,189 (25.0s) | 🟥 1,512,211 (51.2s) |
-| 1 | 🟩 294 (0.3s) | 🟩 1,744 (0.3s) | 🟨 7,546 (0.5s) | 🟧 31,185 (1.2s) | 🟧 76,653 (2.6s) | 🟥 210,043 (6.6s) | ↔️ | ↔️ |
-| 1.5 (default) | 🟩 289 (0.2s) | 🟩 1,520 (0.3s) | 🟨 7,718 (0.5s) | 🟧 30,476 (1.1s) | 🟧 75,355 (2.5s) | 🟧 145,125 (4.6s) | ↔️ | ↔️ |
+| `-i` \ `-w`   | 1             | 5               | 25              | 100              | 250              | 1,000              | 2,500              | 5,000                |
+| :------------ | :------------ | :-------------- | :-------------- | :--------------- | :--------------- | :----------------- | :----------------- | :------------------- |
+| 0.01          | ↕️            | 🟩 1,532 (2.8s) | ↕️              | ↕️               | ↕️               | 🟥 306,370 (13.5s) | 🟥 766,922 (29.4s) | 🟥 1,530,898 (57.6s) |
+| 0.1           | 🟩 289 (0.5s) | 🟩 1,537 (0.6s) | 🟨 7,601 (0.8s) | 🟧 30,564 (1.5s) | 🟧 76,511 (2.9s) | 🟥 305,552 (10.0s) | 🟥 760,189 (25.0s) | 🟥 1,512,211 (51.2s) |
+| 1             | 🟩 294 (0.3s) | 🟩 1,744 (0.3s) | 🟨 7,546 (0.5s) | 🟧 31,185 (1.2s) | 🟧 76,653 (2.6s) | 🟥 210,043 (6.6s)  | ↔️                 | ↔️                   |
+| 1.5 (default) | 🟩 289 (0.2s) | 🟩 1,520 (0.3s) | 🟨 7,718 (0.5s) | 🟧 30,476 (1.1s) | 🟧 75,355 (2.5s) | 🟧 145,125 (4.6s)  | ↔️                 | ↔️                   |
 
-💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had
-no effect. ↕️ = Plateau -- decreasing -i had no effect. (Ns) = wall-clock
-seconds for that cell's own run -- not shown for skipped/plateau cells, which
-were never actually run.
+💥 = Crashed. ⏱️ = Timeout. ↔️ = Plateau -- increasing -w had no effect. ↕️ =
+Plateau -- decreasing -i had no effect. (Ns) = wall-clock seconds for that
+cell's own run -- not shown for skipped/plateau cells, which were never actually
+run.

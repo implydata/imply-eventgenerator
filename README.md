@@ -27,8 +27,6 @@ python generator.py -c presets/configs/ecommerce.json -t access_combined -w 1 -n
 This command generates logs in the format of [Apache access combined logs](https://httpd.apache.org/docs/2.4/logs.html).
 It uses a single worker to generate 10 records, and it outputs the results to the standard output stream, such as the terminal window. Status messages are written to stderr, so stdout contains only data and can be piped directly.
 
-For more examples and test cases, see [`test.sh`](./test.sh).
-
 The `presets/` folder contains ready-to-use configs with [embedded output templates](docs/templates.md) — use `-t` to select an output format by name. See [presets/README.md](presets/README.md) for details.
 
 ## Documentation
