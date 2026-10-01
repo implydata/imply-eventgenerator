@@ -74,8 +74,9 @@ Two state types call a child config:
   machine started, was removed along the way. Defaults belong to the parent's
   `items` or to a `variables` block on `event:start:message`.
 - An earlier idea, a top-level `constants` block, was dropped because `items`
-  covered parameter passing. Constants for repeated literal values are now a
-  separate item in [TODO.md](TODO.md).
+  covered parameter passing. Load-time definitions for repeated literal
+  values, which a variables-based block couldn't provide, are now a separate
+  item in [TODO.md](TODO.md).
 
 ## Design problems to solve before porting the engine code
 

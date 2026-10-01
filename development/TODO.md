@@ -19,8 +19,10 @@
   record render as blanks instead of raising an error.
 - Make `percent_nulls` work or remove it. Every generator page documents it,
   but `create_record` never applies it, so no dimension type ever emits `null`.
-- Design a top-level `constants` block for repeated literal values, such as the
-  IP address range written out three times in `ecommerce_furniture`.
+- Low priority: add load-time definitions to configs, so a JSON fragment named
+  once in a top-level `definitions` block can be reused with `{"$ref": "<name>"}`
+  and substituted before parsing. This would remove repeats such as the public IP
+  range written out three times in `ecommerce_furniture`.
 
 ## Docs
 
