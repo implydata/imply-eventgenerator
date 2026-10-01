@@ -1,14 +1,5 @@
 # TODO
 
-## Break down the `202604-looping` branch
-
-1. Port the state class hierarchy and per-state doc pages to main. See
-   [TODO-state-classes.md](TODO-state-classes.md).
-2. Tag `202604-looping` as `archive/202604-looping` and push the tag.
-3. Start a subprocess branch from main with only the subprocess material. See
-   [TODO-subprocess-branch.md](TODO-subprocess-branch.md).
-4. Delete `202604-looping` locally and on origin.
-
 ## Engine
 
 - Allow `"type": "variable"` in a state's `variables` block, so one variable can
@@ -21,8 +12,10 @@
   record render as blanks instead of raising an error.
 - Make `percent_nulls` work or remove it. Every generator page documents it,
   but `create_record` never applies it, so no dimension type ever emits `null`.
-- Design a top-level `constants` block for repeated literal values, such as the
-  IP address range written out three times in `ecommerce_furniture`.
+- Low priority: add load-time definitions to configs, so a JSON fragment named
+  once in a top-level `definitions` block can be reused with `{"$ref": "<name>"}`
+  and substituted before parsing. This would remove repeats such as the public IP
+  range written out three times in `ecommerce_furniture`.
 
 ## Docs
 
@@ -43,3 +36,9 @@
   repeated across branches that could be set once in an earlier state.
 - Add an `ocsf:network_activity` template for `palo_alto` traffic logs. Threat
   logs would need a security-finding OCSF class.
+
+## Ideas
+
+- Consider letting one config call another as a step, optionally once per item
+  in a list. See [TODO-subprocesses.md](TODO-subprocesses.md) for the brief and
+  the history of the first attempt.

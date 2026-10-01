@@ -22,10 +22,9 @@ from ieg.dimensions import (
     DimensionGeneratorClock,
     DimensionVariable,
     get_dimensions,
-    get_variables,
 )
-from ieg.distributions import parse_distribution, parse_schedule
-from ieg.states import Controller, State, Transition
+from ieg.distributions import parse_schedule
+from ieg.states import STATE_CLASSES, Controller
 from ieg.validate import validate_config
 
 logger = logging.getLogger("ieg")
@@ -247,59 +246,24 @@ class DataDriver:
         self.initial_state = None
         self.states = {}
         for state in state_desc:
-            name = state["name"]
             state_type = state.get("type")
             if state_type is None:
                 raise RuntimeError(
                     f"State '{state.get('name', '?')}' is missing required "
                     f"field 'type'."
                 )
-            emitter_name = state.get("emitter")
-            if emitter_name is not None:
-                dimensions = self.emitters[emitter_name]
-            else:
-                dimensions = None  # No emitter = no record emission
-            if "variables" not in state:
-                variables = []
-            else:
-                variables = get_variables(state["variables"], self.global_clock)
-            _zero = {"type": "constant", "value": 0}
-            if state_type == "event:end":
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = []
-            elif state_type == "event:start:timer":
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = [Transition(state["next"], 1.0)]
-            elif state_type == "event:intermediate:timer":
-                delay = parse_distribution(
-                    state["cardinality_distribution"], clock=self.global_clock
-                )
-                transitions = [Transition(state["next"], 1.0)]
-            elif state_type == "activity":
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = [Transition(state["next"], 1.0)]
-            elif state_type == "gateway:exclusive":
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = Transition.parse_transitions(state["transitions"])
-            else:
-                delay = parse_distribution(_zero, clock=self.global_clock)
-                transitions = Transition.parse_transitions(state.get("transitions", []))
-            this_state = State(
-                name, state_type, dimensions, delay, transitions, variables
+            this_state = STATE_CLASSES[state_type].parse(
+                state, self.emitters, self.global_clock
             )
-            self.states[name] = this_state
-            if state_type == "event:start:timer":
+            self.states[this_state.name] = this_state
+            if this_state.is_entry:
                 self.initial_state = this_state
 
         if self.initial_state is None:
             raise RuntimeError("Config has no event:start:timer state.")
 
-        # Interarrival rate comes from the event:start:timer state's
-        # cardinality_distribution field
-        timer_desc = next(s for s in state_desc if s.get("type") == "event:start:timer")
-        self.rate_delay = parse_distribution(
-            timer_desc["cardinality_distribution"], clock=self.global_clock
-        )
+        # Sessions start at the rate set by the entry state's cardinality_distribution.
+        self.rate_delay = self.initial_state.interarrival
 
         # Admission for -w: there's no queue. The population of potential
         # arrivals is treated as unbounded (see arrival_process), so the only
@@ -412,10 +376,8 @@ class DataDriver:
                     raise RuntimeError(
                         "Unexpected error: current state of the state machine is None."
                     )
-                # Process delay
-                delta = float(current_state.delay.get_sample())
                 try:
-                    yield from self.global_clock.sleep(delta)
+                    yield from current_state.run(self, variables)
                 except simpy.Interrupt:
                     logger.debug(
                         "session_process %s: interrupted mid-delay at state %s, "
@@ -425,14 +387,6 @@ class DataDriver:
                     )
                     break
                 self.status_msg = f"Running, Sim Clock: {self.global_clock.now()}"
-                # Set variables (activities only; evaluated before emission)
-                self.set_variable_values(variables, current_state.variables)
-                # Only emit record if state has dimensions (emitter was specified)
-                if current_state.dimensions is not None:
-                    record = self.create_record(current_state.dimensions, variables)
-                    formatted_record = self.render_record(record)
-                    self._emit(formatted_record, self.global_clock.now())
-                    self.sim_control.inc_rec_count()
                 if self.sim_control.is_done():
                     logger.debug(
                         "session_process %s: is_done() became true after emitting, "
@@ -441,11 +395,11 @@ class DataDriver:
                     )
                     self._end_run()
                     break
-                next_state_name = current_state.get_next_state_name()
+                next_state_name = current_state.next_state()
                 if next_state_name is None:
                     break
                 next_state = self.states.get(next_state_name)
-                if next_state is None or next_state.type == "event:end":
+                if next_state is None or next_state.is_terminal:
                     break
                 current_state = next_state
         finally:
