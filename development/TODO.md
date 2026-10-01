@@ -1,12 +1,5 @@
 # TODO
 
-## Break down the `202604-looping` branch
-
-1. Tag `202604-looping` as `archive/202604-looping` and push the tag.
-2. Start a subprocess branch from main with only the subprocess material. See
-   [TODO-subprocess-branch.md](TODO-subprocess-branch.md).
-3. Delete `202604-looping` locally and on origin.
-
 ## Engine
 
 - Allow `"type": "variable"` in a state's `variables` block, so one variable can
@@ -43,3 +36,9 @@
   repeated across branches that could be set once in an earlier state.
 - Add an `ocsf:network_activity` template for `palo_alto` traffic logs. Threat
   logs would need a security-finding OCSF class.
+
+## Ideas
+
+- Consider letting one config call another as a step, optionally once per item
+  in a list. See [TODO-subprocesses.md](TODO-subprocesses.md) for the brief and
+  the history of the first attempt.

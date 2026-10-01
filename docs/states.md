@@ -167,6 +167,11 @@ flowchart TD
 
 ## Variable scope
 
+An activity's `variables` block sets variables with
+[static](./dimensions/static.md) and [generator](./dimensions/generator.md)
+dimensions. An emitter reads them with
+[`"type": "variable"`](./dimensions/variable.md) in its `dimensions`.
+
 Variables set in `activity` states are **per-worker and per-lifecycle**:
 
 - Each worker starts with an empty variable namespace.
