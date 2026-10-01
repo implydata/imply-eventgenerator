@@ -9,11 +9,10 @@
   real referrer has, so realistic referrers also need a way to join values.
 - Remove the deprecated `-m` alias for `-w` from `generator.py`, and switch
   `tools/generate_lake.py` to `-w`, both its own flag and the command it builds.
-- Stop `--template` silently mis-rendering configs with more than one emitter.
-  One template is applied to every emitter's records, and fields missing from a
-  record render as blanks instead of raising an error.
-- Make `percent_nulls` work or remove it. Every generator page documents it,
-  but `create_record` never applies it, so no dimension type ever emits `null`.
+- Fix `--template` applying one template to every emitter's records:
+  [#43](https://github.com/implydata/imply-eventgenerator/issues/43).
+- Make `percent_nulls` work or remove it:
+  [#42](https://github.com/implydata/imply-eventgenerator/issues/42).
 
 ## Docs
 
