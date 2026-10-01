@@ -9,10 +9,13 @@ attempt starts from main.
 
 Let one config call another as a step in its state machine, optionally once per
 item in a list. A browser session is the motivating case: a page view isn't one
-request but many (HTML, CSS, JavaScript, images), and modelling that inside a
-single config means writing the same asset-loading states out repeatedly. Calling
-a child config would also let presets share fragments, such as a hacker or bot
-Actor, instead of copying them.
+request but many (HTML, CSS, JavaScript, images). Modelling a store's journey of
+homepage, category listing with thumbnails, product detail, add to cart, and
+checkout in one config grew it to about 80 states, which is what led to calling
+child configs: one config per product category, each handling its own browse,
+view, and add-to-cart flow, with a shared add-to-cart config callable from any
+of them. Child configs would also let presets share fragments, such as a hacker
+or bot Actor, instead of copying them.
 
 ## How the approach evolved
 
@@ -38,7 +41,8 @@ Actor, instead of copying them.
    parent passed in. It worked in emitter `dimensions` and in `variables`
    blocks, where it could read variables set earlier in the same block.
 5. **A proving ground.** A DIY hardware-store preset was built with child
-   configs throughout. See [DIY preset](#diy-preset).
+   configs throughout, starting with a looping state that took some time to get
+   right. See [DIY preset](#diy-preset).
 6. **Outcome.** The engine code was thread-based, and the engine moved to a
    single-threaded simpy event loop in September 2026, so the code couldn't be
    kept. The parts that stood alone were rebuilt on main instead: the
@@ -141,9 +145,14 @@ cart, the hacker, and the bot.
   seconds for plumbing and electrical, and 15–45 seconds for the rest.
 - **Assets:** JavaScript and CSS once per session (30–500 KB), 77 thumbnails
   once per session (4–35 KB), and a hero and two gallery images per product
-  view (80–600 KB). Loading thumbnails on every category page made 82% of rows
-  asset requests; preloading them once still left about 88% of rows as image
-  hits in a PT1H run, roughly 84 per session.
+  view (80–600 KB). The first version loaded 11 thumbnails and 3 static files on
+  every category page visit. A full-day run (PT24H, `-m 500`, the standard
+  ecommerce schedule) produced 2.8 million rows, 82% of them asset requests: 66%
+  category thumbnails and 16% static JavaScript and CSS, which buried the page
+  requests. A one-off preload at session start replaced the per-visit loads. It
+  was a shortcut to make progress, not a model of how browsers cache assets, and
+  it still left about 88% of rows as image hits in a PT1H run, roughly 84 per
+  session.
 - **`bytes_out`:** set by every emitting activity: homepage 5–80 KB, category
   8–60 KB, product 10–80 KB, checkout 5–30 KB, thank-you 3–20 KB, cart API
   200 B–2 KB, bot crawl 5–80 KB, and hacker error responses 200 B–5 KB.
@@ -151,6 +160,8 @@ cart, the hacker, and the bot.
   suspicious paths with error status codes; the bot crawled about once a second
   through `robots.txt`, the sitemap, and category and product pages.
 - **Never finished:** the `-w` benchmark, the preset doc, and a
-  `tools/generate_all.json` profile. Ideas not built: updating the referrer
+  `tools/generate_all.json` profile. The benchmark mattered most: the point of
+  the preset was the volume it generates, and that was never measured against
+  the existing ecommerce presets. Ideas not built: updating the referrer
   within a session, 304 responses for repeat visitors' assets, and POST for
   cart adds.
